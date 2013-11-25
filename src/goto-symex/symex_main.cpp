@@ -13,6 +13,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/symbol_table.h>
 #include <util/replace_symbol.h>
 
+#include <util/signal_catcher.h>
+
 #include "goto_symex.h"
 
 /*******************************************************************\
@@ -106,33 +108,37 @@ void goto_symext::rewrite_quantifiers(exprt &expr, statet &state)
 
 Function: goto_symext::operator()
 
-  Inputs:
+  Inputs: goto functions, current symex state
 
- Outputs:
+ Outputs: false if symbolic execution is to be interrupted to perform incremental checking,
+          true if symbolic execution has terminated
 
  Purpose: symex from given state
 
 \*******************************************************************/
 
-void goto_symext::operator()(
+bool goto_symext::operator()(
   statet &state,
   const goto_functionst &goto_functions,
   const goto_programt &goto_program)
 {
   assert(!goto_program.instructions.empty());
 
-  state.source=symex_targett::sourcet(goto_program);
-  assert(!state.threads.empty());
-  assert(!state.call_stack().empty());
-  state.top().end_of_function=--goto_program.instructions.end();
-  state.top().calling_location.pc=state.top().end_of_function;
-  state.symex_target=&target;
+  if(state.symex_target==NULL) {
+    state.source=symex_targett::sourcet(goto_program);
+    assert(!state.threads.empty());
+    assert(!state.call_stack().empty());
+    state.top().end_of_function=--goto_program.instructions.end();
+    state.top().calling_location.pc=state.top().end_of_function;
+    state.symex_target=&target;
+  }
   
   assert(state.top().end_of_function->is_end_function());
 
   while(!state.call_stack().empty())
   {
-    symex_step(goto_functions, state);
+    signal_catchert::check_caught_signal();
+    if(symex_step(goto_functions, state)) return false;
     
     // is there another thread to execute?
     if(state.call_stack().empty() &&
@@ -143,6 +149,7 @@ void goto_symext::operator()(
       state.switch_to_thread(t);
     }
   }
+  return true;
 }
 
 /*******************************************************************\
@@ -190,19 +197,21 @@ void goto_symext::operator()(const goto_functionst &goto_functions)
   operator()(goto_functions, body);
 }
 
+
+
 /*******************************************************************\
 
 Function: goto_symext::symex_step
 
-  Inputs:
+  Inputs: goto functions, current symex state
 
- Outputs:
+ Outputs: true if symbolic execution is to be interrupted to perform incremental checking
 
  Purpose: do just one step
 
 \*******************************************************************/
 
-void goto_symext::symex_step(
+bool goto_symext::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
@@ -247,7 +256,7 @@ void goto_symext::symex_step(
     break;
   
   case GOTO:
-    symex_goto(state);
+    return symex_goto(state);
     break;
     
   case ASSUME:
@@ -281,7 +290,7 @@ void goto_symext::symex_step(
     break;
 
   case ASSERT:
-    if(!state.guard.is_false())
+    if(!state.guard.is_false() && !ignore_assertions)
     {
       std::string msg=id2string(state.source.pc->location.get_comment());
       if(msg=="") msg="assertion";
@@ -391,4 +400,5 @@ void goto_symext::symex_step(
   default:
     throw "symex got unexpected instruction";
   }
+  return false;
 }

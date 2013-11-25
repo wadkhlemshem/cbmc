@@ -9,6 +9,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_SOLVER_BV_REFINEMENT_H
 #define CPROVER_SOLVER_BV_REFINEMENT_H
 
+#include <langapi/language_ui.h>
+
 #include <solvers/flattening/bv_pointers.h>
 
 #define MAX_STATE 10000
@@ -28,6 +30,8 @@ public:
 
   // maximal number of times we refine a formula node
   unsigned max_node_refinement;
+
+  void set_ui(language_uit::uit _ui) { ui=_ui; }
 
 protected:
   resultt prop_solve();
@@ -73,7 +77,6 @@ protected:
   void initialize(approximationt &approximation);
   void get_values(approximationt &approximation);
   bool is_in_conflict(approximationt &approximation);
-  void set_frozen(const bvt &);
   
   void check_SAT();
   void check_UNSAT();
@@ -91,6 +94,15 @@ protected:
 
   // for collecting statistics
   virtual void set_to(const exprt &expr, bool value);
+
+  // overloading
+  virtual void set_assumptions(const bvt &_assumptions);
+
+  bvt parent_assumptions;
+
+  // use gui format
+  language_uit::uit ui;
+
 };
 
 #endif

@@ -23,6 +23,7 @@ class optionst;
 #define CBMC_OPTIONS \
   "(program-only)(function):(preprocess)(slice-by-trace):" \
   "(no-simplify)(unwind):(unwindset):(slice-formula)" \
+  "(unwind-max):(unwind-min):" \
   "(debug-level):(no-propagation)(no-simplify-if)" \
   "(document-subgoals)(outfile):" \
   "D:I:" \
@@ -44,6 +45,8 @@ class optionst;
   "(all-claims)(all-properties)" \
   "(error-label):(verbosity):(no-library)" \
   "(version)" \
+  "(incremental-check):" \
+  "(ignore-assertions-before-unwind-min)" \
   "(cover-assertions)" \
   "(mm):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \

@@ -36,6 +36,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <langapi/mode.h>
 
+#include <solvers/prop/prop_conv.h>
+#include <solvers/sat/satcheck.h>
+#include <solvers/sat/satcheck_minisat2.h>
+
+#include "cbmc_solvers.h"
 #include "cbmc_parseoptions.h"
 #include "bmc.h"
 #include "version.h"
@@ -154,8 +159,15 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
   else
     options.set_option("all-claims", false);
 
-  if(cmdline.isset("unwind"))
+  if(cmdline.isset("unwind-max"))
+    options.set_option("unwind-max", cmdline.getval("unwind-max"));
+  if(cmdline.isset("unwind-min"))
+    options.set_option("unwind-min", cmdline.getval("unwind-min"));
+  if(cmdline.isset("unwind")) {
     options.set_option("unwind", cmdline.getval("unwind"));
+  }
+  if(cmdline.isset("ignore-assertions-before-unwind-min"))
+    options.set_option("ignore-assertions-before-unwind-min", true);
 
   if(cmdline.isset("depth"))
     options.set_option("depth", cmdline.getval("depth"));
@@ -168,6 +180,9 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("unwindset"))
     options.set_option("unwindset", cmdline.getval("unwindset"));
+
+  if(cmdline.isset("incremental-check"))
+    options.set_option("incremental-check", cmdline.getval("incremental-check"));
 
   // constant propagation
   if(cmdline.isset("no-propagation"))
@@ -354,7 +369,17 @@ int cbmc_parseoptionst::doit()
   optionst options;
   get_command_line_options(options);
 
-  bmct bmc(options, symbol_table, ui_message_handler);
+  //get solver
+  cbmc_solverst cbmc_solvers(options, symbol_table, ui_message_handler);
+<<<<<<< HEAD
+  prop_convt& prop_conv = cbmc_solvers.get_solver();
+=======
+  cbmc_solvers.set_ui(get_ui());
+  std::auto_ptr<cbmc_solverst::solvert> cbmc_solver = cbmc_solvers.get_solver();
+  prop_convt& prop_conv = cbmc_solver->prop_conv();
+>>>>>>> 78eedbd22... xml output for bv-refinement iterations
+
+  bmct bmc(options, symbol_table, ui_message_handler,prop_conv);
   eval_verbosity();
   bmc.set_verbosity(get_verbosity());
   
@@ -798,7 +823,7 @@ void cbmc_parseoptionst::help()
 {
   std::cout <<
     "\n"
-    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2011 ";
+    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2013 ";
     
   std::cout << "(" << (sizeof(void *)*8) << "-bit version)";
     
@@ -869,6 +894,10 @@ void cbmc_parseoptionst::help()
     " --unwind nr                  unwind nr times\n"
     " --unwindset L:B,...          unwind loop L with a bound of B\n"
     "                              (use --show-loops to get the loop IDs)\n"
+    " --incremental-check L        check after each unwinding of loop L\n"
+    " --unwind-min nr              start incremental check after nr unwindings\n"
+    " --unwind-max nr              stop incremental check after nr unwindings\n"
+    " --ignore-assertions-before-unwind-min\n"
     " --show-vcc                   show the verification conditions\n"
     " --slice-formula              remove assignments unrelated to property\n"
     " --no-unwinding-assertions    do not generate unwinding assertions\n"
