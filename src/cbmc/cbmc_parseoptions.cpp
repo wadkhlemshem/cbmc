@@ -36,8 +36,15 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <langapi/mode.h>
 
+#include <solvers/prop/prop_conv.h>
+#include <solvers/sat/satcheck.h>
+#include <solvers/sat/satcheck_minisat2.h>
+
+#include "cbmc_solvers.h"
 #include "cbmc_parseoptions.h"
 #include "bmc.h"
+#include "bmc_incremental_one_loop.h"
+#include "bmc_incremental.h"
 #include "version.h"
 #include "xml_interface.h"
 
@@ -154,8 +161,17 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
   else
     options.set_option("all-claims", false);
 
-  if(cmdline.isset("unwind"))
+  if(cmdline.isset("unwind-max"))
+    options.set_option("unwind-max", cmdline.getval("unwind-max"));
+  if(cmdline.isset("unwind-min"))
+    options.set_option("unwind-min", cmdline.getval("unwind-min"));
+  if(cmdline.isset("unwind")) 
     options.set_option("unwind", cmdline.getval("unwind"));
+
+  if(cmdline.isset("ignore-assertions-before-unwind-min"))
+    options.set_option("ignore-assertions-before-unwind-min", true);
+  if(cmdline.isset("stop-when-unsat"))
+    options.set_option("stop-when-unsat", true);
 
   if(cmdline.isset("depth"))
     options.set_option("depth", cmdline.getval("depth"));
@@ -168,6 +184,27 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("unwindset"))
     options.set_option("unwindset", cmdline.getval("unwindset"));
+
+  if(cmdline.isset("incremental"))
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arrays", true);
+    options.set_option("incremental", true);
+  }
+  if(cmdline.isset("incremental-check"))
+<<<<<<< HEAD:src/cbmc/cbmc_parseoptions.cpp
+    options.set_option("incremental-check", cmdline.getval("incremental-check"));
+=======
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arrays", true);
+    options.set_option("incremental-check", cmdline.get_value("incremental-check"));
+  }
+>>>>>>> c56b2ed5a... uses now lazy arrays in incremental mode; fixed all-properties in incremental mode:src/cbmc/cbmc_parse_options.cpp
+  if(cmdline.isset("earliest-loop-exit"))
+    options.set_option("earliest-loop-exit", true);
+  if(cmdline.isset("magic-numbers"))
+    options.set_option("magic-numbers", true);
 
   // constant propagation
   if(cmdline.isset("no-propagation"))
@@ -264,8 +301,24 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
   if(cmdline.isset("dimacs"))
     options.set_option("dimacs", true);
 
-  if(cmdline.isset("refine"))
+  if(cmdline.isset("refine-arrays"))
+  {
     options.set_option("refine", true);
+    options.set_option("refine-arrays", true);
+  }
+
+  if(cmdline.isset("refine-arithmetic"))
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arithmetic", true);
+  }
+
+  if(cmdline.isset("refine"))
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arrays", true);
+    options.set_option("refine-arithmetic", true);
+  }
 
   if(cmdline.isset("max-node-refinement"))
     options.set_option("max-node-refinement", cmdline.getval("max-node-refinement"));
@@ -314,6 +367,50 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
 
 /*******************************************************************\
 
+Function: cbmc_parseoptionst::options_exclusive
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: check conflicts between options: not allowed together
+
+\*******************************************************************/
+
+bool cbmc_parseoptionst::options_exclusive(const char *opt1, const char *opt2)
+{
+  if(cmdline.isset(opt1) && cmdline.isset(opt2)) 
+  {
+    error() << "--" << opt1 << " cannot be used with --" << opt2 << eom;
+    return true;
+  }
+  return false;
+}
+
+/*******************************************************************\
+
+Function: cbmc_parseoptionst::options_inclusive
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: check conflicts between options: opt1 only if opt2
+
+\*******************************************************************/
+
+bool cbmc_parseoptionst::options_inclusive(const char *opt1, const char *opt2)
+{
+  if(cmdline.isset(opt1) && !cmdline.isset(opt2)) 
+  {
+    error() << "--" << opt1 << " can only be used with --" << opt2 << eom;
+    return true;
+  }
+  return false;
+}
+
+/*******************************************************************\
+
 Function: cbmc_parseoptionst::doit
 
   Inputs:
@@ -344,6 +441,14 @@ int cbmc_parseoptionst::doit()
                " hardware modules. Please use hw-cbmc." << eom;
     return 1;
   }
+
+  if(options_exclusive("incremental","unwind") ||
+     options_exclusive("incremental","incremental-check") ||
+     options_inclusive("earliest-loop-exit","incremental")
+    ) 
+  {
+    return 1;
+  }
   
   register_languages();
 
@@ -354,7 +459,17 @@ int cbmc_parseoptionst::doit()
   optionst options;
   get_command_line_options(options);
 
-  bmct bmc(options, symbol_table, ui_message_handler);
+  //get solver
+  cbmc_solverst cbmc_solvers(options, symbol_table, ui_message_handler);
+<<<<<<< HEAD
+  prop_convt& prop_conv = cbmc_solvers.get_solver();
+=======
+  cbmc_solvers.set_ui(get_ui());
+  std::auto_ptr<cbmc_solverst::solvert> cbmc_solver = cbmc_solvers.get_solver();
+  prop_convt& prop_conv = cbmc_solver->prop_conv();
+>>>>>>> 78eedbd22... xml output for bv-refinement iterations
+
+  bmct bmc(options, symbol_table, ui_message_handler,prop_conv);
   eval_verbosity();
   bmc.set_verbosity(get_verbosity());
   
@@ -366,9 +481,25 @@ int cbmc_parseoptionst::doit()
 
   goto_functionst goto_functions;
 
-  if(get_goto_program(options, bmc, goto_functions))
-    return 6;
-    
+  std::unique_ptr<bmct> bmc;
+  if(options.get_option("incremental-check")!="")
+    bmc = std::unique_ptr<bmct>(
+      new bmc_incremental_one_loopt(options, symbol_table, ui_message_handler, 
+				    prop_conv, goto_functions));
+  else if(options.get_bool_option("incremental"))
+    bmc = std::unique_ptr<bmct>(
+      new bmc_incrementalt(options, symbol_table, ui_message_handler, 
+			   prop_conv, goto_functions));
+  else
+    bmc = std::unique_ptr<bmct>(
+      new bmct(options, symbol_table, ui_message_handler, prop_conv));
+
+  int get_goto_program_ret=
+    get_goto_program(options, *bmc, goto_functions);
+
+  if(get_goto_program_ret!=-1)
+    return get_goto_program_ret;
+
   label_properties(goto_functions);
 
   if(cmdline.isset("show-claims") || // will go away
@@ -383,7 +514,7 @@ int cbmc_parseoptionst::doit()
     return 7;
 
   // do actual BMC
-  return do_bmc(bmc, goto_functions);
+  return do_bmc(*bmc, goto_functions);
 }
 
 /*******************************************************************\
@@ -770,7 +901,7 @@ int cbmc_parseoptionst::do_bmc(
   bmc.set_ui(get_ui());
 
   // do actual BMC
-  bool result=bmc.run(goto_functions);
+  bool result=bmc(goto_functions);
 
   // let's log some more statistics
   debug() << "Memory consumption:" << messaget::endl;
@@ -798,7 +929,7 @@ void cbmc_parseoptionst::help()
 {
   std::cout <<
     "\n"
-    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2011 ";
+    "* *   CBMC " CBMC_VERSION " - Copyright (C) 2001-2013 ";
     
   std::cout << "(" << (sizeof(void *)*8) << "-bit version)";
     
@@ -869,6 +1000,13 @@ void cbmc_parseoptionst::help()
     " --unwind nr                  unwind nr times\n"
     " --unwindset L:B,...          unwind loop L with a bound of B\n"
     "                              (use --show-loops to get the loop IDs)\n"
+    " --incremental                check after each unwinding\n"
+    " --incremental-check L        check after each unwinding of loop L\n"
+    " --unwind-min nr              start incremental check after nr unwindings\n"
+    " --unwind-max nr              stop incremental check after nr unwindings\n"
+    " --earliest-loop-exit         stop unwinding as soon as possible\n"
+    " --ignore-assertions-before-unwind-min\n"
+    " --stop-when-unsat            for step case in k-induction checks\n"
     " --show-vcc                   show the verification conditions\n"
     " --slice-formula              remove assignments unrelated to property\n"
     " --no-unwinding-assertions    do not generate unwinding assertions\n"
@@ -886,6 +1024,8 @@ void cbmc_parseoptionst::help()
     " --yices                      use Yices (experimental)\n"
     " --z3                         use Z3 (experimental)\n"
     " --refine                     use refinement procedure (experimental)\n"
+    " --refine-arrays              use refinement procedure for arrays (experimental)\n"
+    " --refine-arithmetic          use refinement procedure for arithmetic (experimental)\n"
     " --outfile filename           output formula to given file\n"
     " --arrays-uf-never            never turn arrays into uninterpreted functions\n"
     " --arrays-uf-always           always turn arrays into uninterpreted functions\n"

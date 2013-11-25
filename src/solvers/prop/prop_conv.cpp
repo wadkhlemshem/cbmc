@@ -9,6 +9,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cassert>
 #include <cstdlib>
 #include <map>
+#include <iostream>
 
 #include <util/std_expr.h>
 #include <util/symbol.h>
@@ -18,6 +19,25 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "prop_conv.h"
 
 //#define DEBUG
+
+/*******************************************************************\
+
+Function: prop_conv_baset::set_frozen
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: freezes all variables in the bitvector
+
+\*******************************************************************/
+
+void prop_conv_baset::set_frozen(const bvt &bv)
+{
+  for(unsigned i=0; i<bv.size(); i++)
+    if(!bv[i].is_constant())
+      set_frozen(bv[i]);
+}
 
 /*******************************************************************\
 
@@ -186,9 +206,12 @@ literalt prop_convt::convert(const exprt &expr)
 {
   if(!use_cache || 
      expr.id()==ID_symbol ||
-     expr.id()==ID_constant)
-    return convert_bool(expr);
-
+     expr.id()==ID_constant) 
+  {
+    literalt literal=convert_bool(expr);
+    if(freeze_all && !literal.is_constant()) prop.set_frozen(literal);
+    return literal;
+  }
   // check cache first
 
   std::pair<cachet::iterator, bool> result=
@@ -202,6 +225,7 @@ literalt prop_convt::convert(const exprt &expr)
   // insert into cache
 
   result.first->second=literal;
+  if(freeze_all && !literal.is_constant()) prop.set_frozen(literal);
 
   #if 0
   std::cout << literal << "=" << expr << std::endl;
@@ -421,6 +445,8 @@ Function: prop_convt::set_to
 
 void prop_convt::set_to(const exprt &expr, bool value)
 {
+  //std::cout << "set to: " << expr << std::endl; 
+
   if(expr.type().id()!=ID_bool)
   {
     std::string msg="prop_convt::set_to got "
@@ -568,7 +594,13 @@ Function: prop_convt::solve
 
 decision_proceduret::resultt prop_convt::dec_solve()
 {
-  post_process();
+  // post-processing isn't incremental yet
+  if(!post_processing_done)
+  {
+    print(8, "Post-processing");
+    post_process();
+    //post_processing_done=true; //TODO: not clear where it might break
+  }
 
   print(7, "Solving with "+prop.solver_text());
 
@@ -641,4 +673,3 @@ void prop_convt::print_assignment(std::ostream &out) const
       it++)
     out << it->first << " = " << prop.l_get(it->second) << "\n";
 }
-

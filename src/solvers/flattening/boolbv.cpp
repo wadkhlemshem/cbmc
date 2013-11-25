@@ -146,14 +146,16 @@ const bvt& boolbvt::convert_bv(const exprt &expr)
   }
   
   convert_bitvector(expr, cache_result.first->second);
-  
+
   // check
-  forall_literals(it, cache_result.first->second)
+  forall_literals(it, cache_result.first->second) {
+    if(freeze_all && !it->is_constant()) prop.set_frozen(*it);
     if(it->var_no()==literalt::unused_var_no())
     {
       std::cout << "unused_var_no: " << expr.pretty() << std::endl;
       assert(false);
     }
+  }
 
   return cache_result.first->second;
 }
@@ -271,9 +273,9 @@ void boolbvt::convert_bitvector(const exprt &expr, bvt &bv)
           expr.id()=="no-overflow-mult")
     return convert_mult(expr, bv);
   else if(expr.id()==ID_div)
-    return convert_div(expr, bv);
+    return convert_div(to_div_expr(expr), bv);
   else if(expr.id()==ID_mod)
-    return convert_mod(expr, bv);
+    return convert_mod(to_mod_expr(expr), bv);
   else if(expr.id()==ID_shl || expr.id()==ID_ashr || expr.id()==ID_lshr)
     return convert_shift(expr, bv);
   else if(expr.id()==ID_floatbv_plus || expr.id()==ID_floatbv_minus ||
@@ -699,6 +701,9 @@ bool boolbvt::boolbv_set_equality_to_true(const exprt &expr)
         to_symbol_expr(operands[0]).get_identifier();
 
       map.set_literals(identifier, type, bv1);
+
+      //for incremental unwinding with incremental solver
+    if(freeze_all) set_frozen(bv1);
 
       return false;
     }

@@ -23,6 +23,7 @@ class optionst;
 #define CBMC_OPTIONS \
   "(program-only)(function):(preprocess)(slice-by-trace):" \
   "(no-simplify)(unwind):(unwindset):(slice-formula)" \
+  "(unwind-max):(unwind-min):" \
   "(debug-level):(no-propagation)(no-simplify-if)" \
   "(document-subgoals)(outfile):" \
   "D:I:" \
@@ -35,7 +36,7 @@ class optionst;
   "(no-sat-preprocessor)" \
   "(no-pretty-names)(beautify)" \
   "(floatbv)(fixedbv)" \
-  "(dimacs)(refine)(max-node-refinement):(aig)" \
+  "(dimacs)(refine)(max-node-refinement)(refine-arrays)(refine-arithmetic):(aig)" \
   "(16)(32)(64)(LP64)(ILP64)(LLP64)(ILP32)(LP32)" \
   "(little-endian)(big-endian)" \
   "(show-goto-functions)(show-value-sets)(show-loops)" \
@@ -44,6 +45,9 @@ class optionst;
   "(all-claims)(all-properties)" \
   "(error-label):(verbosity):(no-library)" \
   "(version)" \
+  "(incremental-check):(incremental)(earliest-loop-exit)" \
+  "(ignore-assertions-before-unwind-min)(stop-when-unsat)" \
+  "(magic-numbers)" \
   "(cover-assertions)" \
   "(mm):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
@@ -87,6 +91,9 @@ protected:
   
   void eval_verbosity();
   
+  bool options_exclusive(const char *opt1, const char *opt2);
+  bool options_inclusive(const char *opt1, const char *opt2);
+
   // get any additional stuff before finalizing
   virtual bool get_modules(bmct &bmc)
   {

@@ -1,7 +1,10 @@
 SRC = cbmc_main.cpp cbmc_parseoptions.cpp bmc.cpp dimacs.cpp \
       cbmc_languages.cpp counterexample_beautification.cpp \
       bv_cbmc.cpp symex_bmc.cpp show_vcc.cpp cbmc_solvers.cpp \
-      xml_interface.cpp cover.cpp all_claims.cpp      
+      xml_interface.cpp cover.cpp all_properties.cpp \
+      symex_bmc_incremental_one_loop.cpp bmc_incremental_one_loop.cpp \
+      symex_bmc_incremental.cpp bmc_incremental.cpp
+
 
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../linking/linking$(LIBEXT) \
@@ -30,11 +33,6 @@ include ../common
 CLEANFILES = cbmc$(EXEEXT)
 
 all: cbmc$(EXEEXT)
-
-ifneq ($(wildcard ../bv_refinement/Makefile),)
-  OBJ += ../bv_refinement/bv_refinement$(LIBEXT)
-  CP_CXXFLAGS += -DHAVE_BV_REFINEMENT
-endif
 
 ifneq ($(wildcard ../cpp/Makefile),)
   OBJ += ../cpp/cpp$(LIBEXT)

@@ -6,6 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <iostream>
+
 #include <util/threeval.h>
 
 #include "prop.h"
@@ -15,11 +17,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 Function: cover_goalst::~cover_goalst
 
-  Inputs:
+  Inputs: -
 
- Outputs:
+ Outputs: -
 
- Purpose:
+ Purpose: constructor
 
 \*******************************************************************/
 
@@ -31,9 +33,9 @@ cover_goalst::~cover_goalst()
 
 Function: cover_goalst::mark
 
-  Inputs:
+  Inputs: -
 
- Outputs:
+ Outputs: -
 
  Purpose: Mark goals that are covered
 
@@ -57,11 +59,13 @@ void cover_goalst::mark()
 
 Function: cover_goalst::constaint
 
-  Inputs:
+  Inputs: -
 
- Outputs:
+ Outputs: -
 
- Purpose: Build clause
+ Purpose: Build clause (activation literal, non-covered assertion 1 ... 
+                                            non-covered assertion n)
+          and add it to the solver's database
 
 \*******************************************************************/
 
@@ -69,12 +73,22 @@ void cover_goalst::constraint()
 {
   bvt bv;
 
+  bv.push_back(activation_literal);
+   
   for(std::list<cover_goalt>::const_iterator
       g_it=goals.begin();
       g_it!=goals.end();
       g_it++)
     if(!g_it->covered && !g_it->condition.is_false())
       bv.push_back(g_it->condition);
+
+#if 0
+  std::cout << "cover_goals.assertion_clause = ";
+  for(exprt::operandst::iterator it = disjuncts.begin();
+      it != disjuncts.end(); ++it) 
+    std::cout << to_literal_expr(*it).get_literal() << ", ";
+  std::cout << std::endl;
+#endif
 
   prop.lcnf(bv);
 }

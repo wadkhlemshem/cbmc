@@ -18,38 +18,48 @@ Author: Daniel Kroening, kroening@kroening.com
 
 Function: goto_symext::symex_goto
 
-  Inputs:
+  Inputs: symex state
 
- Outputs:
+ Outputs: true if symbolic execution should to be interrupted, false otherwise
 
- Purpose:
+ Purpose: symbolic execution of goto statements
 
 \*******************************************************************/
 
-void goto_symext::symex_goto(statet &state)
+bool goto_symext::symex_goto(statet &state)
 {
   const goto_programt::instructiont &instruction=*state.source.pc;
+  statet::framet &frame=state.top();
   
   exprt old_guard=instruction.guard;
   clean_expr(old_guard, state, false);
 
   exprt new_guard=old_guard;
   state.rename(new_guard, ns);
+  replace_nondet(new_guard);
   do_simplify(new_guard);
   
-  target.location(state.guard.as_expr(), state.source);
-  
+  const irep_idt loop_id = goto_programt::loop_id(state.source.pc);
+
   if(new_guard.is_false() ||
      state.guard.is_false())
   {
     // reset unwinding counter
-    unwind_map[state.source]=0;
+    if(instruction.is_backwards_goto())
+    {
+      goto_symex_statet::framet::loop_infot &loop_info = 
+        frame.loop_iterations[loop_id];
+      loop_info.count=0;
+      loop_info.fully_unwound=false;
+    }
 
     // next instruction
     state.source.pc++;
-    return; // nothing to do
+    return false; // nothing to do
   }
-    
+  
+  target.location(state.guard.as_expr(), state.source);
+
   assert(!instruction.targets.empty());
   
   // we only do deterministic gotos for now
@@ -59,31 +69,34 @@ void goto_symext::symex_goto(statet &state)
   goto_programt::const_targett goto_target=
     instruction.get_target();
     
-  bool forward=
-    state.source.pc->location_number<
-    goto_target->location_number;
+  bool forward=!instruction.is_backwards_goto();
     
   if(!forward) // backwards?
   {
-    unsigned &unwind=unwind_map[state.source];
+    goto_symex_statet::framet::loop_infot &loop_info = 
+      frame.loop_iterations[loop_id];
+    unsigned &unwind = loop_info.count;
     unwind++;
     
-    if(get_unwind(state.source, unwind))
+    // continue unwinding?
+    if(loop_info.fully_unwound || get_unwind(state.source, unwind))
     {
+      // no!
       loop_bound_exceeded(state, new_guard);
 
       // reset unwinding
-      unwind_map[state.source]=0;
+      unwind=0;
       
       // next instruction
       state.source.pc++;
-      return;
+      return false; //do not break, but continue symex to the end of the program
     }      
   
-    if(new_guard.is_true())
+    if(new_guard.is_true()) //continue looping
     {
+      bool do_break = check_break(loop_id,false,state,new_guard,unwind);
       state.source.pc=goto_target;
-      return; // nothing else to do
+      return do_break;
     }
   }
   
@@ -164,7 +177,33 @@ void goto_symext::symex_goto(statet &state)
       new_state.guard.add(guard_expr);
     }
   }
+  return false;
 }
+
+
+/*******************************************************************\
+
+Function: goto_symext::check_break
+
+  Inputs: symex source
+
+ Outputs: false (dummy implementation)
+
+ Purpose: check whether symbolic execution should be interrupted for
+          incremental solving
+
+\*******************************************************************/
+
+bool goto_symext::check_break(const irep_idt &id, 
+                           bool is_function, 
+                           statet& state, 
+                           const exprt &cond, 
+                           unsigned unwind) 
+{
+  //dummy implementation
+  return false;
+}
+
 
 /*******************************************************************\
 
@@ -392,7 +431,7 @@ Function: goto_symext::loop_bound_exceeded
 
  Outputs:
 
- Purpose:
+ Purpose: insert an unwinding assertion if needed
 
 \*******************************************************************/
 
@@ -423,6 +462,9 @@ void goto_symext::loop_bound_exceeded(
       claim(negated_cond,
             "unwinding assertion loop "+i2string(loop_number),
             state);
+
+      // add to state guard to prevent further assignments
+      state.guard.add(negated_cond);
     }
     else
     {
@@ -431,9 +473,6 @@ void goto_symext::loop_bound_exceeded(
       state.guard.guard_expr(guarded_expr);
       target.assumption(state.guard.as_expr(), guarded_expr, state.source);
     }
-
-    // add to state guard to prevent further assignments
-    state.guard.add(negated_cond);
   }
 }
 

@@ -6,6 +6,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <iostream>
+
+#include <util/i2string.h>
+#include <util/xml.h>
+
 #include "bv_refinement.h"
 
 /*******************************************************************\
@@ -23,7 +28,9 @@ Function: bv_refinementt::bv_refinementt
 bv_refinementt::bv_refinementt(
   const namespacet &_ns, propt &_prop):
   bv_pointerst(_ns, _prop),
-  max_node_refinement(5)
+  max_node_refinement(5),
+  do_array_refinement(true),
+  do_arithmetic_refinement(true)
 {
   // check features we need
   assert(prop.has_set_assumptions());
@@ -75,7 +82,14 @@ decision_proceduret::resultt bv_refinementt::dec_solve()
     iteration++;
   
     status() << "BV-Refinement: iteration " << iteration << eom;
-  
+    // output the very same information in a structured fashion
+    if(ui==ui_message_handlert::XML_UI)
+    {
+      xmlt xml("refinement-iteration");
+      xml.data=i2string(iteration);
+      std::cout << xml << '\n';
+    }
+
     switch(prop_solve())
     {
     case D_SATISFIABLE:
@@ -123,8 +137,8 @@ Function: bv_refinementt::prop_solve
 decision_proceduret::resultt bv_refinementt::prop_solve()
 {
   // this puts the underapproximations into effect
-  bvt assumptions;
-  
+  bvt assumptions = parent_assumptions;
+
   for(approximationst::const_iterator
       a_it=approximations.begin();
       a_it!=approximations.end();
@@ -139,9 +153,9 @@ decision_proceduret::resultt bv_refinementt::prop_solve()
   }
 
   prop.set_assumptions(assumptions);
-
   propt::resultt result=prop.prop_solve();
-
+  prop.set_assumptions(parent_assumptions);
+ 
   switch(result)
   {
    case propt::P_SATISFIABLE: return D_SATISFIABLE;
@@ -200,25 +214,6 @@ void bv_refinementt::check_UNSAT()
 
 /*******************************************************************\
 
-Function: bv_refinementt::set_frozen
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-void bv_refinementt::set_frozen(const bvt &bv)
-{
-  for(unsigned i=0; i<bv.size(); i++)
-    if(!bv[i].is_constant())
-      prop.set_frozen(bv[i]);
-}
-
-/*******************************************************************\
-
 Function: bv_refinementt::set_to
 
   Inputs:
@@ -243,4 +238,21 @@ void bv_refinementt::set_to(const exprt &expr, bool value)
   #else
   SUB::set_to(expr, value);
   #endif
+}
+
+/*******************************************************************\
+
+Function: bv_refinementt::set_assumptions
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void bv_refinementt::set_assumptions(const bvt &_assumptions) {
+  parent_assumptions = _assumptions;
+  prop.set_assumptions(_assumptions);
 }
