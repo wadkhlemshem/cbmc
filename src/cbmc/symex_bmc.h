@@ -34,9 +34,27 @@ public:
 
   // control unwinding  
   unsigned max_unwind;
+  bool is_incremental;
   irep_idt incr_loop_id;
   unsigned incr_max_unwind;
   unsigned incr_min_unwind;
+
+  bool add_loop_check();
+  void update_loop_info(bool fully_unwound);
+  
+  void set_unwind_limit(unsigned limit)
+  {
+    max_unwind=limit;
+    max_unwind_is_set=true;
+  }
+  
+  void set_unwind_thread_loop_limit(
+    unsigned thread_nr,
+    const irep_idt &id,
+    unsigned limit)
+  {
+    thread_loop_limits[thread_nr][id]=limit;
+  }
 
   prop_convt& prop_conv;
 
@@ -56,7 +74,31 @@ protected:
   // use gui format
   language_uit::uit ui;
 
-  virtual bool check_break(const symex_targett::sourcet &source, unsigned unwind);
+  // incremental unwinding
+
+  // returns true if the symbolic execution is to be interrupted for checking
+  virtual bool check_break(statet& state, const exprt &cond, 
+                           unsigned unwind);
+
+  // stores info to check whether loop has been fully unwound
+  typedef struct {
+    irep_idt id;
+    exprt guard;
+    exprt cond;
+    goto_symex_statet::framet::loop_infot *loop_info;
+    symex_targett::sourcet source;
+  } loop_condt;
+
+  loop_condt loop_cond;
+
+  // We have
+  // 1) a global limit (max_unwind)
+  // 2) a limit per loop, all threads
+  // 3) a limit for a particular thread.
+  // We use the most specific of the above.
+
+  unsigned max_unwind;
+  bool max_unwind_is_set;
 
   typedef hash_map_cont<irep_idt, unsigned, irep_id_hash> loop_limitst;
   typedef std::map<unsigned, loop_limitst> thread_loop_limitst;

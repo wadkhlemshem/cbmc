@@ -295,6 +295,24 @@ public:
     // exceptions
     typedef std::map<irep_idt, goto_programt::targett> catch_mapt;
     catch_mapt catch_map;
+
+    // loop and recursion unwinding
+    struct loop_infot
+    {
+      loop_infot():
+        count(0),
+	fully_unwound(false),
+        is_recursion(false)
+      {
+      }
+
+      unsigned count;
+      bool fully_unwound;
+      bool is_recursion;
+    };
+    typedef hash_map_cont<irep_idt, loop_infot, irep_id_hash>
+      loop_iterationst;
+    loop_iterationst loop_iterations;
   };
 
   typedef std::vector<framet> call_stackt;

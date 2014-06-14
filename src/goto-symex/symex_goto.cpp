@@ -44,13 +44,19 @@ bool goto_symext::symex_goto(statet &state)
      state.guard.is_false())
   {
     // reset unwinding counter
-    unwind_map[state.source]=0;
+    if(instruction.is_backwards_goto())
+    {
+      goto_symex_statet::framet::loop_infot &loop_info = 
+        frame.loop_iterations[goto_programt::loop_id(state.source.pc)];
+      loop_info.count=0;
+      loop_info.fully_unwound=false;
+    }
 
     // next instruction
     state.source.pc++;
     return false; // nothing to do
   }
-    
+
   assert(!instruction.targets.empty());
   
   // we only do deterministic gotos for now
@@ -66,11 +72,15 @@ bool goto_symext::symex_goto(statet &state)
     
   if(!forward) // backwards?
   {
-    unsigned &unwind=unwind_map[state.source];
+    goto_symex_statet::framet::loop_infot &loop_info = 
+      frame.loop_iterations[goto_programt::loop_id(state.source.pc)];
+    unsigned &unwind = loop_info.count;
     unwind++;
     
-    if(get_unwind(state.source, unwind)) //loop bound exceeded
+    // continue unwinding?
+    if(loop_info.fully_unwound || get_unwind(state.source, unwind))
     {
+      // no!
       loop_bound_exceeded(state, new_guard);
 
       // reset unwinding
@@ -83,7 +93,7 @@ bool goto_symext::symex_goto(statet &state)
   
     if(new_guard.is_true()) //continue looping
     {
-      bool do_break = check_break(state.source,unwind);
+      bool do_break = check_break(state,new_guard,unwind);
       state.source.pc=goto_target;
       return do_break;
     }
@@ -183,7 +193,7 @@ Function: goto_symext::check_break
 
 \*******************************************************************/
 
-bool goto_symext::check_break(const symex_targett::sourcet &source, 
+bool goto_symext::check_break(statet& state, const exprt &cond,
              unsigned unwind) {
   //dummy implementation
   return false;
