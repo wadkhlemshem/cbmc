@@ -164,6 +164,8 @@ void build_goto_trace(
       it++)
   {
     const symex_target_equationt::SSA_stept &SSA_step=*it;
+
+    if(SSA_step.ignore) continue;
     
     if(prop_conv.prop.l_get(SSA_step.guard_literal)!=tvt(true))
       continue;
