@@ -604,9 +604,9 @@ void symex_target_equationt::convert(
 {
   #if 0
   std::cout << "Converted SSA steps: " << std::endl;
-  for(SSA_stepst::iterator it=SSA_steps.begin();;
+  for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++) {
-    if(it->converted) it->output(ns,std::cout);
+    if(!it->converted && !it->ignore) it->output(ns,std::cout);
   }
   #endif
 
@@ -807,32 +807,34 @@ void symex_target_equationt::convert_assertions(
 
       if(it->is_assert() && !it->ignore && !it->converted)
       {
-        it->converted = true;
+	it->converted = true;
 
 #if 0
         std::cout << "assertion (" << it->comment << "): " 
           << from_expr(ns,"",it->cond_expr) << std::endl;
 #endif
 
-        if(is_incremental) { 
+        if(is_incremental) 
+        { 
           prop_conv.set_to_true(or_exprt(literal_exprt(activation_literal),
             not_exprt(it->cond_expr)));
 	}
-        else {
+        else 
+        {
           prop_conv.set_to_false(it->cond_expr);
 	}
         it->cond_literal=const_literal(false);
+
         return; // prevent further assumptions!
       }
       else if(it->is_assume())
       {
-        if(is_incremental) { 
+        if(is_incremental) 
+        { 
           prop_conv.set_to_true(or_exprt(literal_exprt(activation_literal),
             it->cond_expr));
 	}
-        else {
-          prop_conv.set_to_true(it->cond_expr);
-	}
+        else prop_conv.set_to_true(it->cond_expr);
       }
 
     assert(false); // unreachable
@@ -867,7 +869,7 @@ void symex_target_equationt::convert_assertions(
 
 #if 0
         std::cout << "assertion (" << it->comment << "): " 
-          << from_expr(ns,"",it->cond_expr) << std::endl;
+          << from_expr(ns,"",implication) << std::endl;
 #endif
 
       // do the conversion
@@ -881,8 +883,69 @@ void symex_target_equationt::convert_assertions(
     }
   }
 
-  if(!disjuncts.empty()) {
-    prop_conv.set_to_true(disjunction(disjuncts));
+  prop_conv.set_to_true(disjunction(disjuncts));
+}
+
+/*******************************************************************\
+
+Function: symex_target_equationt::current_activation_literal
+
+  Inputs: 
+
+ Outputs: current activation literal
+
+ Purpose: get activation literal used for the assertions that have been 
+          translated in the most recent call to convert()
+
+\*******************************************************************/
+
+literalt symex_target_equationt::current_activation_literal() 
+{
+  if(!is_incremental) return const_literal(false);
+  return !activate_assertions.back();
+}
+
+/*******************************************************************\
+
+Function: symex_target_equationt::new_activation_literal
+
+  Inputs: 
+
+ Outputs: current activation literal
+
+ Purpose: generate activation literal, to be used if convert_assertions()
+          is never called in conversion, e.g. in cover_goals
+
+\*******************************************************************/
+
+void symex_target_equationt::new_activation_literal(prop_convt &prop_conv) 
+{
+  if(is_incremental)
+  {
+    literalt activation_literal = prop_conv.convert(
+      symbol_exprt("goto_symex::\\act$"+
+      i2string(activate_assertions.size()), bool_typet()));
+
+    if(!activate_assertions.empty()) 
+    {
+      literalt last_activation_literal = activate_assertions.back();
+      activate_assertions.pop_back();
+      activate_assertions.push_back(!last_activation_literal);    
+    }
+    activate_assertions.push_back(!activation_literal);
+
+    //set assumptions (a_0 ... -a_k) for incremental solving
+    prop_conv.set_assumptions(activate_assertions);
+
+#if 0
+    std::cout << "assumptions: "; 
+    for(bvt::iterator it = activate_assertions.begin();
+        it!=activate_assertions.end();it++) {
+      std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+#endif
+
   }
 }
 

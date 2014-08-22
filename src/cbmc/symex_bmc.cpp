@@ -46,6 +46,7 @@ symex_bmct::symex_bmct(
   loop_cond.checked_function = false;
 
 #if 1
+  magic_numbers.insert(0);
   magic_numbers.insert(1);
   magic_numbers.insert(2);
   magic_numbers.insert(6);
@@ -136,17 +137,19 @@ bool symex_bmct::check_break(const irep_idt &id,
     //not a statically unwound loop when --incremental
 #endif
 
-#if 1
-    if(options.get_bool_option("magic-numbers") &&
-         magic_numbers.find(unwind)==magic_numbers.end())
-      return false;
-#endif
-
     if(loop_cond.checked_function) 
     {
       loop_cond.checked_function = false;
       return false;
     }
+
+#if 1
+    if(options.get_bool_option("magic-numbers") &&
+         magic_numbers.find(unwind)==magic_numbers.end())
+    { 
+      return false;
+    }
+#endif
 
     //memorise unwinding assertion for loop check
     exprt simplified_cond=not_exprt(cond);

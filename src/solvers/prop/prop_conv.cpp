@@ -445,7 +445,7 @@ Function: prop_convt::set_to
 
 void prop_convt::set_to(const exprt &expr, bool value)
 {
-  //  std::cout << "set to: " << expr << std::endl; 
+  //std::cout << "set to: " << expr << std::endl; 
 
   if(expr.type().id()!=ID_bool)
   {
@@ -594,7 +594,13 @@ Function: prop_convt::solve
 
 decision_proceduret::resultt prop_convt::dec_solve()
 {
-  post_process();
+  // post-processing isn't incremental yet
+  if(!post_processing_done)
+  {
+    print(8, "Post-processing");
+    post_process();
+    //post_processing_done=true; //TODO: not clear where it might break
+  }
 
   print(7, "Solving with "+prop.solver_text());
 
