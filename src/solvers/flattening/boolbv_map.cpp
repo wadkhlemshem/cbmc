@@ -11,6 +11,10 @@ Author: Daniel Kroening, kroening@kroening.com
 
 //#define DEBUG
 
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 /*******************************************************************\
 
 Function: boolbv_mapt::get_map_entry
@@ -89,6 +93,13 @@ void boolbv_mapt::get_literals(
   bvt &literals)
 {
   map_entryt &map_entry=get_map_entry(identifier, type);
+  
+#ifdef DEBUG
+  if(map_entry.literal_map.size()!=width)
+  {
+    std::cout << identifier << ": " << map_entry.literal_map.size() << " != " << width << std::endl;
+  }
+#endif
 
   assert(literals.size()==width);
   Forall_literals(it, literals)
