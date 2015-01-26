@@ -89,7 +89,8 @@ bool bmct::all_claims(const goto_functionst &goto_functions)
       it!=equation.SSA_steps.end();
       it++)
   {
-    if(it->is_assert())
+    if(it->is_assert() &&
+       it->comment!="loop_condition_check")
     {
       irep_idt claim_id;
 
