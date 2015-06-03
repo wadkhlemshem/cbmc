@@ -184,9 +184,19 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
     options.set_option("unwindset", cmdline.getval("unwindset"));
 
   if(cmdline.isset("incremental"))
+  {
+    options.set_option("refine-arrays", true);
     options.set_option("incremental", true);
+  }
   if(cmdline.isset("incremental-check"))
+<<<<<<< HEAD:src/cbmc/cbmc_parseoptions.cpp
     options.set_option("incremental-check", cmdline.getval("incremental-check"));
+=======
+  {
+    options.set_option("refine-arrays", true);
+    options.set_option("incremental-check", cmdline.get_value("incremental-check"));
+  }
+>>>>>>> c56b2ed5a... uses now lazy arrays in incremental mode; fixed all-properties in incremental mode:src/cbmc/cbmc_parse_options.cpp
   if(cmdline.isset("earliest-loop-exit"))
     options.set_option("earliest-loop-exit", true);
   if(cmdline.isset("magic-numbers"))
@@ -288,7 +298,10 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
     options.set_option("dimacs", true);
 
   if(cmdline.isset("refine"))
-    options.set_option("refine", true);
+  {
+    options.set_option("refine-arrays", true);
+    options.set_option("refine-arithmetic", true);
+  }
 
   if(cmdline.isset("max-node-refinement"))
     options.set_option("max-node-refinement", cmdline.getval("max-node-refinement"));

@@ -28,7 +28,12 @@ public:
   virtual void post_process()
   {
     add_equality_constraints();
+<<<<<<< HEAD
     prop_convt::post_process();
+=======
+    prop_conv_solvert::post_process();
+    typemap.clear(); // if called incrementally, don't do it twice
+>>>>>>> c56b2ed5a... uses now lazy arrays in incremental mode; fixed all-properties in incremental mode
   }
 
 protected:

@@ -62,6 +62,25 @@ protected:
   typedef std::vector<index_sett> index_mapt;
   index_mapt index_map;
   
+  // adds array constraints lazily
+  typedef enum lazy_type {ARRAY_ACKERMANN, ARRAY_WIDTH, ARRAY_IF, ARRAY_OF, ARRAY_TYPECAST} lazy_typet;
+  struct lazy_constraintt
+  {
+    lazy_typet type;
+    exprt lazy;
+
+    lazy_constraintt(lazy_typet _type, const exprt &_lazy)
+    {
+      type = _type;
+      lazy = _lazy;
+    }
+  };
+  bool lazy_arrays;
+  bool incremental_cache;
+  std::list<lazy_constraintt> lazy_array_constraints;
+  void add_array_constraint(const lazy_constraintt &lazy, bool refine = true);
+  std::map<exprt, bool> expr_map;
+
   // adds all the constraints eagerly
   void add_array_constraints();
   void add_array_Ackermann_constraints();
@@ -73,8 +92,18 @@ protected:
   void add_array_constraints_update(const index_sett &index_set, const update_exprt &expr);
   void add_array_constraints_array_of(const index_sett &index_set, const array_of_exprt &exprt);
 
+<<<<<<< HEAD
   void build_index_map();
+=======
+  void update_index_map();
+>>>>>>> c56b2ed5a... uses now lazy arrays in incremental mode; fixed all-properties in incremental mode
   void collect_arrays(const exprt &a);
+  void collect_indices();
+  void collect_indices(const exprt &a);
+
+  
+  virtual bool is_unbounded_array(const typet &type) const { assert(false); }
+    // (maybe this function should be partially moved here from boolbv)
 };
 
 #endif
