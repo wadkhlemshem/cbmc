@@ -128,7 +128,7 @@ prop_convt* cbmc_solverst::get_bv_refinement()
     prop=new satcheckt();
   }
   else
-    prop=new satcheck_minisat_no_simplifiert();
+    prop=new satcheck_no_simplifiert();
   
   prop->set_message_handler(get_message_handler());
   prop->set_verbosity(get_verbosity());
