@@ -185,6 +185,7 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("incremental"))
   {
+    options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental", true);
   }
@@ -193,6 +194,7 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
     options.set_option("incremental-check", cmdline.getval("incremental-check"));
 =======
   {
+    options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental-check", cmdline.get_value("incremental-check"));
   }
@@ -297,8 +299,21 @@ void cbmc_parseoptionst::get_command_line_options(optionst &options)
   if(cmdline.isset("dimacs"))
     options.set_option("dimacs", true);
 
+  if(cmdline.isset("refine-arrays"))
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arrays", true);
+  }
+
+  if(cmdline.isset("refine-arithmetic"))
+  {
+    options.set_option("refine", true);
+    options.set_option("refine-arithmetic", true);
+  }
+
   if(cmdline.isset("refine"))
   {
+    options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("refine-arithmetic", true);
   }
@@ -991,6 +1006,8 @@ void cbmc_parseoptionst::help()
     " --yices                      use Yices (experimental)\n"
     " --z3                         use Z3 (experimental)\n"
     " --refine                     use refinement procedure (experimental)\n"
+    " --refine-arrays              use refinement procedure for arrays (experimental)\n"
+    " --refine-arithmetic          use refinement procedure for arithmetic (experimental)\n"
     " --outfile filename           output formula to given file\n"
     " --arrays-uf-never            never turn arrays into uninterpreted functions\n"
     " --arrays-uf-always           always turn arrays into uninterpreted functions\n"
