@@ -901,7 +901,7 @@ int cbmc_parseoptionst::do_bmc(
   bmc.set_ui(get_ui());
 
   // do actual BMC
-  bool result=bmc.run(goto_functions);
+  bool result=bmc(goto_functions);
 
   // let's log some more statistics
   debug() << "Memory consumption:" << messaget::endl;
