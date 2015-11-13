@@ -12,9 +12,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <iostream>
 #include <memory>
 
-#include <util/i2string.h>
 #include <util/string2int.h>
-#include <util/location.h>
+#include <util/i2string.h>
+#include <util/source_location.h>
 #include <util/time_stopping.h>
 #include <util/message_stream.h>
 
@@ -36,8 +36,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <solvers/sat/satcheck_minisat2.h>
 
 #include "bmc.h"
-#include "bv_cbmc.h"
-#include "counterexample_beautification.h"
 
 /*******************************************************************\
 
@@ -54,6 +52,7 @@ Function: bmct::do_unwind_module
 void bmct::do_unwind_module(
   decision_proceduret &decision_procedure)
 {
+  // this is a hook for hw-cbmc
 }
 
 /*******************************************************************\
@@ -124,15 +123,22 @@ Function: bmct::do_conversion
 
 void bmct::do_conversion(prop_convt &prop_conv)
 {
-  // convert HDL
+  // convert HDL (hook for hw-cbmc)
   do_unwind_module(prop_conv);
+  
+  status() << "converting SSA" << eom;
 
   // convert SSA
   equation.convert(prop_conv);
 
   // the 'extra constraints'
-  forall_expr_list(it, bmc_constraints)
-    prop_conv.set_to_true(*it);
+  if(!bmc_constraints.empty())
+  {
+    status() << "converting constraints" << eom;
+    
+    forall_expr_list(it, bmc_constraints)
+      prop_conv.set_to_true(*it);
+  }
 }
 
 /*******************************************************************\
@@ -158,18 +164,8 @@ bmct::run_decision_procedure(prop_convt &prop_conv)
 
   // stop the time
   fine_timet sat_start=current_time();
-
-#if 0
-  statistics() << "ignored: " <<  equation.count_ignored_SSA_steps() << eom;
-  statistics() << "converted: " <<  equation.count_converted_SSA_steps() << eom;
-#endif
   
   do_conversion(prop_conv);  
-
-#if 0
-  statistics() << "ignored: " <<  equation.count_ignored_SSA_steps() << eom;
-  statistics() << "converted: " <<  equation.count_converted_SSA_steps() << eom;
-#endif
 
   status() << "Running " << prop_conv.decision_procedure_text() << eom;
 
@@ -317,26 +313,32 @@ void bmct::show_program()
 
 Function: bmct::run
 
-  Inputs: goto functions
+  Inputs:
 
- Outputs: true, if FAILED or an error occurred, false if SUCCEEDED
+ Outputs:
 
- Purpose: run BMC
+ Purpose:
 
 \*******************************************************************/
 
-bool bmct::run(const goto_functionst &goto_functions)
+safety_checkert::resultt bmct::run(
+  const goto_functionst &goto_functions)
 {
   const std::string mm=options.get_option("mm");
-  std::auto_ptr<memory_model_baset> memory_model(0);
+  std::unique_ptr<memory_model_baset> memory_model;
+  
   if(mm.empty() || mm=="sc")
-    memory_model.reset(new memory_model_sct(ns));
+    memory_model=std::unique_ptr<memory_model_baset>(new memory_model_sct(ns));
   else if(mm=="tso")
-    memory_model.reset(new memory_model_tsot(ns));
+    memory_model=std::unique_ptr<memory_model_baset>(new memory_model_tsot(ns));
   else if(mm=="pso")
-    memory_model.reset(new memory_model_psot(ns));
+    memory_model=std::unique_ptr<memory_model_baset>(new memory_model_psot(ns));
   else
-    throw "Invalid memory model "+mm+" -- use one of sc, tso, pso";
+  {
+    error() << "Invalid memory model " << mm
+            << " -- use one of sc, tso, pso" << eom;
+    return safety_checkert::ERROR;
+  }
 
   symex.set_message_handler(get_message_handler());
   symex.set_verbosity(get_verbosity());
@@ -344,198 +346,140 @@ bool bmct::run(const goto_functionst &goto_functions)
 
   status() << "Starting Bounded Model Checking" << eom;
 
-  symex.last_location.make_nil();
+  symex.last_source_location.make_nil();
 
   try
   {
     // get unwinding info
     setup_unwind();
 
-    bool verification_result = false; //true = "FAILED"
-
-    irep_idt entry_point=goto_functions.entry_point();
-    goto_functionst::function_mapt::const_iterator it=
-      goto_functions.function_map.find(entry_point);
-    assert(it!=goto_functions.function_map.end());
-    const goto_programt &body=it->second.body;
-    goto_symext::statet symex_state;
-
     // perform symbolic execution
-    bool symex_done = false;
+    symex(goto_functions);
 
-    //THE MAIN LOOP FOR INCREMENTAL UNWINDING
-    while(!symex_done) { 
-
-      symex.total_claims=0;
-      symex.remaining_claims=0;
-      symex_done = symex(symex_state,goto_functions,body);
-
-      undo_slice(equation); //undo all previous slicings
-
-#if 0
-      equation.output(std::cout);
-#endif
-
-      // add a partial ordering, if required    
-      if(equation.has_threads())
-      {
-        memory_model->set_message_handler(get_message_handler());
-        (*memory_model)(equation); // TODO: not clear whether supports incremental symex
-      }
-
-      statistics() << "size of program expression: "
-		   << equation.SSA_steps.size()
-		   << " steps" << eom;
-
-      try
-      {
-        if(options.get_option("slice-by-trace")!="")
-        {
-          symex_slice_by_tracet symex_slice_by_trace(ns);
-
-          symex_slice_by_trace.slice_by_trace
-     	    (options.get_option("slice-by-trace"), equation);
-	}
-
-	if(equation.has_threads())
-	{
-	  // we should build a thread-aware SSA slicer
-	  statistics() << "no slicing due to threads" << eom;
-	}
-	else
-	{
-	  if(options.get_bool_option("slice-formula"))
-	  {
-	    slice(equation);
-	    statistics() << "slicing removed "
-			       << equation.count_ignored_SSA_steps()
-			       << " assignments" << eom;
-	  }
-	  else
-	  {
-	    simple_slice(equation);
-	    statistics() << "simple slicing removed "
-			       << equation.count_ignored_SSA_steps()
-			       << " assignments" << eom;
-	  }
-	}
-
-	if(options.get_bool_option("program-only"))
-	{
-	  show_program();
-	  return false;
-	}
-
-	{
-	  statistics() << "Generated " << symex.total_claims
-			 << " VCC(s), " << symex.remaining_claims
-			 << " remaining after simplification" << eom;
-	}
-
-	if(options.get_bool_option("show-vcc"))
-	{
-	  show_vcc();
-	  if(!symex.is_incremental) return false;
-	}
-    
-  
-	if(options.get_bool_option("cover-assertions"))
-	{
-          if(options.get_option("incremental-check")!="")
-                throw "incremental vacuity checks not supported";
-	  cover_assertions(goto_functions,symex.prop_conv);
-	  return false;
-	}
-
-	if(symex.remaining_claims==0)
-	{
-	  report_success();
-
-          if(symex.is_incremental && !options.get_bool_option("stop-when-unsat"))
-          {
-            //at this point all other assertions have been checked
-	    if(symex.add_loop_check())
-	    {
-              bool result = !decide(symex.prop_conv,false);
-              if(options.get_bool_option("earliest-loop-exit"))
-                result = !result;
-              symex.update_loop_info(result);
-	    } 
-            continue;
-	  }
-          else return false;  //nothing to check, exit
-	}
-
-        //call decision procedure
-	if(options.get_bool_option("all-claims")) 
-        {
-	  if(all_claims(goto_functions,symex.prop_conv)) 
-            return true; //all claims FAILED, exit
-	}
-        else 
-        {
-         if(symex.remaining_claims>0)
-	  {
-             verification_result = decide(symex.prop_conv);
-            if(options.get_bool_option("stop-when-unsat") ? 
-               !verification_result : //verification succeeds, exit
-               verification_result)  //bug found, exit
-              return verification_result;
-	  }
-	    
-          if(symex.is_incremental)
-          {
-            //at this point all other assertions have been checked
-            if(symex.add_loop_check())
-	    {
-              symex.update_loop_info(!decide(symex.prop_conv,false));
-	    }
-	  }
-	}
-      }
-      catch(std::string &error_str)
-      {
-        error(error_str);
-        return true;
-      }
-
-      catch(const char *error_str)
-      {
-        error(error_str);
-        return true;
-      }
-
-      catch(std::bad_alloc)
-	{
-	  error() << "Out of memory" << eom;
-	  return true;
-	}
-
-    } //while
-
-    return verification_result;
+    // add a partial ordering, if required    
+    if(equation.has_threads())
+    {
+      memory_model->set_message_handler(get_message_handler());
+      (*memory_model)(equation);
+    }
   }
 
-  catch(std::string &error_str)
+  catch(const std::string &error_str)
   {
     message_streamt message_stream(get_message_handler());
-    message_stream.err_location(symex.last_location);
-    message_stream.error(error_str);
-    return true;
+    message_stream.err_location(symex.last_source_location);
+    message_stream.str << error_str;
+    message_stream.error_msg();
+    return safety_checkert::ERROR;
   }
 
   catch(const char *error_str)
   {
     message_streamt message_stream(get_message_handler());
-    message_stream.err_location(symex.last_location);
-    message_stream.error(error_str);
-    return true;
+    message_stream.err_location(symex.last_source_location);
+    message_stream.str << error_str;
+    message_stream.error_msg();
+    return safety_checkert::ERROR;
   }
 
   catch(std::bad_alloc)
   {
     error() << "Out of memory" << eom;
-    return true;
+    return safety_checkert::ERROR;
+  }
+
+  statistics() << "size of program expression: "
+               << equation.SSA_steps.size()
+               << " steps" << eom;
+
+  try
+  {
+    if(options.get_option("slice-by-trace")!="")
+    {
+      symex_slice_by_tracet symex_slice_by_trace(ns);
+
+      symex_slice_by_trace.slice_by_trace
+	(options.get_option("slice-by-trace"), equation);
+    }
+
+    if(equation.has_threads())
+    {
+      // we should build a thread-aware SSA slicer
+      statistics() << "no slicing due to threads" << eom;
+    }
+    else
+    {
+      if(options.get_bool_option("slice-formula"))
+      {
+        slice(equation);
+        statistics() << "slicing removed "
+                     << equation.count_ignored_SSA_steps()
+                     << " assignments" << eom;
+      }
+      else
+      {
+        if(options.get_option("cover")=="")
+        {
+          simple_slice(equation);
+          statistics() << "simple slicing removed "
+                       << equation.count_ignored_SSA_steps()
+                       << " assignments" << eom;
+        }
+      }
+    }
+
+    {
+      statistics() << "Generated " << symex.total_vccs
+                   << " VCC(s), " << symex.remaining_vccs
+                   << " remaining after simplification" << eom;
+    }
+
+    if(options.get_bool_option("show-vcc"))
+    {
+      show_vcc();
+      return safety_checkert::SAFE; // to indicate non-error
+    }
+    
+    if(options.get_option("cover")!="")
+    {
+      std::string criterion=options.get_option("cover");
+      return cover(goto_functions, criterion)?
+        safety_checkert::ERROR:safety_checkert::SAFE;
+    }
+
+    // any properties to check at all?
+    if(!options.get_bool_option("program-only") &&
+       symex.remaining_vccs==0)
+    {
+      report_success();
+      return safety_checkert::SAFE;
+    }
+
+    if(options.get_bool_option("program-only"))
+    {
+      show_program();
+      return safety_checkert::SAFE;
+    }
+
+    return decide(goto_functions, prop_conv);
+  }
+
+  catch(std::string &error_str)
+  {
+    error() << error_str << eom;
+    return safety_checkert::ERROR;
+  }
+
+  catch(const char *error_str)
+  {
+    error() << error_str << eom;
+    return safety_checkert::ERROR;
+  }
+
+  catch(std::bad_alloc)
+  {
+    error() << "Out of memory" << eom;
+    return safety_checkert::ERROR;
   }
 }
 
@@ -551,37 +495,38 @@ Function: bmct::decide
 
 \*******************************************************************/
 
-bool bmct::decide(prop_convt &prop_conv, bool show_report)
+safety_checkert::resultt bmct::decide(
+  const goto_functionst &goto_functions,
+  prop_convt &prop_conv)
 {
   prop_conv.set_message_handler(get_message_handler());
-  prop_conv.set_verbosity(get_verbosity());
- 
-  if(options.get_bool_option("dimacs")) {
-    do_conversion(prop_conv);
-    return write_dimacs(prop_conv);
-  }
 
-  bool result=true;
+  if(options.get_bool_option("all-properties"))
+    return all_properties(goto_functions, prop_conv);
 
   switch(run_decision_procedure(prop_conv))
   {
   case decision_proceduret::D_UNSATISFIABLE:
-    result=false;
     report_success();
-    break;
+    return SAFE;
 
   case decision_proceduret::D_SATISFIABLE:
-    if(options.get_bool_option("beautify")) {
-      bv_cbmct& bv_cbmc = dynamic_cast<bv_cbmct&>(prop_conv);
+    if(options.get_bool_option("beautify"))
       counterexample_beautificationt()(
-        bv_cbmc, equation, ns);
-    }
-    if(show_report) error_trace(prop_conv);
+        dynamic_cast<bv_cbmct &>(prop_conv), equation, ns);
+  
+    error_trace();
     report_failure();
-    break;
+    return UNSAFE;
 
   default:
+    if(options.get_bool_option("dimacs") ||
+       options.get_option("outfile")!="")
+      return ERROR;
+      
     error() << "decision procedure failed" << eom;
+
+    return ERROR;
   }
 
   return result;
@@ -602,9 +547,9 @@ Function: bmct::setup_unwind
 void bmct::setup_unwind()
 {
   const std::string &set=options.get_option("unwindset");
-  unsigned int length=set.length();
+  std::string::size_type length=set.length();
 
-  for(unsigned int idx=0; idx<length; idx++)
+  for(std::string::size_type idx=0; idx<length; idx++)
   {
     std::string::size_type next=set.find(",", idx);
     std::string val=set.substr(idx, next-idx);
@@ -630,28 +575,6 @@ void bmct::setup_unwind()
     idx=next;
   }
 
-  symex.max_unwind=options.get_unsigned_option("unwind"); // 0 if unbounded
-  symex.incr_min_unwind=options.get_unsigned_option("unwind-min");
-  symex.incr_max_unwind=options.get_unsigned_option("unwind-max");
-  if(symex.incr_max_unwind==0) symex.incr_max_unwind = UINT_MAX;
-  symex.ignore_assertions = (symex.incr_min_unwind>=2) &&
-      options.get_bool_option("ignore-assertions-before-unwind-min");
- 
-  symex.incr_loop_id = options.get_option("incremental-check");
-
-  //freeze variables where unrollings are stitched together
-  if(symex.incr_loop_id!="" || options.get_bool_option("incremental")) 
-  {
-    status() << "Using incremental mode" << eom;
-    symex.is_incremental = true;
-    symex.prop_conv.set_all_frozen();
-    equation.is_incremental = true;
-  }
-  //freeze for refinement
-  if(options.get_bool_option("refine-arrays"))
-  {
-    //TODO: make more selective
-    symex.prop_conv.set_all_frozen();
-  }
+  if(options.get_option("unwind")!="")
+    symex.set_unwind_limit(options.get_unsigned_int_option("unwind"));
 }
-
