@@ -6,8 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#include <util/location.h>
+#include <limits>
+#include <iostream>
+
+#include <util/source_location.h>
 #include <util/i2string.h>
+#include <util/xml.h>
 
 #include "symex_bmc.h"
 #include <climits>
@@ -104,6 +108,14 @@ bool symex_bmct::get_unwind(
 
   bool abort=unwind>=this_loop_limit;
 
+  // report where we are  
+  if(ui==ui_message_handlert::XML_UI)
+  {
+    xmlt xml("current-unwinding");
+    xml.data=i2string(unwind);
+    std::cout << xml << "\n";
+  }
+  
   statistics() << (abort?"Not unwinding":"Unwinding")
                << " loop " << id << " iteration "
                << unwind;

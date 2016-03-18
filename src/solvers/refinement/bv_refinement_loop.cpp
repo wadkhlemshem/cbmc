@@ -88,6 +88,14 @@ decision_proceduret::resultt bv_refinementt::dec_solve()
       std::cout << xml;
       std::cout << "\n";
     }
+    
+    // output the very same information in a structured fashion
+    if(ui==ui_message_handlert::XML_UI)
+    {
+      xmlt xml("refinement-iteration");
+      xml.data=i2string(iteration);
+      std::cout << xml << '\n';
+    }
 
     switch(prop_solve())
     {
