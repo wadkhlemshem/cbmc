@@ -221,8 +221,8 @@ void c_typecheck_baset::typecheck_expr_main(exprt &expr)
     typecheck_expr_trinary(to_if_expr(expr));
   else if(expr.id()==ID_code)
   {
-    err_location(expr);
-    str << "typecheck_expr_main got code: " << expr.pretty();
+    error().source_location=expr.find_source_location();
+    error() << "typecheck_expr_main got code: " << expr.pretty() << eom;
     throw 0;
   }
   else if(expr.id()==ID_gcc_builtin_va_arg)
@@ -288,8 +288,9 @@ void c_typecheck_baset::typecheck_expr_main(exprt &expr)
     
     if(expr.op0().get(ID_statement)!=ID_decl)
     {
-      err_location(expr);
-      throw "expected declaration as operand of quantifier";
+      error().source_location=expr.find_source_location();
+      error() << "expected declaration as operand of quantifier" << eom;
+      throw 0;
     }
 
     // replace declaration by symbol expression
@@ -348,7 +349,7 @@ void c_typecheck_baset::typecheck_expr_main(exprt &expr)
     
     if(expr.operands().size()!=1)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       throw "_Generic expects one operand";
     }
 
@@ -389,9 +390,9 @@ void c_typecheck_baset::typecheck_expr_main(exprt &expr)
         expr.swap(default_match);
       else
       {
-        err_location(expr);
-        str << "unmatched generic selection: "
-            << to_string(expr.op0().type());
+        error().source_location=expr.find_source_location();
+        error() << "unmatched generic selection: "
+                << to_string(expr.op0().type()) << eom;
         throw 0;
       }
     }
@@ -408,8 +409,8 @@ void c_typecheck_baset::typecheck_expr_main(exprt &expr)
   }
   else
   {
-    err_location(expr);
-    str << "unexpected expression: " << expr.pretty();
+    error().source_location=expr.find_source_location();
+    error() << "unexpected expression: " << expr.pretty() << eom;
     throw 0;
   }
 }
@@ -430,8 +431,8 @@ void c_typecheck_baset::typecheck_expr_comma(exprt &expr)
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
-    str << "comma operator expects two operands";
+    error().source_location=expr.find_source_location();
+    error() << "comma operator expects two operands" << eom;
     throw 0;
   }
 
@@ -546,7 +547,7 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
 
   if(!expr.operands().empty())
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     throw "builtin_offsetof expects no operands";
   }
 
@@ -566,7 +567,7 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
     {
       if(type.id()!=ID_union && type.id()!=ID_struct)
       {
-        err_location(expr);
+        error().source_location=expr.find_source_location();
         throw "offsetof of member expects struct/union type, "
               "but got `"+to_string(type)+"'";
       }
@@ -592,9 +593,9 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
 
             if(o.is_nil())
             {
-              err_location(expr);
-              str << "offsetof failed to determine offset of `"
-                  << component_name << "'";
+              error().source_location=expr.find_source_location();
+              error() << "offsetof failed to determine offset of `"
+                      << component_name << "'" << eom;
               throw 0;
             }
           
@@ -632,9 +633,9 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
 
                   if(o.is_nil())
                   {
-                    err_location(expr);
-                    str << "offsetof failed to determine offset of `"
-                        << component_name << "'";
+                    error().source_location=expr.find_source_location();
+                    error() << "offsetof failed to determine offset of `"
+                            << component_name << "'" << eom;
                     throw 0;
                   }
                 
@@ -655,9 +656,10 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
          
           if(!found2)
           {
-            err_location(expr);    
-            throw "offset-of of member failed to find component `"+
-                  id2string(component_name)+"' in `"+to_string(type)+"'";
+            error().source_location=expr.find_source_location(); 
+            error() << "offset-of of member failed to find component `"
+                    << component_name << "' in `" << to_string(type) << "'" << eom;
+            throw 0;
           }
         }
       }
@@ -668,8 +670,9 @@ void c_typecheck_baset::typecheck_expr_builtin_offsetof(exprt &expr)
       
       if(type.id()!=ID_array)
       {
-        err_location(expr);
-        throw "offsetof of index expects array type";
+        error().source_location()=expr.find_source_location();
+        error() << "offsetof of index expects array type" << eom;
+        throw 0;
       }
 
       exprt index=m_it->op0();
@@ -732,7 +735,7 @@ void c_typecheck_baset::typecheck_expr_operands(exprt &expr)
     
     if(declaration.declarators().size()!=1)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       throw "expected one declarator exactly";
     }
 
@@ -745,9 +748,9 @@ void c_typecheck_baset::typecheck_expr_operands(exprt &expr)
 
     if(s_it==symbol_table.symbols.end())
     {
-      err_location(expr);
-      str << "failed to find decl symbol `" << identifier
-          << "' in symbol table";
+      error().source_location=expr.find_source_location();
+      error() << "failed to find decl symbol `" << identifier
+              << "' in symbol table" << eom;
       throw 0;
     }
 
@@ -756,7 +759,7 @@ void c_typecheck_baset::typecheck_expr_operands(exprt &expr)
     if(symbol.is_type || symbol.is_extern || symbol.is_static_lifetime ||
        !is_complete_type(symbol.type) || symbol.type.id()==ID_code)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       throw "unexpected quantified symbol";
     }
     
@@ -805,8 +808,8 @@ void c_typecheck_baset::typecheck_expr_symbol(exprt &expr)
   const symbolt *symbol_ptr;
   if(lookup(identifier, symbol_ptr))
   {
-    err_location(expr);
-    str << "failed to find symbol `" << identifier << "'";
+    error().source_location=expr.find_source_location();
+    error() << "failed to find symbol `" << identifier << "'" << eom;
     throw 0;
   }
   
@@ -814,9 +817,9 @@ void c_typecheck_baset::typecheck_expr_symbol(exprt &expr)
 
   if(symbol.is_type)
   {
-    err_location(expr);
-    str << "did not expect a type symbol here, but got `"
-        << symbol.display_name() << "'";
+    error().source_location=expr.find_source_location();
+    error() << "did not expect a type symbol here, but got `"
+            << symbol.display_name() << "'" << eom;
     throw 0;
   }
 
@@ -894,8 +897,8 @@ void c_typecheck_baset::typecheck_side_effect_statement_expression(
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
-    str << "statement expression expects one operand";
+    error().source_location=expr.find_source_location();
+    error() << "statement expression expects one operand" << eom;
     throw 0;
   }
 
@@ -992,16 +995,16 @@ void c_typecheck_baset::typecheck_expr_sizeof(exprt &expr)
   }
   else
   {
-    err_location(expr);
-    str << "sizeof operator expects zero or one operand, "
-           "but got " << expr.operands().size();
+    error().source_location=expr.find_source_location();
+    error() << "sizeof operator expects zero or one operand, "
+               "but got " << expr.operands().size() << eom;
     throw 0;
   }
   
   if(type.id()==ID_c_bit_field)
   {
-    err_location(expr);
-    str << "sizeof cannot be applied to bit fields";
+    error().source_location=expr.find_source_location();
+    error() << "sizeof cannot be applied to bit fields" << eom;
     throw 0;
   }
   
@@ -1009,9 +1012,9 @@ void c_typecheck_baset::typecheck_expr_sizeof(exprt &expr)
 
   if(new_expr.is_nil())
   {
-    err_location(expr);
-    str << "type has no size: "
-        << to_string(type);
+    error().source_location=expr.find_source_location();
+    error() << "type has no size: "
+            << to_string(type) << eom;
     throw 0;
   }
 
@@ -1090,8 +1093,8 @@ void c_typecheck_baset::typecheck_expr_typecast(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
-    str << "typecast operator expects one operand";
+    error().source_location=expr.find_source_location();
+    error() << "typecast operator expects one operand" << eom;
     throw 0;
   }
 
@@ -1157,9 +1160,9 @@ void c_typecheck_baset::typecheck_expr_typecast(exprt &expr)
     }
     
     // not found, complain
-    err_location(expr);
-    str << "type cast to union: type `"
-        << to_string(op.type()) << "' not found in union";
+    error().source_location=expr.find_source_location();
+    error() << "type cast to union: type `"
+            << to_string(op.type()) << "' not found in union" << eom;
     throw 0;
   }
 
@@ -1206,9 +1209,9 @@ void c_typecheck_baset::typecheck_expr_typecast(exprt &expr)
   
   if(!is_numeric_type(expr_type) && expr_type.id()!=ID_pointer)
   {
-    err_location(expr);
-    str << "type cast to `"
-        << to_string(expr_type) << "' is not permitted";
+    error().source_location=expr.find_source_location();
+    error() << "type cast to `"
+            << to_string(expr_type) << "' is not permitted" << eom;
     throw 0;
   }
 
@@ -1227,9 +1230,9 @@ void c_typecheck_baset::typecheck_expr_typecast(exprt &expr)
   {
     if(expr_type.id()!=ID_empty)
     {
-      err_location(expr);
-      str << "type cast from void only permitted to void, but got `"
-          << to_string(expr.type()) << "'";
+      error().source_location=expr.find_source_location();
+      error() << "type cast from void only permitted to void, but got `"
+              << to_string(expr.type()) << "'" << eom;
       throw 0;
     }
   }
@@ -1248,17 +1251,17 @@ void c_typecheck_baset::typecheck_expr_typecast(exprt &expr)
     }
     else
     {
-      err_location(expr);
-      str << "type cast from vector to `"
-          << to_string(expr.type()) << "' not permitted";
+      error().source_location=expr.find_source_location();
+      error() << "type cast from vector to `"
+              << to_string(expr.type()) << "' not permitted" << eom;
       throw 0;
     }
   }
   else
   {
-    err_location(expr);
-    str << "type cast from `"
-        << to_string(op_type) << "' not permitted";
+    error().source_location=expr.find_source_location();
+    error() << "type cast from `"
+            << to_string(op_type) << "' not permitted" << eom;
     throw 0;
   }
 
@@ -1311,9 +1314,9 @@ void c_typecheck_baset::typecheck_expr_index(exprt &expr)
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
-    str << "operator `" << expr.id()
-        << "' expects two operands";
+    error().source_location=expr.find_source_location();
+    error() << "operator `" << expr.id()
+            << "' expects two operands" << eom;
     throw 0;
   }
 
@@ -1358,9 +1361,9 @@ void c_typecheck_baset::typecheck_expr_index(exprt &expr)
   }
   else
   {
-    err_location(expr);
-    str << "operator [] must take array/vector or pointer but got `"
-        << to_string(array_expr.type()) << "'";
+    error().source_location=expr.find_source_location();
+    error() << "operator [] must take array/vector or pointer but got `"
+            << to_string(array_expr.type()) << "'" << eom;
     throw 0;
   }
 
@@ -1503,11 +1506,11 @@ void c_typecheck_baset::typecheck_expr_rel(
     }
   }
 
-  err_location(expr);
-  str << "operator `" << expr.id()
-      << "' not defined for types `"
-      << to_string(o_type0) << "' and `"
-      << to_string(o_type1) << "'";
+  error().source_location=expr.find_source_location();
+  error() << "operator `" << expr.id()
+          << "' not defined for types `"
+          << to_string(o_type0) << "' and `"
+          << to_string(o_type1) << "'" << eom;
   throw 0;
 }
 
@@ -1536,11 +1539,11 @@ void c_typecheck_baset::typecheck_expr_rel_vector(
      o_type1.id()!=ID_vector ||
      follow(o_type0.subtype())!=follow(o_type1.subtype()))
   {
-    err_location(expr);
-    str << "vector operator `" << expr.id()
-        << "' not defined for types `"
-        << to_string(o_type0) << "' and `"
-        << to_string(o_type1) << "'";
+    error().source_location=expr.find_source_location();
+    error() << "vector operator `" << expr.id()
+            << "' not defined for types `"
+            << to_string(o_type0) << "' and `"
+            << to_string(o_type1) << "'" << eom;
     throw 0;
   }
 
@@ -1565,9 +1568,8 @@ void c_typecheck_baset::typecheck_expr_ptrmember(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
-    str << "ptrmember operator expects one operand";
-    error_msg();
+    error().source_location=expr.find_source_location();
+    error() << "ptrmember operator expects one operand" << eom;
     throw 0;
   }
 
@@ -1576,10 +1578,10 @@ void c_typecheck_baset::typecheck_expr_ptrmember(exprt &expr)
   if(final_op0_type.id()!=ID_pointer &&
      final_op0_type.id()!=ID_array)
   {
-    err_location(expr);
-    str << "ptrmember operator requires pointer type "
-           "on left hand side, but got `"
-        << to_string(expr.op0().type()) << "'";
+    error().source_location=expr.find_source_location();
+    error() << "ptrmember operator requires pointer type "
+               "on left hand side, but got `"
+            << to_string(expr.op0().type()) << "'" << eom;
     throw 0;
   }
 
@@ -1613,9 +1615,8 @@ void c_typecheck_baset::typecheck_expr_member(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
-    str << "member operator expects one operand";
-    error_msg();
+    error().source_location=expr.find_source_location();
+    error() << "member operator expects one operand" << eom;
     throw 0;
   }
 
@@ -1626,27 +1627,27 @@ void c_typecheck_baset::typecheck_expr_member(exprt &expr)
   
   if(type.id()==ID_incomplete_struct)
   {
-    err_location(expr);
-    str << "member operator got incomplete struct type "
-           "on left hand side";
+    error().source_location=expr.find_source_location();
+    error() << "member operator got incomplete struct type "
+               "on left hand side" << eom;
     throw 0;
   }
 
   if(type.id()==ID_incomplete_union)
   {
-    err_location(expr);
-    str << "member operator got incomplete union type "
-           "on left hand side";
+    error().source_location=expr.find_source_location();
+    error() << "member operator got incomplete union type "
+               "on left hand side" << eom;
     throw 0;
   }
 
   if(type.id()!=ID_struct &&
      type.id()!=ID_union)
   {
-    err_location(expr);
-    str << "member operator requires structure type "
-           "on left hand side but got `"
-        << to_string(type) << "'";
+    error().source_location=expr.find_source_location();
+    error() << "member operator requires structure type "
+               "on left hand side but got `"
+            << to_string(type) << "'" << eom;
     throw 0;
   }
   
@@ -1669,10 +1670,10 @@ void c_typecheck_baset::typecheck_expr_member(exprt &expr)
     if(tmp.is_nil())
     {
       // give up
-      err_location(expr);
-      str << "member `" << component_name
-          << "' not found in `"
-          << to_string(type) << "'";
+      error().source_location=expr.find_source_location();
+      error() << "member `" << component_name
+              << "' not found in `"
+              << to_string(type) << "'" << eom;
       throw 0;
     }
     
@@ -1699,9 +1700,9 @@ void c_typecheck_baset::typecheck_expr_member(exprt &expr)
 
   if(access==ID_private)
   {
-    err_location(expr);
-    str << "member `" << component_name
-        << "' is " << access;
+    error().source_location=expr.find_source_location();
+    error() << "member `" << component_name
+            << "' is " << access << eom;
     throw 0;
   }
 }
@@ -1796,10 +1797,10 @@ void c_typecheck_baset::typecheck_expr_trinary(if_exprt &expr)
     return;
   }
 
-  err_location(expr);
-  str << "operator ?: not defined for types `"
-      << to_string(o_type1) << "' and `"
-      << to_string(o_type2) << "'";
+  error().source_location=expr.find_source_location();
+  error() << "operator ?: not defined for types `"
+          << to_string(o_type1) << "' and `"
+          << to_string(o_type2) << "'" << eom;
   throw 0;
 }
 
@@ -1825,7 +1826,7 @@ void c_typecheck_baset::typecheck_side_effect_gcc_conditional_expression(
 
   if(operands.size()!=2)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "gcc conditional_expr expects two operands";
     error_msg();
     throw 0;
@@ -1863,7 +1864,7 @@ void c_typecheck_baset::typecheck_expr_address_of(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "unary operator & expects one operand";
     error_msg();
     throw 0;
@@ -1873,7 +1874,7 @@ void c_typecheck_baset::typecheck_expr_address_of(exprt &expr)
   
   if(op.type().id()==ID_c_bit_field)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "cannot take address of a bit field";
     error_msg();
     throw 0;
@@ -1924,7 +1925,7 @@ void c_typecheck_baset::typecheck_expr_address_of(exprt &expr)
   }
   else
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "address_of error: `" << to_string(op)
         << "' not an lvalue";
     throw 0;
@@ -1949,7 +1950,7 @@ void c_typecheck_baset::typecheck_expr_dereference(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "unary operator * expects one operand";
     throw 0;
   }
@@ -1972,7 +1973,7 @@ void c_typecheck_baset::typecheck_expr_dereference(exprt &expr)
   }
   else
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operand of unary * `" << to_string(op)
         << "' is not a pointer, but got `"
         << to_string(op_type) << "'";
@@ -2036,7 +2037,7 @@ void c_typecheck_baset::typecheck_expr_side_effect(side_effect_exprt &expr)
   {
     if(expr.operands().size()!=1)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << statement << "operator expects one operand";
     }
 
@@ -2065,7 +2066,7 @@ void c_typecheck_baset::typecheck_expr_side_effect(side_effect_exprt &expr)
       if(follow_tag(to_c_enum_tag_type(final_type0)).id()==
          ID_incomplete_c_enum)
       {
-        err_location(expr);
+        error().source_location=expr.find_source_location();
         str << "operator `" << statement
             << "' given incomplete type `"
             << to_string(type0) << "'";
@@ -2092,7 +2093,7 @@ void c_typecheck_baset::typecheck_expr_side_effect(side_effect_exprt &expr)
     }
     else
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << "operator `" << statement
           << "' not defined for type `"
           << to_string(type0) << "'";
@@ -2109,7 +2110,7 @@ void c_typecheck_baset::typecheck_expr_side_effect(side_effect_exprt &expr)
     typecheck_side_effect_gcc_conditional_expression(expr);
   else
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "unknown side effect: " << statement;
     throw 0;
   }
@@ -2132,7 +2133,7 @@ void c_typecheck_baset::typecheck_side_effect_function_call(
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     throw "function_call side effect expects two operands";
   }
 
@@ -2820,13 +2821,13 @@ void c_typecheck_baset::typecheck_function_call_arguments(
   {
     if(parameter_types.size()>arguments.size())
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       throw "not enough function arguments";
     }
   }
   else if(parameter_types.size()!=arguments.size())
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "wrong number of function arguments: "
         << "expected " << parameter_types.size()
         << ", but got " << arguments.size();
@@ -2853,7 +2854,7 @@ void c_typecheck_baset::typecheck_function_call_arguments(
          op.get(ID_statement)==ID_assign &&
          op.type().id()!=ID_bool)
       {
-        err_location(expr);
+        error().source_location=expr.find_source_location();
         str << "assignment where Boolean argument is expected";
         warning_msg();
       }
@@ -2909,7 +2910,7 @@ void c_typecheck_baset::typecheck_expr_unary_arithmetic(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operator `" << expr.id()
         << "' expects one operand";
     throw 0;
@@ -2937,7 +2938,7 @@ void c_typecheck_baset::typecheck_expr_unary_arithmetic(exprt &expr)
     return;
   }
 
-  err_location(expr);
+  error().source_location=expr.find_source_location();
   str << "operator `" << expr.id()
       << "' not defined for type `"
       << to_string(operand.type()) << "'";
@@ -2960,7 +2961,7 @@ void c_typecheck_baset::typecheck_expr_unary_boolean(exprt &expr)
 {
   if(expr.operands().size()!=1)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operator `" << expr.id()
         << "' expects one operand";
     throw 0;
@@ -3027,7 +3028,7 @@ void c_typecheck_baset::typecheck_expr_binary_arithmetic(exprt &expr)
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operator `" << expr.id()
         << "' expects two operands";
     throw 0;
@@ -3114,7 +3115,7 @@ void c_typecheck_baset::typecheck_expr_binary_arithmetic(exprt &expr)
     }
   }
 
-  err_location(expr);
+  error().source_location=expr.find_source_location();
   str << "operator `" << expr.id()
       << "' not defined for types `"
       << to_string(o_type0) << "' and `"
@@ -3194,7 +3195,7 @@ void c_typecheck_baset::typecheck_expr_shifts(shift_exprt &expr)
     return;
   }
 
-  err_location(expr);
+  error().source_location=expr.find_source_location();
   str << "operator `" << expr.id()
       << "' not defined for types `"
       << to_string(o_type0) << "' and `"
@@ -3226,7 +3227,7 @@ void c_typecheck_baset::typecheck_arithmetic_pointer(const exprt &expr)
     
   if(subtype.id()==ID_incomplete_struct)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     throw "pointer arithmetic with unknown object size";
   }
 }
@@ -3322,7 +3323,7 @@ void c_typecheck_baset::typecheck_expr_pointer_arithmetic(exprt &expr)
   else
     op_name=expr.id();
 
-  err_location(expr);
+  error().source_location=expr.find_source_location();
   str << "operator `" << op_name
       << "' not defined for types `"
       << to_string(type0) << "' and `"
@@ -3346,7 +3347,7 @@ void c_typecheck_baset::typecheck_expr_binary_boolean(exprt &expr)
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operator `" << expr.id()
         << "' expects two operands";
     throw 0;
@@ -3379,7 +3380,7 @@ void c_typecheck_baset::typecheck_side_effect_assignment(side_effect_exprt &expr
 {
   if(expr.operands().size()!=2)
   {
-    err_location(expr);
+    error().source_location=expr.find_source_location();
     str << "operator `" << expr.get(ID_statement)
         << "' expects two operands";
     throw 0;
@@ -3395,14 +3396,14 @@ void c_typecheck_baset::typecheck_side_effect_assignment(side_effect_exprt &expr
     
     if(type0.id()==ID_empty)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << "cannot assign void";
       throw 0;
     }
 
     if(!op0.get_bool(ID_C_lvalue))
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << "assignment error: `" << to_string(op0)
           << "' not an lvalue";
       throw 0;
@@ -3410,7 +3411,7 @@ void c_typecheck_baset::typecheck_side_effect_assignment(side_effect_exprt &expr
 
     if(type0.get_bool(ID_C_constant))
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << "error: `" << to_string(op0)
           << "' is constant";
       throw 0;
@@ -3420,7 +3421,7 @@ void c_typecheck_baset::typecheck_side_effect_assignment(side_effect_exprt &expr
     if(type0.id()==ID_array ||
        type0.id()==ID_incomplete_array)
     {
-      err_location(expr);
+      error().source_location=expr.find_source_location();
       str << "error: direct assignments to arrays not permitted";
       throw 0;
     }
@@ -3559,7 +3560,7 @@ void c_typecheck_baset::typecheck_side_effect_assignment(side_effect_exprt &expr
     }
   }
 
-  err_location(expr);
+  error().source_location=expr.find_source_location();
   str << "assignment `" << statement
       << "' not defined for types `"
       << to_string(o_type0) << "' and `"

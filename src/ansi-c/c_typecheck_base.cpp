@@ -70,9 +70,10 @@ void c_typecheck_baset::move_symbol(symbolt &symbol, symbolt *&new_symbol)
 
   if(symbol_table.move(symbol, new_symbol))
   {
-    err_location(symbol.location);
-    throw "failed to move symbol `"+id2string(symbol.name)+
-          "' into symbol table";
+    error().source_location=symbol.location;
+    error() << "failed to move symbol `" << symbol.name
+            << "' into symbol table" << messaget::eom;
+    throw 0;
   }
 }
 
@@ -116,8 +117,9 @@ void c_typecheck_baset::typecheck_symbol(symbolt &symbol)
   }
   else if(!is_function && symbol.value.id()==ID_code)
   {
-    err_location(symbol.value);
-    throw "only functions can have a function body";
+    error().source_location=symbol.value.find_source_location();
+    error() << "only functions can have a function body" << messaget::eom;
+    throw 0;
   }
   
   // set the pretty name
@@ -159,9 +161,9 @@ void c_typecheck_baset::typecheck_symbol(symbolt &symbol)
   {
     if(old_it->second.is_type!=symbol.is_type)
     {
-      err_location(symbol.location);
-      str << "redeclaration of `" << symbol.display_name()
-          << "' as a different kind of symbol";
+      error().source_location=symbol.location;
+      error() << "redeclaration of `" << symbol.display_name()
+              << "' as a different kind of symbol" << messaget::eom;
       throw 0;
     }
 
@@ -271,10 +273,10 @@ void c_typecheck_baset::typecheck_redefinition_type(
       return;
     else
     {
-      err_location(new_symbol.location);
-      str << "error: conflicting definition of type symbol `"
-          << new_symbol.display_name()
-          << "'";
+      error().source_location=new_symbol.location;
+      error() << "error: conflicting definition of type symbol `"
+              << new_symbol.display_name()
+              << "'" << messaget::eom;
       throw 0;
     }
   }
@@ -292,10 +294,10 @@ void c_typecheck_baset::typecheck_redefinition_type(
       else
       {
         // arg! new tag type
-        err_location(new_symbol.location);
-        str << "error: conflicting definition of tag symbol `"
-            << new_symbol.display_name()
-            << "'";
+        error().source_location=new_symbol.location;
+        error() << "error: conflicting definition of tag symbol `"
+                << new_symbol.display_name()
+                << "'" << messaget::eom;
         throw 0;
       }
     }
@@ -318,11 +320,11 @@ void c_typecheck_baset::typecheck_redefinition_type(
       // see if it changed
       if(follow(new_symbol.type)!=follow(old_symbol.type))
       {
-        err_location(new_symbol.location);
-        str << "error: type symbol `" << new_symbol.display_name()
-            << "' defined twice:" << "\n";
-        str << "Original: " << to_string(old_symbol.type) << "\n";
-        str << "     New: " << to_string(new_symbol.type);
+        error().source_location=new_symbol.location;
+        error() << "error: type symbol `" << new_symbol.display_name()
+                << "' defined twice:" << "\n"
+                << "Original: " << to_string(old_symbol.type) << "\n"
+                << "     New: " << to_string(new_symbol.type) << messaget::eom;
         throw 0;
       }
     }
@@ -370,8 +372,10 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
     // check the type
     if(final_new.id()==ID_code)
     {
-      err_location(new_symbol.location);
-      throw "function type not allowed for K&R function parameter";
+      error().source_location=new_symbol.location;
+      error() << "function type not allowed for K&R function parameter" 
+              << messaget::eom;
+      throw 0;
     }
     
     // fix up old symbol -- we now got the type
@@ -387,11 +391,11 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
         
     if(final_old.id()!=ID_code)
     {
-      err_location(new_symbol.location);
-      str << "error: function symbol `" << new_symbol.display_name()
-          << "' redefined with a different type:" << "\n";
-      str << "Original: " << to_string(old_symbol.type) << "\n";
-      str << "     New: " << to_string(new_symbol.type);
+      error().source_location=new_symbol.location;
+      error() << "error: function symbol `" << new_symbol.display_name()
+              << "' redefined with a different type:" << "\n"
+              << "Original: " << to_string(old_symbol.type) << "\n"
+              << "     New: " << to_string(new_symbol.type) << messaget::eom;
       throw 0;
     }
 
@@ -443,10 +447,9 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
         }
         else
         {
-          err_location(new_symbol.location);
-          str << "function body `" << new_symbol.display_name()
-              << "' defined twice";
-          error_msg();
+          error().source_location=new_symbol.location;
+          error() << "function body `" << new_symbol.display_name()
+                  << "' defined twice" << messaget::eom;
           throw 0;
         }
       }
@@ -496,9 +499,9 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
   
         if(s_it==symbol_table.symbols.end())
         {
-          err_location(old_symbol.location);
-          str << "typecheck_redefinition_non_type: "
-                 "failed to find symbol `" << identifier << "'";
+          error().source_location=old_symbol.location;
+          error() << "typecheck_redefinition_non_type: "
+                     "failed to find symbol `" << identifier << "'" << messaget::eom;
           throw 0;
         }
                   
@@ -539,11 +542,11 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
     }
     else
     {
-      err_location(new_symbol.location);
-      str << "error: symbol `" << new_symbol.display_name()
-          << "' redefined with a different type:" << "\n";
-      str << "Original: " << to_string(old_symbol.type) << "\n";
-      str << "     New: " << to_string(new_symbol.type);
+      error().source_location=new_symbol.location;
+      error() << "error: symbol `" << new_symbol.display_name()
+              << "' redefined with a different type:" << "\n"
+              << "Original: " << to_string(old_symbol.type) << "\n"
+              << "     New: " << to_string(new_symbol.type) << messaget::eom;
       throw 0;
     }
   }
@@ -579,10 +582,9 @@ void c_typecheck_baset::typecheck_redefinition_non_type(
         }
         else
         {
-          err_location(new_symbol.value);
-          str << "symbol `" << new_symbol.display_name()
-              << "' already has an initial value";
-          warning_msg();
+          warning().source_location=new_symbol.value.find_source_location();
+          warning() << "symbol `" << new_symbol.display_name()
+                    << "' already has an initial value" << messaget::eom;
         }
       }
     }
@@ -678,9 +680,9 @@ void c_typecheck_baset::typecheck_function_body(symbolt &symbol)
   {
     if(labels_defined.find(it->first)==labels_defined.end())
     {
-      err_location(it->second);
-      str << "branching label `" << it->first
-          << "' is not defined in function";
+      error().source_location=it->second;
+      error() << "branching label `" << it->first
+              << "' is not defined in function" << messaget::eom;
       throw 0;
     }
   }

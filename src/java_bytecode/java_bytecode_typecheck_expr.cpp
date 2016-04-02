@@ -179,8 +179,9 @@ void java_bytecode_typecheckt::typecheck_expr_member(member_exprt &expr)
     
     if(components.empty())
     {
-      err_location(expr);
-      throw "failed to find field in class hierarchy";
+      error().source_location=expr.find_source_location();
+      error() << "failed to find field in class hierarchy" << eom;
+      throw 0;
     }
     
     const struct_typet::componentt &c=components.front();

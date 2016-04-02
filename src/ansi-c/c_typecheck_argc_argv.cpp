@@ -34,8 +34,9 @@ void c_typecheck_baset::add_argc_argv(const symbolt &main_symbol)
   if(parameters.size()!=2 &&
      parameters.size()!=3)
   {
-    err_location(main_symbol.location);
-    throw "main expected to have no or two or three parameters";
+    error().source_location=main_symbol.location;
+    error() << "main expected to have no or two or three parameters" << messaget::eom;
+    throw 0;
   }
 
   symbolt *argc_new_symbol;
@@ -55,9 +56,9 @@ void c_typecheck_baset::add_argc_argv(const symbolt &main_symbol)
     if(argc_symbol.type.id()!=ID_signedbv &&
        argc_symbol.type.id()!=ID_unsignedbv)
     {
-      err_location(main_symbol.location);
-      str << "argc argument expected to be integer type, but got `"
-          << to_string(argc_symbol.type) << "'";
+      error().source_location=main_symbol.location;
+      error() << "argc argument expected to be integer type, but got `"
+              << to_string(argc_symbol.type) << "'" << messaget::eom;
       throw 0;
     }
 
@@ -68,10 +69,10 @@ void c_typecheck_baset::add_argc_argv(const symbolt &main_symbol)
     if(op1.type().id()!=ID_pointer ||
        op1.type().subtype().id()!=ID_pointer)
     {
-      err_location(main_symbol.location);
-      str << "argv argument expected to be pointer-to-pointer type, "
-             "but got `"
-          << to_string(op1.type()) << "'";
+      error().source_location=main_symbol.location;
+      error() << "argv argument expected to be pointer-to-pointer type, "
+                 "but got `"
+              << to_string(op1.type()) << "'" << messaget::eom;
       throw 0;
     }
 
@@ -116,9 +117,9 @@ void c_typecheck_baset::add_argc_argv(const symbolt &main_symbol)
 
     if(envp_symbol.type.id()!=ID_pointer)
     {
-      err_location(main_symbol.location);
-      str << "envp argument expected to be pointer type, but got `"
-          << to_string(envp_symbol.type) << "'";
+      error().source_location=main_symbol.location;
+      error() << "envp argument expected to be pointer type, but got `"
+              << to_string(envp_symbol.type) << "'" << messaget::eom;
       throw 0;
     }
     
