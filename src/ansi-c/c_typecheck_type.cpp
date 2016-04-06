@@ -233,7 +233,9 @@ void c_typecheck_baset::typecheck_custom_type(typet &type)
   if(to_integer(size_expr, size_int))
   {
     error().source_location=source_location;
-    throw "failed to convert bit vector width to constant";
+    error() << "failed to convert bit vector width to constant"
+            << eom;
+    throw 0;
   }
 
   if(size_int<1)
@@ -300,7 +302,9 @@ void c_typecheck_baset::typecheck_custom_type(typet &type)
     if(to_integer(f_expr, f_int))
     {
       error().source_location=source_location;
-      throw "failed to convert number of fraction bits to constant";
+      error() << "failed to convert number of fraction bits to constant"
+              << eom;
+      throw 0;
     }
 
     if(f_int<1 || f_int+1>=size_int)
@@ -1002,7 +1006,8 @@ void c_typecheck_baset::typecheck_c_enum_type(typet &type)
   if(as_expr.operands().empty())
   {
     error().source_location=source_location;
-    throw "empty enum";
+    error() << "empty enum" << eom;
+    throw 0;
   }
   
   // enums start at zero
@@ -1237,7 +1242,9 @@ void c_typecheck_baset::typecheck_c_enum_tag_type(c_enum_tag_typet &type)
        symbol.type.id()!=ID_incomplete_c_enum)
     {
       error().source_location=source_location;
-      throw "use of tag that does not match previous declaration";
+      error() << "use of tag that does not match previous declaration"
+              << eom;
+      throw 0;
     }
   }
   else
@@ -1291,14 +1298,16 @@ void c_typecheck_baset::typecheck_c_bit_field_type(c_bit_field_typet &type)
 
     if(to_integer(width_expr, i))
     {
-      err_location(type);
-      throw "failed to convert bit field width";
+      error().source_location=type.source_location();
+      error() << "failed to convert bit field width" << eom;
+      throw 0;
     }
 
     if(i<0)
     {
-      err_location(type);
-      throw "bit field width is negative";
+      error().source_location=type.source_location();
+      error() << "bit field width is negative" << eom;
+      throw 0;
     }
   
     type.set_width(integer2long(i));
@@ -1330,25 +1339,27 @@ void c_typecheck_baset::typecheck_c_bit_field_type(c_bit_field_typet &type)
 
     if(c_enum_type.id()==ID_incomplete_c_enum)
     {
-      err_location(type);
-      throw "bit field has incomplete enum type";
+      error().source_location=type.source_location();
+      error() << "bit field has incomplete enum type" << eom;
+      throw 0;
     }
     
     sub_width=c_enum_type.subtype().get_int(ID_width);
   }
   else
   {
-    err_location(type);
-    str << "bit field with non-integer type: "
-        << to_string(subtype);
+    error().source_location=type.source_location();
+    error() << "bit field with non-integer type: "
+            << to_string(subtype) << eom;
     throw 0;
   }
 
   if(i>sub_width)
   {
-    err_location(type);
-    str << "bit field (" << i
-        << " bits) larger than type (" << sub_width << " bits)";
+    error().source_location=type.source_location();
+    error() << "bit field (" << i
+            << " bits) larger than type (" << sub_width << " bits)"
+            << eom;
     throw 0;
   }
 }
@@ -1424,8 +1435,9 @@ void c_typecheck_baset::typecheck_symbol_type(typet &type)
 
   if(s_it==symbol_table.symbols.end())
   {
-    err_location(type);
-    str << "type symbol `" << identifier << "' not found";
+    error().source_location=type.source_location();
+    error() << "type symbol `" << identifier << "' not found"
+            << eom;
     throw 0;
   }
 
@@ -1433,8 +1445,9 @@ void c_typecheck_baset::typecheck_symbol_type(typet &type)
 
   if(!symbol.is_type)
   {
-    err_location(type);
-    throw "expected type symbol";
+    error().source_location=type.source_location();
+    error() << "expected type symbol" << eom;
+    throw 0;
   }
   
   if(symbol.is_macro)

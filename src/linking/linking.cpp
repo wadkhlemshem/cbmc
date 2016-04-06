@@ -176,8 +176,7 @@ void linkingt::detailed_conflict_report_rec(
   exprt &conflict_path)
 {
   #ifdef DEBUG
-  str << "<BEGIN DEPTH " << depth << ">";
-  debug_msg();
+  debug() << "<BEGIN DEPTH " << depth << ">" << eom;
   #endif
 
   std::string msg;
@@ -368,19 +367,19 @@ void linkingt::detailed_conflict_report_rec(
 
   if(!msg.empty())
   {
-    str << std::endl;
-    str << "reason for conflict at "
-        << expr_to_string(ns, "", conflict_path)
-        << ": " << msg << std::endl;
+    error() << '\n';
+    error() << "reason for conflict at "
+            << expr_to_string(ns, "", conflict_path)
+            << ": " << msg << '\n';
 
-    str << std::endl;
-    str << type_to_string_verbose(ns, old_symbol, t1) << std::endl;
-    str << type_to_string_verbose(ns, new_symbol, t2) << std::endl;
+    error() << '\n';
+    error() << type_to_string_verbose(ns, old_symbol, t1) << '\n';
+    error() << type_to_string_verbose(ns, new_symbol, t2) << '\n';
+    error() << eom;
   }
 
   #ifdef DEBUG
-  str << "<END DEPTH " << depth << ">";
-  debug_msg();
+  debug() << "<END DEPTH " << depth << ">" << eom;
   #endif
 }
 
@@ -401,17 +400,17 @@ void linkingt::link_error(
     const symbolt &new_symbol,
     const std::string &msg)
 {
-  err_location(new_symbol.location);
+  error().source_location=new_symbol.location;
 
-  str << "error: " << msg << " `"
-      << old_symbol.display_name()
-      << "'" << "\n";
-  str << "old definition in module `" << old_symbol.module
-      << "' " << old_symbol.location << "\n"
-      << type_to_string_verbose(ns, old_symbol) << "\n";
-  str << "new definition in module `" << new_symbol.module
-      << "' " << new_symbol.location << "\n"
-      << type_to_string_verbose(ns, new_symbol);
+  error() << "error: " << msg << " `"
+          << old_symbol.display_name()
+          << "'" << '\n';
+  error() << "old definition in module `" << old_symbol.module
+          << "' " << old_symbol.location << '\n'
+          << type_to_string_verbose(ns, old_symbol) << '\n';
+  error() << "new definition in module `" << new_symbol.module
+          << "' " << new_symbol.location << '\n'
+          << type_to_string_verbose(ns, new_symbol);
 
   throw 0;
 }
@@ -433,17 +432,16 @@ void linkingt::link_warning(
     const symbolt &new_symbol,
     const std::string &msg)
 {
-  str << "warning: " << msg << " \""
-      << old_symbol.display_name()
-      << "\"" << std::endl;
-  str << "old definition in module " << old_symbol.module
-      << " " << old_symbol.location << std::endl
-      << type_to_string_verbose(ns, old_symbol) << std::endl;
-  str << "new definition in module " << new_symbol.module
-      << " " << new_symbol.location << std::endl
-      << type_to_string_verbose(ns, new_symbol) << std::endl;
-
-  warning_msg();
+  warning() << "warning: " << msg << " \""
+            << old_symbol.display_name()
+            << "\"\n";
+  warning() << "old definition in module " << old_symbol.module
+            << " " << old_symbol.location << '\n'
+            << type_to_string_verbose(ns, old_symbol) << '\n';
+  warning() << "new definition in module " << new_symbol.module
+            << " " << new_symbol.location << '\n'
+            << type_to_string_verbose(ns, new_symbol)
+            << eom;
 }
 
 /*******************************************************************\
@@ -718,10 +716,11 @@ void linkingt::duplicate_code_symbol(
     else if(base_type_eq(old_symbol.type, new_symbol.type, ns))
     {
       // keep the one in old_symbol -- libraries come last!
-      str << "warning: function `" << old_symbol.name << "' in module `" << 
-        new_symbol.module << "' is shadowed by a definition in module `" << 
-        old_symbol.module << "'" << std::endl;
-      warning_msg();
+      warning() << "warning: function `" << old_symbol.name
+                << "' in module `" << new_symbol.module
+                << "' is shadowed by a definition in module `"
+                << old_symbol.module << "'"
+                << eom;
     }
     else
       link_error(
@@ -853,16 +852,17 @@ void linkingt::duplicate_object_symbol(
       }
       else
       {
-        err_location(new_symbol.value);
-        str << "error: conflicting initializers for variable \""
-            << old_symbol.name
-            << "\"" << '\n';
-        str << "old value in module " << old_symbol.module
-            << " " << old_symbol.value.find_source_location() << '\n'
-            << expr_to_string(ns, old_symbol.name, tmp_old) << '\n';
-        str << "new value in module " << new_symbol.module
-            << " " << new_symbol.value.find_source_location() << '\n'
-            << expr_to_string(ns, new_symbol.name, tmp_new);
+        error().source_location=new_symbol.value.find_source_location();
+        error() << "error: conflicting initializers for variable \""
+                << old_symbol.name
+                << "\"" << '\n';
+        error() << "old value in module " << old_symbol.module
+                << " " << old_symbol.value.find_source_location() << '\n'
+                << expr_to_string(ns, old_symbol.name, tmp_old) << '\n';
+        error() << "new value in module " << new_symbol.module
+                << " " << new_symbol.value.find_source_location() << '\n'
+                << expr_to_string(ns, new_symbol.name, tmp_new)
+                << eom;
         throw 0;
       }
     }

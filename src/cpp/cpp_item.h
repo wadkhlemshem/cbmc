@@ -138,6 +138,11 @@ public:
   {
     return id()==ID_cpp_static_assert;
   }
+
+  inline const source_locationt &source_location() const
+  {
+    return static_cast<const source_locationt &>(find(ID_C_source_location));
+  }
   
 };
 
