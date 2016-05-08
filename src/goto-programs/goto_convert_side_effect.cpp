@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/expr_util.h>
 #include <util/std_expr.h>
 #include <util/rename.h>
@@ -649,7 +655,7 @@ void goto_convertt::remove_statement_expression(
   // This is a gcc extension of the form ({ ....; expr; })
   // The value is that of the final expression.
   // The expression is copied into a temporary before the
-  // scope is destoyed.
+  // scope is destroyed.
 
   if(expr.operands().size()!=1)
     throw "statement_expression takes 1 operand";
@@ -734,6 +740,10 @@ void goto_convertt::remove_side_effect(
   goto_programt &dest,
   bool result_is_used)
 {
+#ifdef DEBUG
+  std::cout << "REMOVE SIDE EFFECT: " << expr.pretty() << std::endl;
+#endif
+  
   const irep_idt &statement=expr.get_statement();
   
   if(statement==ID_function_call)

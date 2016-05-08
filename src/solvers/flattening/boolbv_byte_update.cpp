@@ -40,6 +40,11 @@ void boolbvt::convert_byte_update(
 
   bool little_endian;
   
+#if 1 //for _Bool arrays
+  if(expr.value().type().id()==ID_bool) 
+    little_endian=false;
+  else
+#endif 
   if(expr.id()==ID_byte_update_little_endian)
     little_endian=true;
   else if(expr.id()==ID_byte_update_big_endian)
@@ -61,8 +66,16 @@ void boolbvt::convert_byte_update(
   mp_integer index;
   if(!to_integer(offset_expr, index))
   {
+#if 1 //for _Bool arrays
+    if(expr.value().type().id()==ID_bool) 
+    {
+      assert(update_width == 1);
+      byte_width = 1;
+    }
+#endif
+
     // yes!
-    mp_integer offset=index*8;
+    mp_integer offset=index*byte_width;
     
     if(offset+update_width>mp_integer(bv.size()) || offset<0)
     {

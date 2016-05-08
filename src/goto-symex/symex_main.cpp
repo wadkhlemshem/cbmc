@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <cassert>
 
 #include <util/std_expr.h>
@@ -242,9 +248,9 @@ void goto_symext::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
-  #if 0
+  #ifdef DEBUG
   std::cout << "\ninstruction type is " << state.source.pc->type << std::endl;
-  std::cout << "Location: " << state.source.pc->location << std::endl;
+  std::cout << "Location: " << state.source.pc->source_location << std::endl;
   std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << std::endl;
   std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << std::endl;
   #endif
@@ -330,6 +336,13 @@ void goto_symext::symex_step(
       clean_expr(deref_code.lhs(), state, true);
       clean_expr(deref_code.rhs(), state, false);
 
+#if 0
+//      std::cout << "\nlhs: " << from_expr(ns, "", deref_code.lhs()) << std::endl;
+//      std::cout << "rhs: " << from_expr(ns, "", deref_code.rhs()) << std::endl;
+      std::cout << "\nlhs: " << deref_code.lhs().pretty() << std::endl;
+      std::cout << "\nrhs: " << deref_code.rhs().pretty() << std::endl;
+#endif
+  
       symex_assign(state, deref_code);
     }
 

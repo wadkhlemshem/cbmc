@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <ostream>
 
 #include "symbol_table.h"
@@ -24,6 +30,10 @@ Function: symbol_tablet::add
 
 bool symbol_tablet::add(const symbolt &symbol)
 {
+#if 0
+  std::cout << "add_symbol: " << symbol.name << std::endl;
+#endif 
+  
   if(!symbols.insert(std::pair<irep_idt, symbolt>(symbol.name, symbol)).second)
     return true;
     
@@ -47,6 +57,18 @@ Function: symbol_tablet::move
 
 bool symbol_tablet::move(symbolt &symbol, symbolt *&new_symbol)
 {
+#ifdef DEBUG
+  std::cout << "move_symbol: " << symbol.name << std::endl;
+#endif 
+
+#if 1
+  std::string n = id2string(symbol.name);
+  if(n.find("mv_int_char")!=std::string::npos)
+  {
+    ;
+  }
+#endif
+  
   symbolt tmp;
 
   std::pair<symbolst::iterator, bool> result=

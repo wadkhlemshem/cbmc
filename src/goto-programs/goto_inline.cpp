@@ -72,11 +72,16 @@ void goto_inlinet::parameter_assignments(
     }
 
     {
-      const symbolt &symbol=ns.lookup(identifier);
+      //REMARK: "this" is not in the symbol table for some reason
+      symbol_exprt symbol_expr;
+      if(identifier == ID_this)
+	symbol_expr = symbol_exprt(identifier,par_type);
+      else 
+        symbol_expr = ns.lookup(identifier).symbol_expr();
 
       goto_programt::targett decl=dest.add_instruction();
       decl->make_decl();
-      decl->code=code_declt(symbol.symbol_expr());
+      decl->code=code_declt(symbol_expr);
       decl->code.add_source_location()=source_location;
       decl->source_location=source_location;
       decl->function=function_name; 
@@ -188,11 +193,16 @@ void goto_inlinet::parameter_destruction(
     }
 
     {
-      const symbolt &symbol=ns.lookup(identifier);
+      //REMARK: "this" is not in the symbol table for some reason
+      symbol_exprt symbol_expr;
+      if(identifier == ID_this)
+	symbol_expr = symbol_exprt(identifier,ns.follow(parameter.type()));
+      else 
+        symbol_expr = ns.lookup(identifier).symbol_expr();
 
       goto_programt::targett dead=dest.add_instruction();
       dead->make_dead();
-      dead->code=code_deadt(symbol.symbol_expr());
+      dead->code=code_deadt(symbol_expr);
       dead->code.add_source_location()=source_location;
       dead->source_location=source_location;
       dead->function=function_name; 

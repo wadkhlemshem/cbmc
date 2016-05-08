@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+//#ifdef DEBUG
+#include <iostream>
+//#endif
+
 #include <cstdlib>
 
 #include <util/expr_util.h>
@@ -15,6 +21,7 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 #include <util/std_expr.h>
 #include <util/config.h>
 #include <util/simplify_expr.h>
+#include <util/base_type.h>
 
 #include <ansi-c/c_types.h>
 #include <ansi-c/c_qualifiers.h>
@@ -141,6 +148,11 @@ void cpp_typecheckt::typecheck_expr_main(exprt &expr)
     expr.type()=symbol_typet("tag-_GUID");
     follow(expr.type());
     expr.set(ID_C_lvalue, true);
+  }
+  else if(expr.id()==ID_noexcept)
+  {
+    // TODO
+    expr=false_exprt();
   }
   else
     c_typecheck_baset::typecheck_expr_main(expr);
@@ -512,7 +524,13 @@ bool cpp_typecheckt::overloadable(const exprt &expr)
     if(is_reference(t))
       t=t.subtype();
 
+#if 0
+    std::cout << "TYPE: " << t.pretty() << std::endl << std::endl;
+#endif
+
     if(t.id()==ID_struct ||
+       //this might be an incomplete struct (template) here
+       t.id()==ID_incomplete_struct ||
        t.id()==ID_union ||
        t.id()==ID_c_enum)
       return true;
@@ -571,11 +589,19 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
   // Check argument types first.
   // At least one struct/enum operand is required.
   
+#if 0
+  std::cout << "OVERLOAD: " << expr.pretty() << std::endl;
+#endif
+
   if(!overloadable(expr))
     return false;
   else if(expr.id()==ID_dereference &&
           expr.get_bool(ID_C_implicit))
     return false;
+
+#if 0
+  std::cout << "OVERLOADED " << std::endl << std::endl;
+#endif
     
   assert(expr.operands().size()>=1);
 
@@ -597,7 +623,7 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
     cpp_name.get_sub().back().set(ID_identifier, op_name);
     cpp_name.get_sub().back().add(ID_C_source_location)=expr.source_location();
 
-    // See if the struct decalares the cast operator as a member
+    // See if the struct declares the cast operator as a member
     bool found_in_struct = false;
     assert(!expr.operands().empty());
     typet t0(follow(expr.op0().type()));
@@ -694,6 +720,8 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
       // We try and fail silently, maybe conversions will work
       // instead.
   
+
+      //TODO: need to resolve an incomplete struct (template) here
       // go into scope of first operand        
       if(expr.op0().type().id()==ID_symbol &&
          follow(expr.op0().type()).id()==ID_struct)
@@ -856,7 +884,11 @@ void cpp_typecheckt::typecheck_expr_address_of(exprt &expr)
     }
   }
 
+  // the C front end does not know about references
+  const bool is_ref=is_reference(expr.type());
   c_typecheck_baset::typecheck_expr_address_of(expr);
+  if(is_ref)
+    expr.type()=reference_typet(expr.type().subtype());
 }
 
 /*******************************************************************\
@@ -1622,6 +1654,11 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
   exprt &expr,
   const cpp_typecheck_fargst &fargs)
 {
+#if 0
+  std::cout << "typecheck_expr_cpp_name: "
+	    << expr.pretty() << std::endl << std::endl;
+#endif
+  
   source_locationt source_location=
     to_cpp_name(expr).source_location();
 
@@ -2114,6 +2151,11 @@ Purpose:
 void cpp_typecheckt::typecheck_side_effect_function_call(
   side_effect_expr_function_callt &expr)
 {
+#ifdef DEBUG
+  std::cout << "FUNCTION_CALL: " 
+	    << expr.pretty()
+	    << std::endl;
+#endif
   // For virtual functions, it is important to check whether
   // the function name is qualified. If it is qualified, then
   // the call is not virtual.
@@ -2222,8 +2264,7 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
     }
 
     // do implicit dereference
-    if((expr.function().id()=="implicit_address_of" ||
-        expr.function().id()==ID_address_of) &&
+    if(expr.function().id()==ID_address_of &&
       expr.function().operands().size()==1)
     {
       exprt tmp;
@@ -2383,6 +2424,33 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
       tmp_object_expr.set(ID_C_access, member.get(ID_C_access));
     }
 
+    // the constructor is being used, so make sure the destructor
+    // will be available
+    {
+      // find name of destructor
+      const struct_typet::componentst &components=
+        to_struct_type(follow(tmp_object_expr.type())).components();
+
+      for(struct_typet::componentst::const_iterator
+          it=components.begin();
+          it!=components.end();
+          it++)
+      {
+        const typet &type=it->type();
+
+        if(!it->get_bool(ID_from_base) &&
+           type.id()==ID_code &&
+           type.find(ID_return_type).id()==ID_destructor)
+        {
+          symbol_tablet::symbolst::iterator s_it=
+            symbol_table.symbols.find(it->get(ID_name));
+          assert(s_it!=symbol_table.symbols.end());
+          add_function_body(&(s_it->second));
+          break;
+        }
+      }
+    }
+
     expr.function().swap(member);
     
     typecheck_method_application(expr);
@@ -2443,6 +2511,12 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
   exprt tmp=do_special_functions(expr);
   if(tmp.is_not_nil())
     expr.swap(tmp);
+
+#ifdef DEBUG
+  std::cout << "RESULT: " 
+	    << expr.pretty()
+	    << std::endl;
+#endif
 }
 
 /*******************************************************************\
@@ -2545,6 +2619,10 @@ void cpp_typecheckt::typecheck_expr_side_effect(
   {
     typecheck_expr_throw(expr);
   }
+  else if(statement==ID_temporary_object)
+  {
+    // TODO
+  }
   else
     c_typecheck_baset::typecheck_expr_side_effect(expr);
 }
@@ -2575,6 +2653,28 @@ void cpp_typecheckt::typecheck_method_application(
   member_expr.swap(expr.function());
 
   const symbolt &symbol=lookup(member_expr.get(ID_component_name));
+  symbolt &method_symbol = symbol_table.symbols.find(symbol.name)->second;
+  const symbolt &tag_symbol = lookup(symbol.type.get("#member_name"));
+
+#ifdef DEBUG
+  std::cout << "template type: " << tag_symbol.type.find(ID_C_template) << std::endl;
+#endif 
+  // build the right template map if this is an instantiated template class method
+  if(tag_symbol.type.find(ID_C_template)!=irept())
+  {
+    cpp_saved_template_mapt saved_map(template_map);
+    const irept &template_type=tag_symbol.type.find(ID_C_template);
+    const irept &template_args=tag_symbol.type.find(ID_C_template_arguments);
+    template_map.build(static_cast<const template_typet &>(template_type),
+		       static_cast<const cpp_template_args_tct &>(template_args));
+    add_function_body(&method_symbol);
+#ifdef DEBUG
+    std::cout << "MAP for " << symbol << ":" << std::endl;
+    template_map.print(std::cout);
+#endif
+  }
+  else
+    add_function_body(&method_symbol);
 
   // build new function expression
   exprt new_function(cpp_symbol_expr(symbol));
@@ -2593,9 +2693,15 @@ void cpp_typecheckt::typecheck_method_application(
     
     if(expr.arguments().size()==func_type.parameters().size())
     {
-      implicit_typecast(expr.arguments().front(), this_type);
-      assert(is_reference(expr.arguments().front().type()));
-      expr.arguments().front().type().remove(ID_C_reference);
+      // this might be set up for base-class initialisation
+      if(!base_type_eq(expr.arguments().front().type(),
+                      func_type.parameters().front().type(),
+                      *this))
+      {
+        implicit_typecast(expr.arguments().front(), this_type);
+        assert(is_reference(expr.arguments().front().type()));
+        expr.arguments().front().type().remove(ID_C_reference);
+      }
     }
     else
     {

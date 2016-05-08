@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/i2string.h>
 #include <util/identifier.h>
 #include <util/expr_util.h>
@@ -35,6 +41,10 @@ void cpp_typecheckt::convert_parameter(
 {
   std::string identifier=id2string(parameter.get_identifier());
 
+#ifdef DEBUG
+  std::cout << "parameter: " << identifier << std::endl;
+#endif 
+  
   if(identifier.empty())
   {
     identifier="#anon_arg"+i2string(anon_counter++);
@@ -61,6 +71,9 @@ void cpp_typecheckt::convert_parameter(
 
   symbolt *new_symbol;
 
+#ifdef DEBUG
+  std::cout << "new_symbol: " << symbol.name << std::endl;
+#endif 
   if(symbol_table.move(symbol, new_symbol))
   {
     err_location(symbol.location);
@@ -113,6 +126,10 @@ Function: cpp_typecheckt::convert_function
 
 void cpp_typecheckt::convert_function(symbolt &symbol)
 {
+#ifdef DEBUG
+  std::cout << "convert_function: " << symbol.name << std::endl;
+#endif
+  
   code_typet &function_type=
     to_code_type(template_subtype(symbol.type));
 
@@ -136,7 +153,7 @@ void cpp_typecheckt::convert_function(symbolt &symbol)
   cpp_scopet &function_scope=cpp_scopes.set_scope(symbol.name);
 
   // fix the scope's prefix
-  function_scope.prefix+=id2string(symbol.name)+"::";
+  function_scope.prefix+=id2string(symbol.name)+"::"; 
 
   // genuine function definition -- do the parameter declarations
   convert_parameters(symbol.mode, function_type);

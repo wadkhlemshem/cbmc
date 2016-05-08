@@ -8,6 +8,12 @@ Date: June 2003
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <cassert>
 
 #include <util/base_type.h>
@@ -228,6 +234,11 @@ void goto_convert_functionst::convert_function(const irep_idt &identifier)
   f.body_available=
     symbol.value.is_not_nil() &&
     symbol.value.id()!="compiled"; /* goto_inline may have removed the body */
+
+#ifdef DEBUG
+  std::cout << identifier
+	    << ": " << symbol.value.id() << std::endl;
+#endif
 
   if(!f.body_available) return;
   

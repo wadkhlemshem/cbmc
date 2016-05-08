@@ -245,10 +245,6 @@ protected:
   // Misc
   //
 
-  void find_constructor(
-    const typet &dest_type,
-    exprt &symbol_expr);
-
   void default_ctor(
     const source_locationt &source_location,
     const irep_idt &base_name,
@@ -328,6 +324,8 @@ protected:
   struct function_bodyt
   {
   public:
+    //TODO: cleanup
+#if 1
     function_bodyt(
       symbolt *_function_symbol,
       const template_mapt &_template_map,
@@ -337,20 +335,22 @@ protected:
       instantiation_stack(_instantiation_stack)
     {
     }
+#endif
     
     symbolt *function_symbol;
     template_mapt template_map;
     instantiation_stackt instantiation_stack;
   };
   
+#if 1
   typedef std::list<function_bodyt> function_bodiest;
+  std::set<irep_idt> functions_seen;
+#else
+  typedef std::map<irep_idt, function_bodyt> function_bodiest;
+#endif
   function_bodiest function_bodies;
   
-  void add_function_body(symbolt *_function_symbol)
-  {
-    function_bodies.push_back(function_bodyt(
-      _function_symbol, template_map, instantiation_stack));
-  }
+  void add_function_body(symbolt *_function_symbol);
 
   // types
 
