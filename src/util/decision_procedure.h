@@ -9,6 +9,13 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_DECISION_PROCEDURE_H
 #define CPROVER_DECISION_PROCEDURE_H
 
+//#define DEBUGH
+
+#ifdef DEBUGH
+#include <iostream>
+#include <langapi/language_util.h>
+#endif
+
 #include "message.h"
 
 class exprt;
@@ -33,10 +40,20 @@ public:
   virtual void set_to(const exprt &expr, bool value)=0;
   
   inline void set_to_true(const exprt &expr)
-  { set_to(expr, true); }
+  {
+#ifdef DEBUGH
+    std::cout << from_expr(ns, "", expr) << std::endl;
+#endif
+    set_to(expr, true); 
+  }
    
   inline void set_to_false(const exprt &expr)
-  { set_to(expr, false); }
+  {
+#ifdef DEBUGH
+    std::cout << "!(" << from_expr(ns, "", expr) << ")" << std::endl;
+#endif
+    set_to(expr, false); 
+  }
   
   // solve the problem
   typedef enum { D_SATISFIABLE, D_UNSATISFIABLE, D_ERROR } resultt;

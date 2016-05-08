@@ -33,6 +33,9 @@ void unsigned_union_find::make_union(size_type j, size_type k)
 
   if(j==k) return; // already in same set
 
+  // limit partition size
+  if(nodes[j].count+nodes[k].count > max_size) return;
+  
   // weight it
 
   if(nodes[j].count < nodes[k].count)  // j is the smaller set
@@ -226,3 +229,4 @@ unsigned_union_find::size_type unsigned_union_find::find(size_type a) const
 
   return a;
 }
+

@@ -1,13 +1,21 @@
 #include <assert.h>
 #include <math.h>
+
+#if defined(_MSC_VER) && _MSC_VER < 1800
+// don't have fenv.h
+#else
 #include <fenv.h>
+#endif
 
 int main (void) {
+  #if defined(_MSC_VER) && _MSC_VER < 1800
+  #else
+  
+  #ifdef FE_UPWARD
+  #ifdef FW_DOWNWARD
   float f;
   float g;
 
-  #ifdef FE_UPWARD
-  #ifdef FE_DOWNWARD
   __CPROVER_assume(!isnan(f));
   __CPROVER_assume(!isnan(g));
 
@@ -24,6 +32,8 @@ int main (void) {
     assert(h >= f);
   }
   #endif
+  #endif
+  
   #endif
 
   return 1;

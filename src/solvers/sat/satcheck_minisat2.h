@@ -44,6 +44,14 @@ public:
   virtual bool is_in_conflict(literalt a) const;
   virtual bool has_set_assumptions() const { return true; }
   virtual bool has_is_in_conflict() const { return true; }
+
+#ifdef LAZY_ENCODING_STATISTICS
+  typedef struct {
+    unsigned variables;
+    unsigned clauses;
+  } statisticst;
+  virtual statisticst get_statistics() = 0;
+#endif
   
 protected:
   T *solver;
@@ -58,6 +66,10 @@ class satcheck_minisat_no_simplifiert:
 public:
   satcheck_minisat_no_simplifiert();
   virtual const std::string solver_text();
+
+#ifdef LAZY_ENCODING_STATISTICS
+  virtual statisticst get_statistics();
+#endif
 };
 
 class satcheck_minisat_simplifiert:
@@ -68,6 +80,9 @@ public:
   virtual const std::string solver_text();
   virtual void set_frozen(literalt a);
   bool is_eliminated(literalt a) const;
+#ifdef LAZY_ENCODING_STATISTICS
+  virtual statisticst get_statistics();
+#endif
 };
 
 #endif

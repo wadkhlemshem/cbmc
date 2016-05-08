@@ -433,3 +433,46 @@ bool satcheck_minisat_simplifiert::is_eliminated(literalt a) const
   return solver->isEliminated(a.var_no());
 }
 
+/*******************************************************************\
+
+Function: satcheck_minisat_simplifiert::get_statistics
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+#ifdef LAZY_ENCODING_STATISTICS
+satcheck_minisat_simplifiert::statisticst satcheck_minisat_simplifiert::get_statistics()
+  {
+    statisticst s;
+    s.variables = _no_variables;
+    s.clauses = solver->nClauses();
+    return s;
+  }
+#endif
+
+/*******************************************************************\
+
+Function: satcheck_minisat_no_simplifiert::get_statistics
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+#ifdef LAZY_ENCODING_STATISTICS
+satcheck_minisat_no_simplifiert::statisticst satcheck_minisat_no_simplifiert::get_statistics()
+  {
+    statisticst s;
+    s.variables = _no_variables;
+    s.clauses = solver->nClauses();
+    return s;
+  }
+#endif

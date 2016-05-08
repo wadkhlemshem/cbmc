@@ -1,9 +1,16 @@
+
 # Build platform (use one of AUTO, Unix, OSX_Universal, MSVC, Cygwin, MinGW)
 BUILD_ENV = AUTO
 
 # Variables you may want to override
-#CXXFLAGS = -Wall -O0 -g -Werror -Wno-long-long -Wno-sign-compare -Wno-parentheses -Wno-strict-aliasing -pedantic
-#CXXFLAGS = -std=c++11
+CXXFLAGS = -DLAZY_ENCODING_TEST -DREFINE_ENCODING -DPO_CONSTRAINT_CACHE -DDO_CEX_MINIMIZATION 
+#-DLAZY_ENCODING_STATISTICS
+#-DHAVE_MUSER2  -DDO_CEX_MINIMIZATION
+#-DREFINE_ENCODING -DPO_CONSTRAINT_CACHE
+# -DCLUSTERING -DREFINE_ENCODING 
+#-DLAZY_PARTIAL_ORDER_ENCODING_TEST_OLD 
+#CXXFLAGS += -Wall -O2 -g -Werror -Wno-long-long -Wno-sign-compare -Wno-parentheses -Wno-strict-aliasing -pedantic 
+#CXXFLAGS += -std=c++11
 
 # If GLPK is available; this is used by goto-instrument and musketeer.
 #LIB_GLPK = -lglpk 
@@ -16,6 +23,7 @@ BUILD_ENV = AUTO
 #BOOLEFORCE = ../../booleforce-0.4
 #MINISAT = ../../MiniSat-p_v1.14
 MINISAT2 = ../../minisat-2.2.0
+#MUSER2 = ../../muser2
 #GLUCOSE = ../../glucose2.2
 #SMVSAT =
 

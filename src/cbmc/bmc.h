@@ -11,6 +11,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <list>
 #include <map>
+#include <memory>
 
 #include <util/hash_cont.h>
 #include <util/options.h>
@@ -23,6 +24,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <solvers/smt2/smt2_dec.h>
 #include <langapi/language_ui.h>
 #include <goto-symex/symex_target_equation.h>
+#include <goto-symex/memory_model.h>
 
 #include "symex_bmc.h"
 
@@ -60,6 +62,7 @@ protected:
   symbol_tablet new_symbol_table;
   namespacet ns;
   symex_target_equationt equation;
+  std::auto_ptr<memory_model_baset> memory_model;
   symex_bmct symex;
  
   // use gui format

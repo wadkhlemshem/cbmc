@@ -610,6 +610,10 @@ literalt cnft::new_variable()
   literalt l;
   l.set(_no_variables, false);
 
+#if 0
+  std::cout << "new variable: " << _no_variables << std::endl;
+#endif
+
   set_no_variables(_no_variables+1);
 
   return l;

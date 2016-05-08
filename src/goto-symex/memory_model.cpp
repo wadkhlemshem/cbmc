@@ -11,6 +11,8 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 
 #include "memory_model.h"
 
+//#define DEBUG
+
 /*******************************************************************\
 
 Function: memory_model_baset::memory_model_baset
@@ -26,8 +28,60 @@ Function: memory_model_baset::memory_model_baset
 memory_model_baset::memory_model_baset(const namespacet &_ns):
   partial_order_concurrencyt(_ns),
   var_cnt(0)
+#ifdef REFINE_ENCODING
+  ,lazy(false)
+#endif
 {
 }
+
+
+#ifdef REFINE_ENCODING
+
+/*******************************************************************\
+
+Function: memory_model_baset::operator()
+
+  Inputs: 
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void memory_model_baset::operator()(symex_target_equationt &, bool _lazy)
+{
+  lazy=_lazy;  
+}
+
+void memory_model_baset::operator()(
+  symex_target_equationt& equation, 
+  goto_tracet& trace, 
+  goto_trace_SSA_step_mapt& step_map)
+{
+  steps_of_interest.clear();
+
+  for(unsigned i=0; i<step_map.size(); ++i)
+  {
+#ifdef DEBUG
+    status() << "step " << from_expr(ns,"",step_map[i]->ssa_lhs) << eom;
+#endif
+    steps_of_interest.insert(step_map[i]);
+  }
+#ifdef DEBUG
+  status() << "SSA steps of interest : " << steps_of_interest.size() << eom;
+#endif
+}
+
+
+bool memory_model_baset::skip_lazy(event_listt::const_iterator it)
+{
+  bool result=lazy && steps_of_interest.count(*it) == 0;
+  return result;
+}
+
+#endif
+
 
 /*******************************************************************\
 
@@ -58,10 +112,17 @@ Function: memory_model_baset::nondet_bool_symbol
 \*******************************************************************/
 
 symbol_exprt memory_model_baset::nondet_bool_symbol(
-  const std::string &prefix)
+  const std::string &prefix,
+  const irep_idt &var1,
+  const irep_idt &var2)
 {
   return symbol_exprt(
-    "memory_model::choice_"+prefix+i2string(var_cnt++),
+    "memory_model::choice_"
+    +prefix
+    +"_"
+    +id2string(var1)
+    +"_"
+    +id2string(var2),
     bool_typet());
 }
 
@@ -120,10 +181,11 @@ void memory_model_baset::read_from(symex_target_equationt &equation)
         r_it++)
     {
       const event_it r=*r_it;
-      
-      exprt::operandst rf_some_operands;
-      rf_some_operands.reserve(a_rec.writes.size());
-
+     
+#ifdef REFINE_ENCODING
+      if(skip_lazy(r_it))
+        continue;
+#endif
       // this is quadratic in #events per address
       for(event_listt::const_iterator
           w_it=a_rec.writes.begin();
@@ -132,6 +194,11 @@ void memory_model_baset::read_from(symex_target_equationt &equation)
       {
         const event_it w=*w_it;
         
+#ifdef REFINE_ENCODING
+        if(skip_lazy(w_it))
+          continue;
+#endif
+        
         // rf cannot contradict program order
         if(po(r, w))
           continue; // contradicts po
@@ -139,12 +206,8 @@ void memory_model_baset::read_from(symex_target_equationt &equation)
         bool is_rfi=
           w->source.thread_nr==r->source.thread_nr;
 
-        symbol_exprt s=nondet_bool_symbol("rf");
+        symbol_exprt s=nondet_bool_symbol("rf", id(r), id(w));
         
-        // record the symbol
-        choice_symbols[
-          std::make_pair(r, w)]=s;
-
         // We rely on the fact that there is at least
         // one write event that has guard 'true'.
         implies_exprt read_from(s,
@@ -163,9 +226,57 @@ void memory_model_baset::read_from(symex_target_equationt &equation)
           add_constraint(equation,
             cond, "rf-order", r->source);
         }
+      }
+    }
+  }
+}
+
+
+void memory_model_baset::read_from_some(symex_target_equationt &equation)
+{
+  // We iterate over all the reads, and
+  // make them match at least one
+  // (internal or external) write.
+
+  for(address_mapt::const_iterator
+      a_it=address_map.begin();
+      a_it!=address_map.end();
+      a_it++)
+  {
+    const a_rect &a_rec=a_it->second;
+  
+    for(event_listt::const_iterator
+        r_it=a_rec.reads.begin();
+        r_it!=a_rec.reads.end();
+        r_it++)
+    {
+      const event_it r=*r_it;
+     
+      exprt::operandst rf_some_operands;
+      rf_some_operands.reserve(a_rec.writes.size());
+
+      // this is quadratic in #events per address
+      for(event_listt::const_iterator
+          w_it=a_rec.writes.begin();
+          w_it!=a_rec.writes.end();
+          ++w_it)
+      {
+        const event_it w=*w_it;
+        
+        // rf cannot contradict program order
+        if(po(r, w))
+          continue; // contradicts po
+
+        symbol_exprt s=nondet_bool_symbol("rf", id(r), id(w));
+        
+        // record the symbol
+        choice_symbols[
+          std::make_pair(r, w)]=s;
+        choice_symbols_rev[s] = std::make_pair(id(r), id(w));
 
         rf_some_operands.push_back(s);
       }
+
       
       // value equals the one of some write
       exprt rf_some;
@@ -184,9 +295,10 @@ void memory_model_baset::read_from(symex_target_equationt &equation)
 
       // Add the read's guard, each of the writes' guards is implied
       // by each entry in rf_some
+
       add_constraint(equation,
         implies_exprt(r->guard, rf_some), "rf-some", r->source);
     }
-  }
+  }  
 }
 

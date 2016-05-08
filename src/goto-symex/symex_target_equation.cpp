@@ -7,15 +7,18 @@ Author: Daniel Kroening, kroening@kroening.com
 \*******************************************************************/
 
 #include <cassert>
+#include <iostream>
 
 #include <util/i2string.h>
 #include <util/std_expr.h>
 #include <util/expr_util.h>
+#include <util/prefix.h>
 
 #include <langapi/language_util.h>
 #include <solvers/prop/prop_conv.h>
 #include <solvers/prop/prop.h>
 #include <solvers/prop/literal_expr.h>
+#include <solvers/refinement/bv_refinement.h>
 
 #include "goto_symex_state.h"
 #include "symex_target_equation.h"
@@ -33,7 +36,9 @@ Function: symex_target_equationt::symex_target_equationt
 \*******************************************************************/
 
 symex_target_equationt::symex_target_equationt(
-  const namespacet &_ns):ns(_ns)
+  const namespacet &_ns):do_lazy_partial_order_encoding(false),
+			 do_refinement_slicing(false),
+			 ns(_ns)
 {
 }
 
@@ -604,6 +609,9 @@ Function: symex_target_equationt::convert
 void symex_target_equationt::convert(
    prop_convt &prop_conv)
 {
+  if(do_lazy_partial_order_encoding ||
+     do_refinement_slicing) 
+      prop_conv.set_all_frozen();
   convert_guards(prop_conv);
   convert_assignments(prop_conv);
   convert_decls(prop_conv);
@@ -626,13 +634,37 @@ Function: symex_target_equationt::convert_assignments
 \*******************************************************************/
 
 void symex_target_equationt::convert_assignments(
-  decision_proceduret &decision_procedure) const
+  decision_proceduret &decision_procedure)
 {
-  for(SSA_stepst::const_iterator it=SSA_steps.begin();
+  for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++)
   {
-    if(it->is_assignment() && !it->ignore)
-      decision_procedure.set_to_true(it->cond_expr);
+    if(it->is_assignment() && !it->ignore && !it->converted)
+    {
+      it->converted = true;
+      if(do_refinement_slicing)
+      {
+        decision_proceduret *solver = &decision_procedure;
+	bv_refinementt &bv_refinement = *dynamic_cast<bv_refinementt *>(solver);
+	std::string kind = "assign";
+	if(it->cond_expr.id()==ID_equal &&
+	   it->cond_expr.op0().id()==ID_symbol &&
+	   has_prefix(id2string(it->cond_expr.op0().get(ID_identifier)),
+	     "goto_symex::\\guard#"))
+	  kind = "guard";
+        bv_refinement.add_constraint(it->cond_expr,kind);
+#if 0
+	    std::cout << "SLICING [" 
+		      << kind << "]: " 
+		      << from_expr(ns,"",it->cond_expr)
+		      << std::endl;
+#endif
+      }
+      else // !do_refinement_slicing
+      {
+        decision_procedure.set_to_true(it->cond_expr);
+      }
+    }
   }
 }
 
@@ -649,13 +681,14 @@ Function: symex_target_equationt::convert_decls
 \*******************************************************************/
 
 void symex_target_equationt::convert_decls(
-  prop_convt &prop_conv) const
+  prop_convt &prop_conv)
 {
-  for(SSA_stepst::const_iterator it=SSA_steps.begin();
+  for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++)
   {
-    if(it->is_decl() && !it->ignore)
-    {
+    if(it->is_decl() && !it->ignore && !it->converted)
+    { 
+      it->converted = true;
       // The result is not used, these have no impact on
       // the satisfiability of the formula.
       prop_conv.convert(it->cond_expr);
@@ -706,8 +739,9 @@ void symex_target_equationt::convert_assumptions(
   for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++)
   {
-    if(it->is_assume())
+    if(it->is_assume() && !it->converted)
     {
+      it->converted = true;
       if(it->ignore)
         it->cond_literal=const_literal(true);
       else
@@ -729,20 +763,69 @@ Function: symex_target_equationt::convert_constraints
 \*******************************************************************/
 
 void symex_target_equationt::convert_constraints(
-  decision_proceduret &decision_procedure) const
+  prop_convt &prop_conv) 
 {
-  for(SSA_stepst::const_iterator it=SSA_steps.begin();
+  for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end();
       it++)
   {
-    if(it->is_constraint())
+    if(it->is_constraint() && !it->converted)
     {
       if(it->ignore)
         continue;
 
-      decision_procedure.set_to_true(it->cond_expr);
+      it->converted = true;
+
+#ifdef LAZY_PARTIAL_ORDER_ENCODING_TEST_OLD
+      literalt l = prop_conv.convert(it->cond_expr);
+      if(!l.is_constant())
+      {
+	 assumptions.push_back(l);
+	 assumptions_kinds.push_back(it->comment);
+      }
+#else //not LAZY_PARTIAL_ORDER_ENCODING_TEST_OLD    
+      if(do_lazy_partial_order_encoding)
+      {
+        prop_convt *solver = &prop_conv;
+	bv_refinementt &bv_refinement = *dynamic_cast<bv_refinementt *>(solver);
+	//splitting conjunctions to have a more fine-grained refinement
+	if(it->cond_expr.id()==ID_and)
+	{
+	  for(exprt::operandst::const_iterator o_it = 
+		it->cond_expr.operands().begin();
+	      o_it != it->cond_expr.operands().end(); ++o_it)
+	  {
+	    bv_refinement.add_partial_order_constraint(*o_it,it->comment);
+#if 0
+	    std::cout << "PO [" 
+		      << it->comment << "]: " 
+		      << from_expr(ns,"",*o_it)
+		      << std::endl;
+#endif
+	  }
+	}
+	else
+        {
+	  bv_refinement.add_partial_order_constraint(it->cond_expr,it->comment);
+#if 0
+	  std::cout << "PO [" 
+		    << it->comment << "]: " 
+		    << from_expr(ns,"",it->cond_expr)
+		    << std::endl;
+#endif
+	}
+      }
+      else // !do_lazy_partial_order_encoding
+      {
+        prop_conv.set_to_true(it->cond_expr);
+      }
+#endif
     }
   }
+
+#ifdef LAZY_PARTIAL_ORDER_ENCODING_TEST_OLD
+  prop_conv.set_assumptions(assumptions);
+#endif
 }
 
 /*******************************************************************\
@@ -773,13 +856,14 @@ void symex_target_equationt::convert_assertions(
     for(SSA_stepst::iterator it=SSA_steps.begin();
         it!=SSA_steps.end(); it++)
     {
-      if(it->is_assert())
+      if(it->is_assert() && !it->converted)
       {
+	it->converted = true;
         prop_conv.set_to_false(it->cond_expr);
         it->cond_literal=const_literal(false);
         return; // prevent further assumptions!
       }
-      else if(it->is_assume())
+      else if(it->is_assume() && !it->converted)
         prop_conv.set_to_true(it->cond_expr);
     }
 
@@ -796,8 +880,10 @@ void symex_target_equationt::convert_assertions(
   for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++)
   {
-    if(it->is_assert())
+    if(it->is_assert() && !it->converted)
     {
+      it->converted = true;
+
       implies_exprt implication(
         assumption,
         it->cond_expr);
@@ -843,7 +929,7 @@ void symex_target_equationt::convert_io(
 
   for(SSA_stepst::iterator it=SSA_steps.begin();
       it!=SSA_steps.end(); it++)
-    if(!it->ignore)
+    if(!it->ignore && !it->converted)
     {
       for(std::list<exprt>::const_iterator
           o_it=it->io_args.begin();

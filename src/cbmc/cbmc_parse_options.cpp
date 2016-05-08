@@ -394,6 +394,20 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("graphml-cex"))
     options.set_option("graphml-cex", cmdline.get_value("graphml-cex"));
+
+  if(cmdline.isset("lazy-encoding"))
+  {
+    options.set_option("lazy-encoding", true);
+  }
+  if(cmdline.isset("lazy-dp"))
+  {
+    options.set_option("lazy-encoding", true);
+    options.set_option("lazy-dp", true);
+  }
+  if(cmdline.isset("refinement-slicer"))
+  {
+    options.set_option("refinement-slicer", true);
+  }
 }
 
 /*******************************************************************\
@@ -1010,6 +1024,7 @@ void cbmc_parse_optionst::help()
     " --z3                         use Z3 (experimental)\n"
     " --opensmt                    use OpenSMT (experimental)\n"
     " --refine                     use refinement procedure (experimental)\n"
+    " --lazy-encoding              use lazy partial order encoding (experimental)\n"
     " --outfile filename           output formula to given file\n"
     " --arrays-uf-never            never turn arrays into uninterpreted functions\n"
     " --arrays-uf-always           always turn arrays into uninterpreted functions\n"

@@ -10,6 +10,7 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 #define CPROVER_PARTIAL_ORDER_CONCURRENCY_H
 
 #include <util/message.h>
+#include <util/merge_irep.h>
 
 #include "symex_target_equation.h"
 
@@ -34,6 +35,9 @@ public:
   static irep_idt rw_clock_id(
     event_it e,
     axiomt axiom=AX_PROPAGATION);
+
+  typedef std::map<symbol_exprt,std::pair<irep_idt, irep_idt> >
+    choice_mapt;
   
 protected:
   const namespacet &ns;
@@ -78,8 +82,13 @@ protected:
     symex_target_equationt &equation,
     const exprt &cond,
     const std::string &msg,
-    const symex_targett::sourcet &source) const;
-  
+    const symex_targett::sourcet &source);
+
+  typedef hash_set_cont<irept, irep_full_hash, irep_full_eq> irep_storet;
+  irep_storet added_constraints;
+
+  merge_full_irept merge;
+
   // the partial order constraint for two events
   exprt before(event_it e1, event_it e2, unsigned axioms);
   virtual exprt before(event_it e1, event_it e2)=0;

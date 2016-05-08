@@ -81,6 +81,9 @@ Function: bv_refinementt::convert_floatbv_op
 
 void bv_refinementt::convert_floatbv_op(const exprt &expr, bvt &bv)
 {
+  if(!do_arithmetic_refinement)
+    return SUB::convert_floatbv_op(expr, bv);
+  
   if(ns.follow(expr.type()).id()!=ID_floatbv ||
      expr.operands().size()!=3)
     return SUB::convert_floatbv_op(expr, bv);
@@ -102,6 +105,9 @@ Function: bv_refinementt::convert_mult
 
 void bv_refinementt::convert_mult(const exprt &expr, bvt &bv)
 {
+  if(!do_arithmetic_refinement)
+    SUB::convert_mult(expr, bv);
+  
   // we catch any multiplication
   // unless it involves a constant
 
@@ -156,6 +162,9 @@ Function: bv_refinementt::convert_div
 
 void bv_refinementt::convert_div(const exprt &expr, bvt &bv)
 {
+  if(!do_arithmetic_refinement)
+    return SUB::convert_div(expr, bv);
+
   // we catch any division
   // unless it's integer division by a constant
   
@@ -181,6 +190,9 @@ Function: bv_refinementt::convert_mod
 
 void bv_refinementt::convert_mod(const exprt &expr, bvt &bv)
 {
+  if(!do_arithmetic_refinement)
+    return SUB::convert_mod(expr, bv);
+
   // we catch any mod
   // unless it's integer + constant
 

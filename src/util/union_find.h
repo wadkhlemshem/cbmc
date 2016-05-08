@@ -9,8 +9,11 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_UNION_FIND_H
 #define CPROVER_UNION_FIND_H
 
+#include <iostream>
+
 #include <cassert>
 #include <vector>
+#include <climits>
 
 #include "numbering.h"
 
@@ -22,7 +25,6 @@ class unsigned_union_find
 public:
   typedef std::size_t size_type;
 
-protected:
   struct nodet
   {
     size_type count; // set size
@@ -37,7 +39,11 @@ protected:
   // This is mutable to allow path compression in find().
   mutable std::vector<nodet> nodes;
 
-public:
+  unsigned max_size;
+
+  explicit unsigned_union_find(unsigned _max_size = UINT_MAX) :
+    max_size(_max_size) {}
+  
   // merge the sets 'a' and 'b'
   void make_union(size_type a, size_type b);
 
@@ -119,6 +125,7 @@ public:
 
   // find a different member of the same set
   size_type get_other(size_type a);
+
 };
 
 template <typename T>
@@ -126,6 +133,9 @@ class union_find:public numbering<T>
 {
 public:
   typedef typename numbering<T>::size_type size_type;
+
+  explicit union_find(unsigned _max_size = UINT_MAX) :
+    uuf(_max_size) {}
 
   // true == already in same set
   bool make_union(const T &a, const T &b)
@@ -168,6 +178,12 @@ public:
     return is_root(number(a));
   }
 
+    // number of disjoint sets  
+  size_type count_roots() const
+  {
+    return uuf.count_roots();
+  }
+    
   inline size_type number(const T &a)
   {
     size_type n=subt::number(a);
@@ -180,11 +196,52 @@ public:
     return n;
   }
 
+  inline const T &of_number(size_type n)
+  {
+    return subt::at(n);
+  }
+
+  // total number of elements  
+  inline size_type size() const
+  {
+    return uuf.size();
+  }
+  
   inline void clear()
   {
     subt::clear();
     uuf.clear();
   }  
+
+  // get the set of sets
+  void get_sets(std::vector<std::vector<T> > &s)
+  {
+    //this should be almost linear in a shallow graph
+
+    //collect roots
+    std::map<size_type,size_type> root_map;
+    unsigned index = 0;
+    for(size_type i=0; i<uuf.nodes.size(); i++)
+    {
+      if(uuf.is_root(i))
+      {
+	root_map[i] = index;
+	index++;
+      }
+    }
+
+    //set sizes
+    s.resize(root_map.size());
+    for(typename std::map<size_type,size_type>::iterator it = root_map.begin();
+	it != root_map.end(); ++it)
+      s[it->second].reserve(uuf.nodes[it->first].count);
+
+    //now collect elements
+    for(size_type i=0; i<uuf.nodes.size(); i++)
+    {
+      s[root_map[uuf.find(i)]].push_back(of_number(i));
+    }
+  }
 
 protected:
   unsigned_union_find uuf;

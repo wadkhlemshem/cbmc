@@ -32,6 +32,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-symex/memory_model_tso.h>
 #include <goto-symex/memory_model_pso.h>
 
+#ifdef LAZY_ENCODING_TEST
+#include <solvers/refinement/bv_refinement.h>
+#endif
+
 #include "bmc.h"
 #include "bv_cbmc.h"
 
@@ -141,6 +145,8 @@ void bmct::do_conversion(prop_convt &prop_conv)
 
   // convert SSA
   equation.convert(prop_conv);
+
+  status() << equation.count_converted_SSA_steps() << " steps converted" << eom;
 
   // the 'extra constraints'
   if(!bmc_constraints.empty())
@@ -334,7 +340,6 @@ Function: bmct::run
 bool bmct::run(const goto_functionst &goto_functions)
 {
   const std::string mm=options.get_option("mm");
-  std::auto_ptr<memory_model_baset> memory_model(0);
   if(mm.empty() || mm=="sc")
     memory_model.reset(new memory_model_sct(ns));
   else if(mm=="tso")
@@ -367,7 +372,11 @@ bool bmct::run(const goto_functionst &goto_functions)
     if(equation.has_threads())
     {
       memory_model->set_message_handler(get_message_handler());
+#ifdef REFINE_ENCODING
+      (*memory_model)(equation, options.get_bool_option("lazy-encoding"));
+#else
       (*memory_model)(equation);
+#endif
     }
   }
 
@@ -472,7 +481,9 @@ bool bmct::run(const goto_functionst &goto_functions)
       return decide_smt2(goto_functions);
     else if(options.get_bool_option("dimacs"))
       return write_dimacs();
-    else if(options.get_bool_option("refine"))
+    else if(options.get_bool_option("refine") ||
+      options.get_bool_option("refinement-slicer") ||
+      options.get_bool_option("lazy-encoding"))
       return decide_bv_refinement(goto_functions);
     else if(options.get_bool_option("aig"))
       return decide_aig(goto_functions);
@@ -532,10 +543,10 @@ bool bmct::decide(
 
   switch(run_decision_procedure(prop_conv))
   {
-  case decision_proceduret::D_UNSATISFIABLE:
+  case decision_proceduret::D_UNSATISFIABLE: 
     result=false;
     report_success();
-    break;
+    break; 
 
   case decision_proceduret::D_SATISFIABLE:
     error_trace(prop_conv);
@@ -545,6 +556,46 @@ bool bmct::decide(
   default:
     error() << "decision procedure failed" << eom;
   }
+
+#ifdef LAZY_ENCODING_TEST
+  bv_refinementt *bv_refinement = 
+    dynamic_cast<bv_refinementt *>(&prop_conv);
+  unsigned total = 0, active = 0;
+  for(bv_refinementt::kinds_counterst::iterator kit = 
+	bv_refinement->kinds_total.begin();
+      kit != bv_refinement->kinds_total.end(); ++kit)
+  {
+    total += kit->second;
+    active += bv_refinement->kinds_active[kit->first];
+  }
+  status() << "Partial order constraints used: " 
+	   << active << "/" << total
+	   << eom;
+  for(bv_refinementt::kinds_counterst::iterator kit = 
+	bv_refinement->kinds_total.begin();
+      kit != bv_refinement->kinds_total.end(); ++kit)
+  {
+    status() << "  " << kit->first << ": " 
+	     << bv_refinement->kinds_active[kit->first] 
+             << "/" << kit->second
+	     << eom;
+  }
+#ifdef LAZY_ENCODING_STATISTICS
+  status() << "Partial order constraint sizes: " << eom;
+  bv_refinementt::kinds_counterst::iterator kit2 = 
+	bv_refinement->kinds_clauses.begin();
+  for(bv_refinementt::kinds_counterst::iterator kit1 = 
+	bv_refinement->kinds_variables.begin();
+      kit1 != bv_refinement->kinds_variables.end(); ++kit1, ++kit2)
+  {
+    assert(kit1->first == kit2->first);
+    status() << "  " << kit1->first << ": " 
+	     << kit1->second << " variables, "
+             << kit2->second << " clauses"
+	     << eom;
+  }
+#endif
+#endif
 
   return result;
 }

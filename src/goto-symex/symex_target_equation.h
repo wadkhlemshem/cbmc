@@ -152,15 +152,22 @@ public:
     const sourcet &source);
 
   void convert(prop_convt &prop_conv);
-  void convert_assignments(decision_proceduret &decision_procedure) const;
-  void convert_decls(prop_convt &prop_conv) const;
+  void convert_assignments(decision_proceduret &decision_procedure);
+  void convert_decls(prop_convt &prop_conv);
   void convert_assumptions(prop_convt &prop_conv);
   void convert_assertions(prop_convt &prop_conv);
-  void convert_constraints(decision_proceduret &decision_procedure) const;
+  void convert_constraints(prop_convt &prop_conv);
   void convert_guards(prop_convt &prop_conv);
   void convert_io(decision_proceduret &decision_procedure);
 
   exprt make_expression() const;
+
+  bool do_lazy_partial_order_encoding;
+  bool do_refinement_slicing;
+#ifdef LAZY_PARTIAL_ORDER_ENCODING_TEST_OLD
+  bvt assumptions;
+  std::vector<std::string> assumptions_kinds;
+#endif
 
   class SSA_stept
   {
@@ -215,6 +222,8 @@ public:
     
     // for slicing
     bool ignore;
+    // for incremental solving
+    bool converted;
     
     SSA_stept():
       type(goto_trace_stept::NONE),
@@ -228,7 +237,8 @@ public:
       cond_expr(static_cast<const exprt &>(get_nil_irep())),
       formatted(false),
       atomic_section_id(0),
-      ignore(false)
+      ignore(false),
+      converted(false)	
     {
     }
     
@@ -254,6 +264,16 @@ public:
         it=SSA_steps.begin();
         it!=SSA_steps.end(); it++)
       if(it->ignore) i++;
+    return i;
+  }
+
+  unsigned count_converted_SSA_steps() const
+  {
+    unsigned i=0;
+    for(SSA_stepst::const_iterator
+        it=SSA_steps.begin();
+        it!=SSA_steps.end(); it++)
+      if(it->converted) i++;
     return i;
   }
 

@@ -11,6 +11,59 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 
 #include "memory_model_sc.h"
 
+
+#ifdef REFINE_ENCODING
+
+
+void memory_model_sct::operator()(
+  symex_target_equationt& equation, 
+  goto_tracet& trace, 
+  goto_trace_SSA_step_mapt& step_map)
+{
+  memory_model_baset::operator()(equation, trace, step_map);
+
+  read_from(equation);
+  write_serialization_external(equation);
+  from_read(equation);
+}
+
+
+/*******************************************************************\
+
+Function: memory_model_sct::operator()
+
+  Inputs: 
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void memory_model_sct::operator()(
+  symex_target_equationt &equation, 
+  bool lazy)
+{
+  memory_model_baset::operator()(equation, lazy);
+
+  if(lazy)
+    print(8, "Adding initial SC constraints");  
+  else
+    print(8, "Adding SC constraints");
+
+  build_event_lists(equation);
+  build_clock_type(equation);
+  
+  // all constraints but program_order
+  read_from_some(equation);
+  if(!lazy) read_from(equation);
+  if(!lazy) write_serialization_external(equation);
+  program_order(equation);
+  if(!lazy) from_read(equation);
+}
+
+#else
+
 /*******************************************************************\
 
 Function: memory_model_sct::operator()
@@ -30,11 +83,14 @@ void memory_model_sct::operator()(symex_target_equationt &equation)
   build_event_lists(equation);
   build_clock_type(equation);
   
+  read_from_some(equation);  
   read_from(equation);
   write_serialization_external(equation);
   program_order(equation);
   from_read(equation);
 }
+
+#endif
 
 /*******************************************************************\
 
@@ -251,6 +307,11 @@ void memory_model_sct::write_serialization_external(
         w_it1!=a_rec.writes.end();
         ++w_it1)
     {
+#ifdef REFINE_ENCODING
+      if(skip_lazy(w_it1))
+        continue;
+#endif
+
       event_listt::const_iterator next=w_it1;
       ++next;
 
@@ -263,10 +324,17 @@ void memory_model_sct::write_serialization_external(
            (*w_it2)->source.thread_nr)
           continue;
 
+#ifdef REFINE_ENCODING
+        if(skip_lazy(w_it2))
+          continue;
+#endif
+
         // ws is a total order, no two elements have the same rank
         // s -> w_evt1 before w_evt2; !s -> w_evt2 before w_evt1
 
-        symbol_exprt s=nondet_bool_symbol("ws-ext");
+        symbol_exprt s=nondet_bool_symbol("ws-ext", 
+          id(*w_it1), 
+          id(*w_it2));
 
         // write-to-write edge
         add_constraint(
@@ -317,12 +385,23 @@ void memory_model_sct::from_read(symex_target_equationt &equation)
       event_listt::const_iterator next=w_prime;
       ++next;
 
+#ifdef REFINE_ENCODING
+      if(skip_lazy(w_prime))
+        continue;
+#endif
+
+
       for(event_listt::const_iterator w=next;
           w!=a_rec.writes.end();
           ++w)
       {
         exprt ws1, ws2;
-        
+      
+#ifdef REFINE_ENCODING
+        if(skip_lazy(w))
+          continue;
+#endif
+  
         if(po(*w_prime, *w) &&
            !program_order_is_relaxed(*w_prime, *w))
         {

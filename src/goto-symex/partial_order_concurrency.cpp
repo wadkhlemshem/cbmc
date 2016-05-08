@@ -14,6 +14,8 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 
 #include "partial_order_concurrency.h"
 
+//#define DEBUG
+
 /*******************************************************************\
 
 Function: partial_order_concurrencyt::~partial_order_concurrencyt
@@ -346,10 +348,23 @@ void partial_order_concurrencyt::add_constraint(
   symex_target_equationt &equation,
   const exprt &cond,
   const std::string &msg,
-  const symex_targett::sourcet &source) const
+  const symex_targett::sourcet &source)
 {
   exprt tmp=cond;
   simplify(tmp, ns);
+
+#ifdef PO_CONSTRAINT_CACHE
+  merge(tmp);
+
+  if(added_constraints.find(tmp)!=added_constraints.end())
+    return;
+
+  added_constraints.insert(tmp);
+#endif
+
+#ifdef DEBUG
+  status() << "[PO] " << from_expr(ns, "", tmp) << eom;
+#endif  
 
   equation.constraint(tmp, msg, source);
 }

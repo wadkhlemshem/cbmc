@@ -8,6 +8,57 @@ Author: Michael Tautschnig, michael.tautschnig@cs.ox.ac.uk
 
 #include "memory_model_pso.h"
 
+#ifdef REFINE_ENCODING
+
+void memory_model_psot::operator()(
+  symex_target_equationt& equation, 
+  goto_tracet& trace, 
+  goto_trace_SSA_step_mapt& step_map)
+{
+  memory_model_baset::operator()(equation, trace, step_map);
+
+  read_from(equation);
+  write_serialization_external(equation);
+#ifndef CPROVER_MEMORY_MODEL_SUP_CLOCK
+  from_read(equation);
+#endif
+}
+
+
+/*******************************************************************\
+
+Function: memory_model_psot::operator()
+
+  Inputs: 
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void memory_model_psot::operator()(
+  symex_target_equationt &equation,
+  bool lazy)
+{
+  memory_model_baset::operator()(equation, lazy);
+
+  print(8, "Adding PSO constraints");
+
+  build_event_lists(equation);
+  build_clock_type(equation);
+
+  read_from_some(equation);
+  if(!lazy) read_from(equation);
+  if(!lazy) write_serialization_external(equation);
+  program_order(equation);
+#ifndef CPROVER_MEMORY_MODEL_SUP_CLOCK
+  if(!lazy) from_read(equation);
+#endif
+}
+
+#else
+
 /*******************************************************************\
 
 Function: memory_model_psot::operator()
@@ -34,6 +85,8 @@ void memory_model_psot::operator()(symex_target_equationt &equation)
   from_read(equation);
 #endif
 }
+
+#endif
 
 /*******************************************************************\
 

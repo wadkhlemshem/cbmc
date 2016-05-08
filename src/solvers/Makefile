@@ -71,9 +71,17 @@ ifneq ($(LINGELING),)
   CP_CXXFLAGS += -DHAVE_LINGELING
 endif
 
+ifneq ($(MUSER2),)
+  MUSER2_SRC=sat/satcheck_muser2.cpp
+  MUSER2_INCLUDE=-I $(MUSER2)
+  MUSER2_LIB=$(MUSER2)/libmus-2$(LIBEXT) $(MUSER2)/libclset$(LIBEXT) $(MUSER2)/libwraps-2$(LIBEXT) $(MUSER2)/libwraps$(LIBEXT) $(MUSER2)/muser2_api$(OBJEXT) $(MUSER2)/muser2_impl$(OBJEXT) 
+  CP_CXXFLAGS += -DHAVE_MUSER2
+endif
+
 SRC = $(CHAFF_SRC) $(BOOLEFORCE_SRC) $(MINISAT_SRC) $(MINISAT2_SRC) \
       $(SMVSAT_SRC) $(SQUOLEM2_SRC) $(CUDD_SRC) $(GLUCOSE_SRC) \
       $(PRECOSAT_SRC) $(PICOSAT_SRC) $(LINGELING_SRC) \
+      $(MUSER2_SRC) \
       sat/cnf.cpp sat/dimacs_cnf.cpp sat/cnf_clause_list.cpp \
       sat/pbs_dimacs_cnf.cpp sat/read_dimacs_cnf.cpp \
       sat/resolution_proof.cpp sat/satcheck.cpp \
@@ -115,12 +123,14 @@ SRC = $(CHAFF_SRC) $(BOOLEFORCE_SRC) $(MINISAT_SRC) $(MINISAT2_SRC) \
       flattening/boolbv_update.cpp flattening/c_bit_field_replacement_type.cpp \
       floatbv/float_utils.cpp floatbv/float_bv.cpp \
       refinement/bv_refinement_loop.cpp refinement/refine_arithmetic.cpp \
-      refinement/refine_arrays.cpp
+      refinement/refine_arrays.cpp refinement/refine_partial_order.cpp \
+      refinement/refine_slicer.cpp
 
 INCLUDES= -I .. \
   $(CHAFF_INCLUDE) $(BOOLEFORCE_INCLUDE) $(MINISAT_INCLUDE) $(MINISAT2_INCLUDE) \
   $(SMVSAT_INCLUDE) $(SQUOLEM2_INC) $(CUDD_INCLUDE) $(GLUCOSE_INCLUDE) \
-	$(PRECOSAT_INCLUDE) $(PICOSAT_INCLUDE) $(LINGELING_INCLUDE)
+	$(PRECOSAT_INCLUDE) $(PICOSAT_INCLUDE) $(LINGELING_INCLUDE) \
+        $(MUSER2_INCLUDE)
 
 CLEANFILES = solvers$(LIBEXT)
 
@@ -142,7 +152,8 @@ endif
 
 solvers$(LIBEXT): $(OBJ) $(CHAFF_LIB) $(BOOLEFORCE_LIB) $(MINISAT_LIB) \
         $(MINISAT2_LIB) $(SMVSAT_LIB) $(SQUOLEM2_LIB) $(CUDD_LIB) \
-	$(PRECOSAT_LIB) $(PICOSAT_LIB) $(LINGELING_LIB) $(GLUCOSE_LIB)
+	$(PRECOSAT_LIB) $(PICOSAT_LIB) $(LINGELING_LIB) $(GLUCOSE_LIB) \
+        $(MUSER2_LIB)
 	$(LINKLIB)
 
 smt2/smt2_parser_test$(EXEEXT): smt2/smt2_parser$(OBJEXT) smt2/smt2_parser_test$(OBJEXT)

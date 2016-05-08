@@ -11,8 +11,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <solvers/sat/satcheck.h>
 #include <solvers/sat/satcheck_minisat2.h>
+#ifdef HAVE_MUSER2
+#include <solvers/sat/satcheck_muser2.h>
+#endif
 
 #include <solvers/refinement/bv_refinement.h>
+#include <goto-symex/po_goto_trace_refiner.h>
 #include <solvers/smt1/smt1_dec.h>
 #include <solvers/smt2/smt2_dec.h>
 #include <solvers/cvc/cvc_dec.h>
@@ -192,6 +196,84 @@ Function: bmct::decide_default
 bool bmct::decide_default(const goto_functionst &goto_functions)
 {
   bool result=true;
+
+#ifdef LAZY_ENCODING_STATISTICS
+  //collect kinds
+  typedef std::map<std::string,unsigned> kinds_counterst;
+  kinds_counterst kinds_total, kinds_active, kinds_variables, kinds_clauses;
+  for(symex_target_equationt::SSA_stepst::iterator it = 
+	equation.SSA_steps.begin();
+      it!=equation.SSA_steps.end();
+      it++)
+  {
+    if(it->is_constraint() && !it->converted && !it->ignore)
+      kinds_total[it->comment] = 0;
+  }
+
+  for(kinds_counterst::iterator k_it = kinds_total.begin();
+      k_it != kinds_total.end(); ++k_it)
+  {
+    satcheck_minisat_no_simplifiert sat_check;
+    bv_pointerst local_solver(ns,sat_check);
+#if 0
+    equation.convert_guards(local_solver);
+    equation.convert_assignments(local_solver);
+    equation.convert_decls(local_solver);
+    equation.convert_assumptions(local_solver);
+    equation.convert_assertions(local_solver);
+    equation.convert_io(local_solver);
+#endif
+    satcheck_minisat_no_simplifiert::statisticst s1 = 
+      dynamic_cast<satcheck_minisat_no_simplifiert *>(&sat_check)->get_statistics();
+    for(symex_target_equationt::SSA_stepst::iterator it =
+	  equation.SSA_steps.begin();
+	it!=equation.SSA_steps.end();
+	it++)
+    {
+      if(it->is_constraint() && !it->converted && !it->ignore
+	&& it->comment == k_it->first)
+      {
+	local_solver.set_to_true(it->cond_expr);
+	k_it->second++;
+      }
+    }
+    satcheck_minisat_no_simplifiert::statisticst s2 = 
+      dynamic_cast<satcheck_minisat_no_simplifiert *>(&sat_check)->get_statistics();
+    kinds_variables[k_it->first] += (s2.variables - s1.variables);
+    kinds_clauses[k_it->first] += (s2.clauses - s1.clauses);
+  }
+  unsigned total = 0, active = 0;
+  for(kinds_counterst::iterator kit = 
+	kinds_total.begin();
+      kit != kinds_total.end(); ++kit)
+  {
+    total += kit->second;
+    active += kinds_active[kit->first];
+  }
+  status() << "Partial order constraints used: " 
+	   << active << "/" << total
+	   << eom;
+  for(kinds_counterst::iterator kit = 
+	kinds_total.begin();
+      kit != kinds_total.end(); ++kit)
+  {
+    status() << "  " << kit->first << ": " 
+	     << kinds_active[kit->first] 
+             << "/" << kit->second
+	     << eom;
+  }
+  status() << "Partial order constraint sizes: " << eom;
+  kinds_counterst::iterator kit2 = kinds_clauses.begin();
+  for(kinds_counterst::iterator kit1 = kinds_variables.begin();
+      kit1 != kinds_variables.end(); ++kit1, ++kit2)
+  {
+    assert(kit1->first == kit2->first);
+    status() << "  " << kit1->first << ": " 
+	     << kit1->second << " variables, "
+             << kit2->second << " clauses"
+	     << eom;
+  }
+#else
   
   std::auto_ptr<propt> solver;
 
@@ -218,9 +300,75 @@ bool bmct::decide_default(const goto_functionst &goto_functions)
 
   switch(run_decision_procedure(bv_cbmc))
   {
-  case decision_proceduret::D_UNSATISFIABLE:
+  case decision_proceduret::D_UNSATISFIABLE: {
     result=false;
+
+#ifdef LAZY_PARTIAL_ORDER_ENCODING_TEST_OLD
+    unsigned assumptions_active = 0;
+    typedef std::map<std::string,unsigned> kinds_counterst;
+    kinds_counterst kinds_total, kinds_active;
+#ifndef HAVE_MUSER2
+    for(unsigned i=0; i<equation.assumptions.size(); i++)
+    {
+      kinds_total[equation.assumptions_kinds[i]]++;
+      if(solver->is_in_conflict(equation.assumptions[i]))
+      {
+	assumptions_active++;
+        kinds_active[equation.assumptions_kinds[i]]++;
+      }
+    }
+    status() << "Partial order constraints used: " 
+	     << assumptions_active << "/" << equation.assumptions.size()
+	     << eom;
+    for(kinds_counterst::iterator kit = kinds_total.begin();
+	kit != kinds_total.end(); ++kit)
+    {
+      status() << "  " << kit->first << ": " 
+	     << kinds_active[kit->first] 
+             << "/" << kit->second
+	     << eom;
+    } 
+#else //HAVE_MUSER2
+    satcheck_muser2t local_coreminimizer(MUSER2_MINISAT2);
+    local_coreminimizer.set_order(MUSER2_MAXMIN);
+    bv_pointerst local_solver(ns,local_coreminimizer);
+    equation.assumptions.clear();
+    equation.convert_guards(local_solver);
+    equation.convert_assignments(local_solver);
+    equation.convert_decls(local_solver);
+    equation.convert_assumptions(local_solver);
+    equation.convert_assertions(local_solver);
+    equation.convert_io(local_solver);
+    equation.convert_constraints(local_solver);
+    assert(local_solver()==decision_proceduret::D_UNSATISFIABLE);
+    assumptions_active = 0;
+    kinds_total.clear();
+    kinds_active.clear();
+    for(unsigned i=0; i<equation.assumptions.size(); i++)
+    {
+      kinds_total[equation.assumptions_kinds[i]]++;
+      if(local_solver.is_in_conflict(equation.assumptions[i]))
+      {
+	assumptions_active++;
+        kinds_active[equation.assumptions_kinds[i]]++;
+      }
+    }
+    status() << "Partial order constraints used: " 
+	     << assumptions_active << "/" << equation.assumptions.size()
+	     << eom;
+    for(kinds_counterst::iterator kit = kinds_total.begin();
+	kit != kinds_total.end(); ++kit)
+    {
+      status() << "  " << kit->first << ": " 
+	     << kinds_active[kit->first] 
+             << "/" << kit->second
+	     << eom;
+    }
+#endif
+#endif
+
     report_success();
+    }
     break;
 
   case decision_proceduret::D_SATISFIABLE:
@@ -235,7 +383,7 @@ bool bmct::decide_default(const goto_functionst &goto_functions)
   default:
     error() << "decision procedure failed" << eom;
   }
-
+#endif
   return result;
 }
 
@@ -298,8 +446,27 @@ bool bmct::decide_bv_refinement(const goto_functionst &goto_functions)
   
   solver->set_message_handler(get_message_handler());
 
-  bv_refinementt bv_refinement(ns, *solver);
+  po_goto_trace_refinert po_goto_trace_refiner(ns, equation, *memory_model);
+  bv_refinementt bv_refinement(ns, *solver, po_goto_trace_refiner);
   bv_refinement.set_ui(ui);
+
+  if(options.get_bool_option("lazy-encoding") ||
+    options.get_bool_option("refinement-slicer"))
+  {
+    bv_refinement.do_arithmetic_refinement = 
+      options.get_bool_option("refine");
+    bv_refinement.do_array_refinement = false;
+    bv_refinement.do_partial_order_refinement = 
+      options.get_bool_option("lazy-encoding");
+    bv_refinement.has_wmm = (options.get_option("mm")!="sc") &&
+      (options.get_option("mm")!="");
+    bv_refinement.do_refinement_slicing = 
+      options.get_bool_option("refinement-slicer");
+    equation.do_lazy_partial_order_encoding = 
+      bv_refinement.do_partial_order_refinement;
+    equation.do_refinement_slicing = 
+      bv_refinement.do_refinement_slicing;
+  }
 
   // we allow setting some parameters  
   if(options.get_option("max-node-refinement")!="")

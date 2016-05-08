@@ -19,8 +19,13 @@ public:
   {
   }
 
+#ifdef REFINE_ENCODING
+  virtual void operator()(symex_target_equationt&, goto_tracet&, goto_trace_SSA_step_mapt&);
+  virtual void operator()(symex_target_equationt &, bool lazy=false);
+#else
   virtual void operator()(symex_target_equationt &equation);
-  
+#endif
+
 protected:
   virtual exprt before(event_it e1, event_it e2);
   virtual bool program_order_is_relaxed(
