@@ -17,6 +17,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "object_numbering.h"
 #include "value_sets.h"
 
+#include <iostream>
+
+#define VALUE_SET_TOP
+
 class namespacet;
 
 class value_sett
@@ -49,16 +53,41 @@ public:
     {
     }
   
+    bool operator==(const objectt other) const
+    {
+      return (offset == other.offset) && 
+        (offset_is_set == other.offset_is_set);
+    }
+
     mp_integer offset;
     bool offset_is_set;
     bool offset_is_zero() const
     { return offset_is_set && offset.is_zero(); }
-  };
+};
   
   class object_map_dt:public std::map<unsigned, objectt>
   {
   public:
+  #ifdef VALUE_SET_TOP
+    object_map_dt() : top(false) {}
+    bool top;
+    void make_top();
+  #if 0 //precise equality w.r.t. top
+    bool operator==(const object_map_dt &other) const
+    {
+      if(top && other.top)
+	return true;
+      return ((std::map<unsigned, objectt>)(*this))
+        ==  ((std::map<unsigned, objectt>)(other));
+    }
+    bool operator!=(const object_map_dt &other) const
+    {
+      return !(*this==other);
+    }
+  #endif
+  #else
     object_map_dt() {}
+  #endif
     const static object_map_dt blank;
   };
   
@@ -66,12 +95,17 @@ public:
   
   typedef reference_counting<object_map_dt> object_mapt;
   
+  static bool overlap(
+    const object_mapt &om1,
+    const object_mapt &om2,
+    bool &inconclusive);
+  
   void set(object_mapt &dest, object_map_dt::const_iterator it) const
   {
     dest.write()[it->first]=it->second;
   }
 
-  bool insert(object_mapt &dest, object_map_dt::const_iterator it) const
+  static bool insert(object_mapt &dest, object_map_dt::const_iterator it)
   {
     return insert(dest, it->first, it->second);
   }
@@ -86,7 +120,7 @@ public:
     return insert(dest, object_numbering.number(src), objectt(offset));
   }
   
-  bool insert(object_mapt &dest, unsigned n, const objectt &object) const;
+  static bool insert(object_mapt &dest, unsigned n, const objectt &object);
   
   bool insert(object_mapt &dest, const exprt &expr, const objectt &object) const
   {
@@ -97,7 +131,7 @@ public:
   {
     object_mapt object_map;
     idt identifier;
-    std::string suffix;
+    idt suffix;
     
     entryt()
     {
@@ -140,15 +174,20 @@ public:
   entryt &get_entry(
     const entryt &e, const typet &type,
     const namespacet &);
-  
+    
   void output(
     const namespacet &ns,
     std::ostream &out) const;
-    
+
+  static void output(
+      const namespacet &ns,
+      std::ostream &out,
+      const object_mapt &object_map);
+  
   valuest values;
   
   // true = added s.th. new
-  bool make_union(object_mapt &dest, const object_mapt &src) const;
+  static bool make_union(object_mapt &dest, const object_mapt &src);
 
   // true = added s.th. new
   bool make_union(const valuest &new_values);
@@ -158,6 +197,11 @@ public:
   {
     return make_union(new_values.values);
   }
+  
+  // true = added s.th. new
+  bool make_union(const valuest &new_values, 
+    hash_set_cont<irep_idt, irep_id_hash> &selected_vars);
+  
   
   void guard(
     const exprt &expr,
@@ -193,20 +237,6 @@ public:
     exprt &expr,
     const namespacet &ns) const;
 
-protected:
-  void get_value_set_rec(
-    const exprt &expr,
-    object_mapt &dest,
-    const std::string &suffix,
-    const typet &original_type,
-    const namespacet &ns) const;
-
-  void get_value_set(
-    const exprt &expr,
-    object_mapt &dest,
-    const namespacet &ns,
-    bool is_simplified) const;
-
   void get_reference_set(
     const exprt &expr,
     object_mapt &dest,
@@ -214,6 +244,20 @@ protected:
   {
     get_reference_set_rec(expr, dest, ns);
   }
+
+  void get_value_set(
+    const exprt &expr,
+    object_mapt &dest,
+    const namespacet &ns,
+    bool is_simplified) const;
+
+protected:
+  void get_value_set_rec(
+    const exprt &expr,
+    object_mapt &dest,
+    const std::string &suffix,
+    const typet &original_type,
+    const namespacet &ns) const;
 
   void get_reference_set_rec(
     const exprt &expr,
@@ -230,6 +274,14 @@ protected:
     const std::string &suffix,
     const namespacet &ns,
     bool add_to_sets);
+
+  void initialize(
+    const exprt &expr,
+    const namespacet &ns);
+
+  void initialize_rec(
+    const exprt &expr,
+    const namespacet &ns);
 
   void do_free(
     const exprt &op,

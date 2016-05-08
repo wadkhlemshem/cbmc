@@ -24,6 +24,7 @@ inline int puts(const char *s)
 {
   __CPROVER_HIDE:;
   __CPROVER_bool error;
+  (void)*s;
   int ret;
   printf("%s\n", s);
   if(error) ret=-1; else __CPROVER_assume(ret>=0);
@@ -46,7 +47,8 @@ inline int puts(const char *s)
 inline void fclose_cleanup(void *stream)
 {
   __CPROVER_HIDE:;
-  __CPROVER_assert(__CPROVER_get_must(stream, "closed"),
+  __CPROVER_assert(!__CPROVER_get_must(stream, "open") ||
+                   __CPROVER_get_must(stream, "closed"),
                    "resource leak: fopen file not closed");
 }
 #endif
@@ -64,14 +66,58 @@ inline FILE *fopen(const char *filename, const char *mode)
   FILE *fopen_result;
 
   _Bool fopen_error;
-  fopen_result=fopen_error?NULL:malloc(sizeof(FILE));
+  //fopen_result=fopen_error?NULL:malloc(sizeof(FILE));
 
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
+  __CPROVER_assert(__CPROVER_predicate("same_file_rw", filename, mode),
+                   "same file opened for reading and writing");
+  __CPROVER_event("fopen", filename, mode, fopen_result);
   __CPROVER_set_must(fopen_result, "open");
   __CPROVER_cleanup(fopen_result, fclose_cleanup);
+  if(mode[0]!='r') __CPROVER_set_must(fopen_result, "writeable");
+  if(mode[1]=='+') __CPROVER_set_must(fopen_result, "writeable");
   #endif
 
   return fopen_result;
+}
+
+/* FUNCTION: freopen */
+
+#ifndef __CPROVER_STDIO_H_INCLUDED
+#include <stdio.h>
+#define __CPROVER_STDIO_H_INCLUDED
+#endif
+
+inline FILE* freopen(const char *filename, const char *mode, FILE *f)
+{
+  __CPROVER_HIDE:;
+  (void)*filename;
+  (void)*mode;
+  (void)*f;
+
+  #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
+  if(filename==0)
+  {
+    __CPROVER_event("freopen", filename, mode, f);
+    __CPROVER_assert(__CPROVER_predicate("freopen_same_file_rw", f),
+      "same file opened for reading and writing");
+  }
+  
+  __CPROVER_clear_must(f, "writeable");
+  if(mode[0]!='r') __CPROVER_set_must(f, "writeable");
+  if(mode[1]=='+') __CPROVER_set_must(f, "writeable");
+  if(mode[2]=='+') __CPROVER_set_must(f, "writeable");
+
+  if(filename!=0)
+  {
+    __CPROVER_event("fclose", f);
+    __CPROVER_assert(__CPROVER_predicate("same_file_rw", filename, mode),
+      "same file opened for reading and writing");
+    __CPROVER_event("fopen", filename, mode, f);
+  }
+  #endif
+
+  return f;
 }
 
 /* FUNCTION: fclose */
@@ -87,6 +133,7 @@ inline int fclose(FILE *stream)
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_assert(__CPROVER_get_must(stream, "open"),
                    "fclose file must be open");
+  __CPROVER_event("fclose", stream);
   __CPROVER_clear_must(stream, "open");
   __CPROVER_set_must(stream, "closed");
   #endif
@@ -278,6 +325,8 @@ inline int fputs(const char *s, FILE *stream)
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_assert(__CPROVER_get_must(stream, "open"),
                    "fputs file must be open");
+  __CPROVER_assert(__CPROVER_get_must(stream, "writeable"),
+                   "fputs file must be writeable");                
   #endif
 
   return return_value;
@@ -494,6 +543,8 @@ size_t fwrite(
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_assert(__CPROVER_get_must(stream, "open"),
                    "fwrite file must be open");
+  __CPROVER_assert(__CPROVER_get_must(stream, "writeable"),
+                   "fwrite file must be writeable");
   #endif
 
   size_t nwrite;
@@ -695,6 +746,7 @@ inline int fprintf(FILE *stream, const char *restrict format, ...)
 inline int vfprintf(FILE *stream, const char *restrict format, va_list arg)
 {
   __CPROVER_HIDE:;
+
   int result;
   (void)*stream;
   (void)*format;
@@ -703,6 +755,8 @@ inline int vfprintf(FILE *stream, const char *restrict format, va_list arg)
   #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
   __CPROVER_assert(__CPROVER_get_must(stream, "open"),
                    "vfprintf file must be open");
+  __CPROVER_assert(__CPROVER_get_must(stream, "writeable"),
+                   "vfprintf file must be writeable");
   #endif
 
   return result;

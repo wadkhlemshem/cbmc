@@ -12,6 +12,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 #include <util/std_code.h>
 #include <util/expr_util.h>
+#include <util/arith_tools.h>
 
 #include <ansi-c/c_types.h>
 #include <langapi/language_util.h>
@@ -62,6 +63,7 @@ Function: local_may_aliast::assign_lhs
 \*******************************************************************/
 
 void local_may_aliast::assign_lhs(
+  const goto_programt::const_targett t,
   const exprt &lhs,
   const exprt &rhs,
   const loc_infot &loc_info_src,
@@ -69,7 +71,9 @@ void local_may_aliast::assign_lhs(
 {
   if(lhs.id()==ID_symbol)
   {
-    if(lhs.type().id()==ID_pointer)
+    if(lhs.type().id()==ID_pointer &&
+       to_symbol_expr(lhs).get_identifier()!=
+      "__CPROVER_malloc_object")
     {
       unsigned dest_pointer=objects.number(lhs);
 
@@ -77,7 +81,7 @@ void local_may_aliast::assign_lhs(
       loc_info_dest.aliases.isolate(dest_pointer);
       
       object_sett rhs_set;
-      get_rec(rhs_set, rhs, loc_info_src);
+      get_rec(t, rhs_set, rhs, loc_info_src);
       
       // make these all aliases
       for(object_sett::const_iterator
@@ -114,20 +118,20 @@ void local_may_aliast::assign_lhs(
   }
   else if(lhs.id()==ID_index)
   {
-    assign_lhs(to_index_expr(lhs).array(), rhs, loc_info_src, loc_info_dest);
+    assign_lhs(t, to_index_expr(lhs).array(), rhs, loc_info_src, loc_info_dest);
   }
   else if(lhs.id()==ID_member)
   {
-    assign_lhs(to_member_expr(lhs).struct_op(), rhs, loc_info_src, loc_info_dest);
+    assign_lhs(t, to_member_expr(lhs).struct_op(), rhs, loc_info_src, loc_info_dest);
   }
   else if(lhs.id()==ID_typecast)
   {
-    assign_lhs(to_typecast_expr(lhs).op(), rhs, loc_info_src, loc_info_dest);
+    assign_lhs(t, to_typecast_expr(lhs).op(), rhs, loc_info_src, loc_info_dest);
   }
   else if(lhs.id()==ID_if)
   {
-    assign_lhs(to_if_expr(lhs).true_case(), rhs, loc_info_src, loc_info_dest);
-    assign_lhs(to_if_expr(lhs).false_case(), rhs, loc_info_src, loc_info_dest);
+    assign_lhs(t, to_if_expr(lhs).true_case(), rhs, loc_info_src, loc_info_dest);
+    assign_lhs(t, to_if_expr(lhs).false_case(), rhs, loc_info_src, loc_info_dest);
   }
 }
  
@@ -154,7 +158,7 @@ std::set<exprt> local_may_aliast::get(
   const loc_infot &loc_info_src=loc_infos[loc_it->second];
   
   object_sett result_tmp;
-  get_rec(result_tmp, rhs, loc_info_src);
+  get_rec(t, result_tmp, rhs, loc_info_src);
 
   std::set<exprt> result;
 
@@ -192,8 +196,8 @@ bool local_may_aliast::aliases(
   const loc_infot &loc_info_src=loc_infos[loc_it->second];
   
   object_sett tmp1, tmp2;
-  get_rec(tmp1, src1, loc_info_src);
-  get_rec(tmp2, src2, loc_info_src);
+  get_rec(t, tmp1, src1, loc_info_src);
+  get_rec(t, tmp2, src2, loc_info_src);
 
   if(tmp1.find(unknown_object)!=tmp1.end() ||
      tmp2.find(unknown_object)!=tmp2.end())
@@ -222,6 +226,7 @@ Function: local_may_aliast::get_rec
 \*******************************************************************/
 
 void local_may_aliast::get_rec(
+  const goto_programt::const_targett t,
   object_sett &dest,
   const exprt &rhs,
   const loc_infot &loc_info_src) const
@@ -250,8 +255,8 @@ void local_may_aliast::get_rec(
   }
   else if(rhs.id()==ID_if)
   {
-    get_rec(dest, to_if_expr(rhs).false_case(), loc_info_src);
-    get_rec(dest, to_if_expr(rhs).true_case(), loc_info_src);
+    get_rec(t, dest, to_if_expr(rhs).false_case(), loc_info_src);
+    get_rec(t, dest, to_if_expr(rhs).true_case(), loc_info_src);
   }
   else if(rhs.id()==ID_address_of)
   {
@@ -301,24 +306,24 @@ void local_may_aliast::get_rec(
   }
   else if(rhs.id()==ID_typecast)
   {
-    get_rec(dest, to_typecast_expr(rhs).op(), loc_info_src);
+    get_rec(t, dest, to_typecast_expr(rhs).op(), loc_info_src);
   }
   else if(rhs.id()==ID_plus)
   {
     if(rhs.operands().size()>=3)
     {
-      get_rec(dest, make_binary(rhs), loc_info_src);
+      get_rec(t, dest, make_binary(rhs), loc_info_src);
     }
     else if(rhs.operands().size()==2)
     {
       // one must be pointer, one an integer
       if(rhs.op0().type().id()==ID_pointer)
       {
-        get_rec(dest, rhs.op0(), loc_info_src);
+        get_rec(t, dest, rhs.op0(), loc_info_src);
       }
       else if(rhs.op1().type().id()==ID_pointer)
       {
-        get_rec(dest, rhs.op1(), loc_info_src);
+        get_rec(t, dest, rhs.op1(), loc_info_src);
       }
       else
         dest.insert(unknown_object);
@@ -330,7 +335,7 @@ void local_may_aliast::get_rec(
   {
     if(rhs.op0().type().id()==ID_pointer)
     {
-      get_rec(dest, rhs.op0(), loc_info_src);
+      get_rec(t, dest, rhs.op0(), loc_info_src);
     }
     else
       dest.insert(unknown_object);
@@ -354,7 +359,10 @@ void local_may_aliast::get_rec(
 
     if(statement==ID_malloc)
     {
-      dest.insert(objects.number(exprt(ID_dynamic_object)));
+      exprt dynamic_object(ID_dynamic_object);
+      exprt n=from_integer(t->location_number, natural_typet());
+      dynamic_object.copy_to_operands(n);
+      dest.insert(objects.number(dynamic_object));
     }
     else
       dest.insert(unknown_object);
@@ -432,21 +440,21 @@ void local_may_aliast::build(const goto_functiont &goto_function)
     case ASSIGN:
       {
         const code_assignt &code_assign=to_code_assign(instruction.code);
-        assign_lhs(code_assign.lhs(), code_assign.rhs(), loc_info_src, loc_info_dest);
+        assign_lhs(node.t, code_assign.lhs(), code_assign.rhs(), loc_info_src, loc_info_dest);
       }
       break;
 
     case DECL:
       {
         const code_declt &code_decl=to_code_decl(instruction.code);
-        assign_lhs(code_decl.symbol(), nil_exprt(), loc_info_src, loc_info_dest);
+        assign_lhs(node.t, code_decl.symbol(), nil_exprt(), loc_info_src, loc_info_dest);
       }
       break;
 
     case DEAD:
       {
         const code_deadt &code_dead=to_code_dead(instruction.code);
-        assign_lhs(code_dead.symbol(), nil_exprt(), loc_info_src, loc_info_dest);
+        assign_lhs(node.t, code_dead.symbol(), nil_exprt(), loc_info_src, loc_info_dest);
       }
       break;
 
@@ -454,7 +462,7 @@ void local_may_aliast::build(const goto_functiont &goto_function)
       {
         const code_function_callt &code_function_call=to_code_function_call(instruction.code);
         if(code_function_call.lhs().is_not_nil())
-          assign_lhs(code_function_call.lhs(), nil_exprt(), loc_info_src, loc_info_dest);
+          assign_lhs(node.t, code_function_call.lhs(), nil_exprt(), loc_info_src, loc_info_dest);
 
         // this might invalidate all pointers that are
         // a) local and dirty

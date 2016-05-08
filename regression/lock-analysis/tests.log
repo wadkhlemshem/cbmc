@@ -1,0 +1,851 @@
+Test 'Dead1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^      <location file="main.c" function="main" line="11"/>$
+    ^    </instruction>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^      <location file="main.c" function="main" line="11"/>\r\\?$ [OK]
+^    </instruction>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    4$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    4\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock5'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'Deadlock6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock7'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'Deadlock8'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock9'
+  Level: KNOWNBUG
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks      2$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'Increment1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects 1$
+    ^* race-free objects      1$
+    ^* races                  0$
+    ^* potential races        0$
+    ^* potential race (lock?) 0$
+    ^* potential race (obj?)  0$
+Running ../chain.sh "--show-sharing" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects 1\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^* potential races        0\r\\?$ [OK]
+^* potential race (lock?) 0\r\\?$ [OK]
+^* potential race (obj?)  0\r\\?$ [OK]
+
+Test 'Init1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--pointer-check --static-pointer-check"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Value set check: properties 7 passed 1 failed 0 inconclusive$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--pointer-check --static-pointer-check" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Value set check: properties 7 passed 1 failed 0 inconclusive\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      2$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      2\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  2$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks3'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  3$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'Next1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^    <race>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-sharing --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^    <race>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Next2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^    <race>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-sharing --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^    <race>\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'NoRace01'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NoRace02'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NoRace08'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NoRace09'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      2$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      2\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race13'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race14'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race15'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  2$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects 1$
+    ^* race-free objects      0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects 1\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    * tracked shared objects 1$
+    * race-free objects      0$
+    * races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+* tracked shared objects 1\r\\?$ [OK]
+* race-free objects      0\r\\?$ [OK]
+* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race5'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'Shared1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^  Nr of Shared functions 1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^  Nr of Shared functions 1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'StructBug1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: " --show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^        <identifier>main::1::ptr_struct.a</identifier>$
+    ^        <value>\&amp;lt;x, 0, signed int\&amp;gt;</value>$
+    --
+    ^warning: ignoring
+Running ../chain.sh " --show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^        <identifier>main::1::ptr_struct.a</identifier>\r\\?$ [OK]
+^        <value>\\&amp;lt;x, 0, signed int\\&amp;gt;</value>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Stub1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Stub2'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options: --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'ThreadCreationLoop1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^spawn =1\*=> thr1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^spawn =1\\*=> thr1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'ThreadCreationLoop2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^spawn =1\*=> thr1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^spawn =1\\*=> thr1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Win1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --create-thread-function CreateThread --create-thread-arg-no 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --create-thread-function CreateThread --create-thread-arg-no 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Win2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --create-thread-function _beginthread --create-thread-arg-no 0 --lock-function WaitForSingleObject --unlock-function ReleaseMutex"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --create-thread-function _beginthread --create-thread-arg-no 0 --lock-function WaitForSingleObject --unlock-function ReleaseMutex" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'array-address1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^      <variable>$
+    ^        <identifier>main::1::s</identifier>$
+    ^        <value>\*</value>$
+    ^      </variable>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^      <variable>\r\\?$ [OK]
+^        <identifier>main::1::s</identifier>\r\\?$ [OK]
+^        <value>\\*</value>\r\\?$ [OK]
+^      </variable>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'nested-struct1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^      <variable>$
+    ^        <identifier>main::1::s1.t.next</identifier>$
+    ^        <value>&amp;lt;s2, 0, struct S&amp;gt;</value>$
+    ^      </variable>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^      <variable>\r\\?$ [OK]
+^        <identifier>main::1::s1.t.next</identifier>\r\\?$ [OK]
+^        <value>&amp;lt;s2, 0, struct S&amp;gt;</value>\r\\?$ [OK]
+^      </variable>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'sysidle'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects [1-9][0-9]$
+    ^* race-free objects      [1-9][0-9]$
+    ^* races                  [1-9][0-9]$
+    ^* potential races        0$
+    ^* potential race (lock?) 0$
+    ^* potential race (obj?)  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects [1-9][0-9]\r\\?$ [OK]
+^* race-free objects      [1-9][0-9]\r\\?$ [OK]
+^* races                  [1-9][0-9]\r\\?$ [OK]
+^* potential races        0\r\\?$ [OK]
+^* potential race (lock?) 0\r\\?$ [OK]
+^* potential race (obj?)  0\r\\?$ [OK]
+^warning: ignoring [OK]
+

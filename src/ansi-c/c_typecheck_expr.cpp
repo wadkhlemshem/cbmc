@@ -2275,6 +2275,8 @@ exprt c_typecheck_baset::do_special_functions(
       throw "get_must expects two operands";
     }
 
+    typecheck_function_call_arguments(expr);
+
     exprt get_must_expr=
       binary_predicate_exprt(expr.arguments()[0], "get_must", expr.arguments()[1]);
     get_must_expr.add_source_location()=source_location;
@@ -2289,11 +2291,29 @@ exprt c_typecheck_baset::do_special_functions(
       throw "get_may expects two operands";
     }
 
+    typecheck_function_call_arguments(expr);
+
     exprt get_may_expr=
       binary_predicate_exprt(expr.arguments()[0], "get_may", expr.arguments()[1]);
     get_may_expr.add_source_location()=source_location;
 
     return get_may_expr;
+  }
+  else if(identifier==CPROVER_PREFIX "predicate")
+  {
+    if(expr.arguments().size()<=1)
+    {
+      err_location(f_op);
+      throw "predicate expects at least one operand";
+    }
+
+    typecheck_function_call_arguments(expr);
+
+    exprt predicate_expr(ID_predicate, bool_typet());
+    predicate_expr.operands()=expr.arguments();
+    predicate_expr.add_source_location()=source_location;
+
+    return predicate_expr;
   }
   else if(identifier==CPROVER_PREFIX "invalid_pointer")
   {

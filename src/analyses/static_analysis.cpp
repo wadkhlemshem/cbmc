@@ -13,6 +13,10 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_code.h>
 #include <util/expr_util.h>
 
+#include <iostream>
+
+#include <analyses/which_threads.h>
+
 #include "is_threaded.h"
 
 #include "static_analysis.h"
@@ -322,6 +326,11 @@ bool static_analysis_baset::fixedpoint(
   if(goto_program.instructions.empty())
     return false;
   
+#if 0
+  std::cout << "FIXEDPOINT: " << 
+    goto_program.instructions.begin()->function << std::endl;
+#endif
+
   working_sett working_set;
 
   put_in_working_set(
@@ -362,6 +371,12 @@ bool static_analysis_baset::visit(
   bool new_data=false;
 
   statet &current=get_state(l);
+#if 0
+  std::cout << "VISIT: " 
+	    << l->function << " : "
+	    << l->location_number << std::endl;
+  current.output(ns, std::cout);
+#endif
 
   current.seen=true;
   
@@ -437,7 +452,10 @@ void static_analysis_baset::do_function_call(
   const goto_functionst::goto_functiont &goto_function=f_it->second;
 
   if(!goto_function.body_available())
+  {
+    new_state.transform(ns, l_call, l_return);
     return; // do nothing
+  } 
     
   assert(!goto_function.body.instructions.empty());
 
@@ -445,11 +463,21 @@ void static_analysis_baset::do_function_call(
     // get the state at the beginning of the function
     locationt l_begin=goto_function.body.instructions.begin();
     
+#if 0
+    std::cout << "CALL: " << f_it->first << std::endl;
+    std::cout << "call state: " << std::endl;
+    get_state(l_call).output(ns, std::cout);
+#endif
+
     // do the edge from the call site to the beginning of the function
     std::unique_ptr<statet> tmp_state(make_temporary_state(new_state));
     tmp_state->transform(ns, l_call, l_begin);  
     
     statet &begin_state=get_state(l_begin);
+#if 0
+    std::cout << "begin state: " << std::endl;
+    begin_state.output(ns, std::cout);
+#endif
 
     bool new_data=false;
 
@@ -480,6 +508,10 @@ void static_analysis_baset::do_function_call(
     assert(l_end->is_end_function());
 
     statet &end_of_function=get_state(l_end);
+#if 0
+    std::cout << "end state: " << std::endl;
+    end_of_function.output(ns, std::cout);
+#endif
 
     // do edge from end of function to instruction after call
     std::unique_ptr<statet> tmp_state(
@@ -495,6 +527,10 @@ void static_analysis_baset::do_function_call(
   {
     // effect on current procedure (if any)
     new_state.transform(ns, l_call, l_return);
+#if 0
+    std::cout << "return state: " << std::endl;
+    new_state.output(ns, std::cout);
+#endif
   }
 }    
 
@@ -630,10 +666,37 @@ void static_analysis_baset::sequential_fixedpoint(
 {
   // do each function at least once
 
-  forall_goto_functions(it, goto_functions)
-    if(functions_done.insert(it->first).second)
-      fixedpoint(it->second.body, goto_functions);
+  for(goto_functionst::function_mapt::const_iterator
+      it=goto_functions.function_map.begin();
+      it!=goto_functions.function_map.end();
+      it++)
+    if(functions_done.find(it->first)==
+       functions_done.end())
+    {
+      fixedpoint(it, goto_functions);
+    }
 }
+
+/*******************************************************************\
+
+Function: static_analysis_baset::fixedpoint
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool static_analysis_baset::fixedpoint(
+  const goto_functionst::function_mapt::const_iterator it,
+  const goto_functionst &goto_functions)
+{
+  functions_done.insert(it->first);
+  return fixedpoint(it->second.body, goto_functions);
+}
+
 
 /*******************************************************************\
 
@@ -652,7 +715,7 @@ void static_analysis_baset::concurrent_fixedpoint(
 {
   sequential_fixedpoint(goto_functions);
 
-  is_threadedt is_threaded(goto_functions);
+  which_threadst which_threads(goto_functions);
 
   // construct an initial shared state collecting the results of all
   // functions
@@ -666,23 +729,56 @@ void static_analysis_baset::concurrent_fixedpoint(
                               goto_programt::const_targett> > thread_wlt;
   thread_wlt thread_wl;
 
+#if 0 //TODO: observation:
+      //  is_threaded on individual instructions does not seem 
+      //  to take into account all dependencies
   forall_goto_functions(it, goto_functions)
+  {
     forall_goto_program_instructions(t_it, it->second.body)
     {
-      if(is_threaded(t_it))
+      if(which_threads.is_threaded(t_it))
       {
         thread_wl.push_back(std::make_pair(&(it->second.body), t_it));
 
-        goto_programt::const_targett l_end=
-          it->second.body.instructions.end();
-        --l_end;
-
-        const statet &end_state=get_state(l_end);
-        merge_shared(shared_state, end_state, sh_target);
+        const statet &state=get_state(t_it);
+        merge_shared(shared_state, state, sh_target);
+      }      
+    }
+  }
+#else //this iterates over the whole function that contains is_threaded
+  forall_goto_functions(it, goto_functions)
+  {
+    bool is_threaded = false;
+    forall_goto_program_instructions(t_it, it->second.body)
+    {
+      if(which_threads.is_threaded(t_it))
+      {
+        is_threaded = true;
+        break;
       }
     }
+    if(is_threaded)
+    {
+      thread_wl.push_back(std::make_pair(&(it->second.body), 
+        it->second.body.instructions.begin()));
+      forall_goto_program_instructions(t_it, it->second.body)
+      {
+        const statet &state=get_state(t_it);
+#if 0
+	std::cout << "add to shared state: " << std::endl;
+	state.output(ns, std::cout);
+#endif
+        merge_shared(shared_state, state, sh_target);
+      }      
+    }
+  }
+#endif
+#if 0
+  std::cout << "shared state: " << std::endl;
+  shared_state.output(ns, std::cout);
+#endif
 
-  // new feed in the shared state into all concurrently executing
+  // now feed in the shared state into all concurrently executing
   // functions, and iterate until the shared state stabilizes
   bool new_shared=true;
   while(new_shared)
@@ -693,11 +789,19 @@ void static_analysis_baset::concurrent_fixedpoint(
         it!=thread_wl.end();
         ++it)
     {
+#if 0
+      std::cout << "THREAD: " << it->second->function << std::endl;
+      std::cout << "starts at: " << it->second->location_number << std::endl;
+#endif
       working_sett working_set;
       put_in_working_set(working_set, it->second);
 
       statet &begin_state=get_state(it->second);
       merge(begin_state, shared_state, it->second);
+#if 0
+      std::cout << "shared begin state: " << std::endl;
+      begin_state.output(ns, std::cout);
+#endif
 
       while(!working_set.empty())
       {
@@ -708,13 +812,16 @@ void static_analysis_baset::concurrent_fixedpoint(
         // the underlying domain must make sure that the final state
         // carries all possible values; otherwise we would need to
         // merge over each and every state
-        if(l->is_end_function())
+        //if(l->is_end_function())
         {
           statet &end_state=get_state(l);
           new_shared|=merge_shared(shared_state, end_state, sh_target);
+
+          //shared_state.output(ns, std::cout);
         }
       }
     }
   }
 }
+
 

@@ -160,9 +160,10 @@ public:
   // for an edge that returns from a function
   static exprt get_return_lhs(locationt to);
 
-protected:
+//protected:
   const namespacet &ns;
   
+protected:
   virtual void output(
     const goto_programt &goto_program,
     const irep_idt &identifier,
@@ -185,9 +186,17 @@ protected:
     const goto_programt &goto_program,
     const goto_functionst &goto_functions);
     
-  virtual void fixedpoint(
-    const goto_functionst &goto_functions)=0;
+  bool fixedpoint(
+    goto_functionst::function_mapt::const_iterator it,
+    const goto_functionst &goto_functions);
 
+
+  virtual void fixedpoint(
+    const goto_functionst &goto_functions)
+  {
+    sequential_fixedpoint(goto_functions);
+  }
+    
   void sequential_fixedpoint(
     const goto_functionst &goto_functions);
   void concurrent_fixedpoint(
@@ -292,6 +301,11 @@ public:
     return state_map.count(l)!=0;
   }
   
+  
+  virtual void statistics(std::ostream &out) const {
+    throw "Not implemented"; 
+  }
+  
 protected:
   typedef std::map<locationt, T> state_mapt;
   state_mapt state_map;
@@ -333,16 +347,11 @@ protected:
     state_map[l].get_reference_set(ns, expr, dest);
   }
 
-  virtual void fixedpoint(const goto_functionst &goto_functions)
-  {
-    sequential_fixedpoint(goto_functions);
-  }
-
 private:  
   // to enforce that T is derived from domain_baset
   void dummy(const T &s) { const statet &x=dummy1(s); (void)x; }
 
-  // not implemented in sequential analyses
+// not implemented in sequential analyses
   virtual bool merge_shared(
     statet &a,
     const statet &b,
@@ -351,6 +360,7 @@ private:
     throw "not implemented";
   }
 };
+
 
 template<typename T>
 class concurrency_aware_static_analysist:public static_analysist<T>
@@ -373,7 +383,10 @@ public:
       to);
   }
 
-protected:
+  virtual void statistics(std::ostream &out) const {
+    throw "Not implemented";
+  }
+
   virtual void fixedpoint(const goto_functionst &goto_functions)
   {
     this->concurrent_fixedpoint(goto_functions);

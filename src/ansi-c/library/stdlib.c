@@ -103,10 +103,6 @@ inline void *malloc(__CPROVER_size_t malloc_size)
   __CPROVER_malloc_size=record_malloc?malloc_size:__CPROVER_malloc_size;
   __CPROVER_malloc_is_new_array=record_malloc?0:__CPROVER_malloc_is_new_array;
   
-  // detect memory leaks
-  __CPROVER_bool record_may_leak;
-  __CPROVER_memory_leak=record_may_leak?malloc_res:__CPROVER_memory_leak;
-
   return malloc_res;
 }
 
@@ -159,9 +155,6 @@ inline void free(void *ptr)
     // non-deterministically record as deallocated
     __CPROVER_bool record;
     if(record) __CPROVER_deallocated=ptr;
-
-    // detect memory leaks
-    if(__CPROVER_memory_leak==ptr) __CPROVER_memory_leak=0;
   }
 }
 
@@ -310,6 +303,14 @@ inline char *getenv(const char *name)
     "zero-termination of argument of getenv");
   #endif
 
+  #ifdef __CPROVER_CUSTOM_BITVECTOR_ANALYSIS
+  __CPROVER_event("invalidate_pointer", "getenv_result");
+  char *getenv_result;
+  __CPROVER_set_may(getenv_result, "getenv_result");
+  return getenv_result;
+
+  #else
+
   __CPROVER_bool found;
   if(!found) return 0;
 
@@ -325,6 +326,7 @@ inline char *getenv(const char *name)
   buffer[buf_size-1]=0;
 
   return buffer;
+  #endif
 }
 
 /* FUNCTION: realloc */

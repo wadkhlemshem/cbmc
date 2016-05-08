@@ -18,15 +18,15 @@ class xmlt;
 
 class value_set_analysist:
   public value_setst,
-  public static_analysist<value_set_domaint>
+  public concurrency_aware_static_analysist<value_set_domaint>
 {
 public:
    value_set_analysist(const namespacet &_ns):
-     static_analysist<value_set_domaint>(_ns)
+     concurrency_aware_static_analysist<value_set_domaint>(_ns)
    {
    }
 
-  typedef static_analysist<value_set_domaint> baset;
+  typedef concurrency_aware_static_analysist<value_set_domaint> baset;
 
   // overloading  
   virtual void initialize(const goto_programt &goto_program);
@@ -46,7 +46,9 @@ public:
     const goto_programt &goto_program,
     const irep_idt &identifier,
     xmlt &dest) const;
-    
+        
+  virtual void statistics(std::ostream &out) const;
+      
 public:
   // interface value_sets
   virtual void get_values(

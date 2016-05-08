@@ -81,6 +81,7 @@ protected:
   loc_infost loc_infos;
   
   void assign_lhs(
+    const goto_programt::const_targett t,
     const exprt &lhs,
     const exprt &rhs,
     const loc_infot &loc_info_src,
@@ -89,6 +90,7 @@ protected:
   typedef std::set<unsigned> object_sett; 
    
   void get_rec(
+    const goto_programt::const_targett t,
     object_sett &dest,
     const exprt &rhs,
     const loc_infot &loc_info_src) const;

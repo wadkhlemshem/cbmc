@@ -5,6 +5,8 @@
 #include <cbmc/cbmc_solvers.h>
 #include <cbmc/bmc.h>
 
+#include <iterator>
+
 #define CEGIS_DEFAULT_MIN_WORD_WIDTH 4u
 
 template<class verifyt>

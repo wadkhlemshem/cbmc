@@ -53,7 +53,7 @@ public:
   }
 };
 
-// a node type with an exta bit
+// a node type with an extra bit
 template<class E>
 class visited_nodet:public graph_nodet<E>
 {
@@ -114,6 +114,13 @@ public:
   {
     node_indext no=nodes.size();
     nodes.push_back(nodet());
+    return no;
+  }
+
+  inline node_indext add_node(const nodet& node)
+  {
+    node_indext no=nodes.size();
+    nodes.push_back(node);
     return no;
   }
   

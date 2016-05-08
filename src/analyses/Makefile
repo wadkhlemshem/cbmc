@@ -2,6 +2,8 @@ SRC = natural_loops.cpp is_threaded.cpp dirty.cpp interval_analysis.cpp \
       invariant_set.cpp invariant_set_domain.cpp invariant_propagation.cpp \
       static_analysis.cpp uninitialized_domain.cpp local_may_alias.cpp \
       locals.cpp goto_check.cpp call_graph.cpp interval_domain.cpp \
+      which_threads_internal.cpp lock_set_analysis.cpp lock_graph.cpp \
+      local_bitvector_analysis.cpp dependence_graph.cpp \
       goto_rw.cpp reaching_definitions.cpp ai.cpp local_cfg.cpp \
       local_bitvector_analysis.cpp dependence_graph.cpp \
       constant_propagator.cpp replace_symbol_ext.cpp \

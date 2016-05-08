@@ -45,7 +45,7 @@ bool concurrent_learnt<learner1t, learner2t>::learn(itert first,
     const itert &last)
 {
   bool symex_running=true;
-  learner1.set_termination_condition([this, &symex_running]()
+  learner1.set_termination_condition([this, &symex_running]() mutable
   {
     task_pool.join_some();
     return symex_running;

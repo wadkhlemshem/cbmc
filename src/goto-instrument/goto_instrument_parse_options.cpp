@@ -34,21 +34,26 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/parameter_assignments.h>
 
 #include <pointer-analysis/value_set_analysis.h>
+#include <pointer-analysis/value_set_check.h>
 #include <pointer-analysis/goto_program_dereference.h>
 #include <pointer-analysis/add_failed_symbols.h>
 #include <pointer-analysis/show_value_sets.h>
+#include <pointer-analysis/sharing_analysis.h>
 
 #include <analyses/natural_loops.h>
-#include <analyses/global_may_alias.h>
 #include <analyses/local_may_alias.h>
 #include <analyses/local_bitvector_analysis.h>
-#include <analyses/custom_bitvector_analysis.h>
-#include <analyses/escape_analysis.h>
 #include <analyses/goto_check.h>
 #include <analyses/call_graph.h>
 #include <analyses/interval_analysis.h>
 #include <analyses/interval_domain.h>
 #include <analyses/reaching_definitions.h>
+#include <analyses/which_threads.h>
+#include <analyses/lock_set_analysis.h>
+#include <analyses/lock_graph.h>
+#include <analyses/escape_analysis.h>
+#include <analyses/global_may_alias.h>
+#include <analyses/custom_bitvector_analysis.h>
 #include <analyses/dependence_graph.h>
 #include <analyses/constant_propagator.h>
 
@@ -144,20 +149,157 @@ int goto_instrument_parse_optionst::doit()
     get_goto_program();
     instrument_goto_program();
 
+    if(cmdline.isset("which-threads"))
+    {
+      namespacet ns(symbol_table);
+
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Partial Inlining" << eom;
+      goto_partial_inline(goto_functions, ns, ui_message_handler);
+    
+      status() << "Which-Thread Analysis" << eom;
+      which_threadst which_threads(goto_functions);
+
+      which_threads.output(std::cout);
+      return 0;
+    }
+
+
     if(cmdline.isset("show-value-sets"))
     {
-      do_function_pointer_removal();
-      do_partial_inlining();
-    
-      // recalculate numbers, etc.
-      goto_functions.update();
-
-      status() << "Pointer Analysis" << eom;
       namespacet ns(symbol_table);
+
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Partial Inlining" << eom;
+      goto_partial_inline(goto_functions, ns, ui_message_handler);
+    
+      status() << "Pointer Analysis" << eom;
+      value_set_analysist value_set_analysis(ns);
+      value_set_analysis(goto_functions);
+      
+      status() << "Value Set Output" << eom;
+
+      show_value_sets(get_ui(), goto_functions, value_set_analysis);
+      
+      return 0;
+    }
+
+
+    if(cmdline.isset("static-pointer-check"))
+    {
+      namespacet ns(symbol_table);
+
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Partial Inlining" << eom;
+      goto_partial_inline(goto_functions, ns, ui_message_handler);
+    
+      status() << "Pointer Analysis" << eom;
       value_set_analysist value_set_analysis(ns);
       value_set_analysis(goto_functions);
 
-      show_value_sets(get_ui(), goto_functions, value_set_analysis);
+      status() << "Pointer Checks" << eom;
+      value_set_checkt value_set_check(value_set_analysis, ns);
+      value_set_check(goto_functions);
+
+      show_value_set_check(get_ui(), value_set_check);
+
+      return 0;
+    }
+
+
+    if(cmdline.isset("show-sharing"))
+    {
+      namespacet ns(symbol_table);
+
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Partial Inlining" << eom;
+      goto_partial_inline(goto_functions, ns, ui_message_handler);
+
+      status() << "Pointer Analysis" << eom;
+      value_set_analysist value_set_analysis(ns);
+      value_set_analysis(goto_functions);
+
+      status() << "Lock set Analysis" << eom;
+      lock_set_analysist lock_set_analysis(ns, value_set_analysis);
+      lock_set_analysis(goto_functions);
+
+      lock_set_analysis.initialize(goto_functions);
+
+      status() << "Sharing Analysis" << eom;
+      sharing_analysist sharing_analysis(
+        ns,
+        goto_functions,
+        value_set_analysis,
+        lock_set_analysis);
+
+      show_sharing_analysis(get_ui(), sharing_analysis);
+
+      return 0;
+    }
+
+    if(cmdline.isset("show-deadlocks"))
+    {
+      namespacet ns(symbol_table);
+       
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Pointer Analysis" << eom;
+      value_set_analysist value_set_analysis(ns);
+      value_set_analysis(goto_functions);
+
+      status() << "Which-Thread Analysis" << eom;
+      which_threads_internalt which_threads(goto_functions);
+
+      status() << "Lock set Analysis" << eom;
+      lock_set_analysist lock_set_analysis(ns, value_set_analysis);
+      lock_set_analysis(goto_functions);
+
+      status() << "Construct Lock Graph" << eom;
+      lock_grapht lock_graph(ns, lock_set_analysis, which_threads);
+      lock_graph(goto_functions);
+      show_lock_graph(get_ui(), goto_functions, lock_graph);
+
+      lock_graph.detect_deadlocks();
+      show_deadlocks(get_ui(), goto_functions, lock_graph);
+
+      return 0;
+    }
+
+    if(cmdline.isset("show-lock-sets"))
+    {
+      namespacet ns(symbol_table);
+
+      /*
+      status() << "Adding CPROVER library" << eom;
+      link_to_library(symbol_table, goto_functions, ui_message_handler);
+       */
+
+      status() << "Function Pointer Removal" << eom;
+      remove_function_pointers(symbol_table, goto_functions, false);
+
+      status() << "Pointer Analysis" << eom;
+      value_set_analysist value_set_analysis(ns);
+      value_set_analysis(goto_functions);
+
+      goto_functions.output(ns, std::cout);
+
+      status() << "Lock set Analysis" << eom;
+      lock_set_analysist lock_set_analysis(ns, value_set_analysis);
+      lock_set_analysis(goto_functions);
+
+      lock_set_analysis.initialize(goto_functions);
+
+      show_lock_sets(get_ui(), goto_functions, lock_set_analysis);
+
       return 0;
     }
 
@@ -1291,6 +1433,10 @@ void goto_instrument_parse_optionst::help()
     " --list-undefined-functions   list functions without body\n"
     " --show-struct-alignment      show struct members that might be concurrently accessed\n"
     " --show-natural-loops         show natural loop heads\n"
+    " --show-value-sets            show results of pointer analysis (full output with xml-ui)\n"
+    " --show-sharing               show results of sharing analysis (full output with xml-ui)\n"
+    " --show-lock-sets             show results of lock-set analysis (full output with xml-ui)\n"
+    " --show-deadlocks             show results of deadlock analysis (full output with xml-ui)\n"
     "\n"
     "Safety checks:\n"
     " --no-assertions              ignore user assertions\n"

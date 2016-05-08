@@ -23,6 +23,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <ansi-c/c_types.h>
 
+//TODO: obsolete; this was for a test to abuse the offset to record integers
+//#define INTEGER_AS_OFFSET
+//#define INTEGER_AS_EXPR
+
+//#define DEBUG
+
 #ifdef DEBUG
 #include <langapi/language_util.h>
 #include <iostream>
@@ -33,6 +39,19 @@ Author: Daniel Kroening, kroening@kroening.com
 
 const value_sett::object_map_dt value_sett::object_map_dt::blank;
 object_numberingt value_sett::object_numbering;
+
+#ifdef VALUE_SET_TOP
+exprt unknown_expr(ID_unknown);
+unsigned unknown_object=value_sett::object_numbering.number(unknown_expr);
+
+void value_sett::object_map_dt::make_top()
+{
+  top=true;
+  clear();
+  (*this)[unknown_object];
+  assert(size()==1);
+}
+#endif
    
 /*******************************************************************\
 
@@ -63,7 +82,7 @@ bool value_sett::field_sensitive(
 
 /*******************************************************************\
 
-Function: value_sett::insert
+Function: value_sett::get_entry
 
   Inputs:
 
@@ -81,7 +100,7 @@ value_sett::entryt &value_sett::get_entry(
   irep_idt index;
 
   if(field_sensitive(e.identifier, type, ns))
-    index=id2string(e.identifier)+e.suffix;
+    index=id2string(e.identifier)+id2string(e.suffix);
   else
     index=e.identifier;
 
@@ -106,8 +125,25 @@ Function: value_sett::insert
 bool value_sett::insert(
   object_mapt &dest,
   unsigned n,
-  const objectt &object) const
+  const objectt &object)
 {
+  #ifdef VALUE_SET_TOP
+  /* top cannot grow */  
+  if(dest.read().top)
+  {
+    return false;
+  }
+
+  /* top if unknown object is inserted */
+  if(object_numbering[n].id()==ID_unknown)
+  {
+    dest.write().top=true;
+    dest.write().clear();
+    dest.write()[n]=object;
+    return true; 
+  }
+  #endif
+
   object_map_dt::const_iterator entry=dest.read().find(n);
 
   if(entry==dest.read().end())
@@ -127,6 +163,7 @@ bool value_sett::insert(
     return true;
   }
 }
+
 
 /*******************************************************************\
 
@@ -155,78 +192,100 @@ void value_sett::output(
   
     if(has_prefix(id2string(e.identifier), "value_set::dynamic_object"))
     {
-      display_name=id2string(e.identifier)+e.suffix;
+      display_name=id2string(e.identifier)+id2string(e.suffix);
       identifier="";
     }
     else if(e.identifier=="value_set::return_value")
     {
-      display_name="RETURN_VALUE"+e.suffix;
+      display_name="RETURN_VALUE"+id2string(e.suffix);
       identifier="";
     }
     else
     {
       #if 0
       const symbolt &symbol=ns.lookup(e.identifier);
-      display_name=symbol.display_name()+e.suffix;
+      display_name=symbol.display_name()+id2string(e.suffix);
       identifier=symbol.name;
       #else
       identifier=id2string(e.identifier);
-      display_name=id2string(identifier)+e.suffix;
+      display_name=id2string(identifier)+id2string(e.suffix);
       #endif
     }
     
     out << display_name;
 
-    out << " = { ";
+    out << " = ";
 
-    const object_map_dt &object_map=e.object_map.read();
-    
-    unsigned width=0;
-    
-    for(object_map_dt::const_iterator
-        o_it=object_map.begin();
-        o_it!=object_map.end();
-        o_it++)
+    output(ns, out, e.object_map);
+  }
+}
+
+/*******************************************************************\
+
+Function: value_sett::output
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void value_sett::output(
+    const namespacet &ns,
+    std::ostream &out,
+    const object_mapt &obj_map)
+{
+  out << "{ ";
+
+  const object_map_dt &object_map=obj_map.read();
+
+  unsigned width=0;
+
+  for(object_map_dt::const_iterator
+      o_it=object_map.begin();
+      o_it!=object_map.end();
+      o_it++)
+  {
+    const exprt &o=object_numbering[o_it->first];
+
+    std::string result;
+
+    if(o.id()==ID_invalid || o.id()==ID_unknown)
+      result=from_expr(ns, "", o);
+    else
     {
-      const exprt &o=object_numbering[o_it->first];
+      result="<"+from_expr(ns, "", o)+", ";
     
-      std::string result;
-
-      if(o.id()==ID_invalid || o.id()==ID_unknown)
-        result=from_expr(ns, identifier, o);
+      if(o_it->second.offset_is_set)
+      	result+=integer2string(o_it->second.offset)+"";
       else
-      {
-        result="<"+from_expr(ns, identifier, o)+", ";
-      
-        if(o_it->second.offset_is_set)
-          result+=integer2string(o_it->second.offset)+"";
-        else
-          result+='*';
+      	result+='*';
 
-        if(o.type().is_nil())
-          result+=", ?";
-        else
-          result+=", "+from_type(ns, identifier, o.type());
-      
-        result+='>';
-      }
+      if(o.type().is_nil())
+      	result+=", ?";
+      else
+      	result+=", "+from_type(ns, "", o.type());
 
-      out << result;
-
-      width+=result.size();
-    
-      object_map_dt::const_iterator next(o_it);
-      next++;
-
-      if(next!=object_map.end())
-      {
-        out << ", ";
-        if(width>=40) out << "\n      ";
-      }
+      result+='>';
     }
 
-    out << " } " << std::endl;
+    out << result;
+
+    width+=result.size();
+
+    object_map_dt::const_iterator next(o_it);
+    next++;
+
+    if(next!=object_map.end())
+    {
+      out << ", ";
+      if(width>=40) out << "\n      ";
+    }
   }
+
+  out << " } " << std::endl;
 }
 
 /*******************************************************************\
@@ -259,6 +318,143 @@ exprt value_sett::to_expr(object_map_dt::const_iterator it) const
   od.type()=od.object().type();
 
   return od;
+}
+
+/*******************************************************************\
+
+Function: value_sett::make_union
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool value_sett::make_union(
+  const value_sett::valuest &new_values,
+  hash_set_cont<irep_idt, irep_id_hash> &selected_vars)
+{
+  bool result=false;
+  
+  valuest::iterator v_it=values.begin();
+
+  for(valuest::const_iterator
+      it=new_values.begin();
+      it!=new_values.end();
+      ) // no it++
+  {
+    if(v_it==values.end() || it->first<v_it->first)
+    {
+      if(selected_vars.find(it->first)!=selected_vars.end())
+      {
+      	values.insert(v_it, *it);
+      	result=true;
+      }
+      it++;
+      continue;
+    }
+    else if(v_it->first<it->first)
+    {
+      v_it++;
+      continue;
+    }
+    
+    assert(v_it->first==it->first);
+      
+    
+    if(selected_vars.find(v_it->first)!=selected_vars.end())
+    {
+      entryt &e=v_it->second;
+      const entryt &new_e=it->second;
+
+      if(make_union(e.object_map, new_e.object_map))
+      	result=true;
+    }
+
+    v_it++;
+    it++;
+  }
+  
+  return result;
+}
+
+/*******************************************************************\
+
+Function: value_sett::overlap
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+
+
+
+bool value_sett::overlap(
+  const object_mapt &obj_map1,
+  const object_mapt &obj_map2,
+  bool &inconclusive)
+{
+  enum resultt { YES, NO, MAYBE } result = NO;
+
+  typedef value_sett::object_map_dt object_map_dt;
+  typedef value_sett::objectt objectt;
+
+  const object_map_dt obj_map_dt1=obj_map1.read();
+  const object_map_dt obj_map_dt2=obj_map2.read();
+
+  for(object_map_dt::const_iterator
+      it1=obj_map_dt1.begin();
+      it1!=obj_map_dt1.end();
+      ++it1)
+  {
+    object_map_dt::const_iterator
+      it2=obj_map_dt2.find(it1->first);
+
+    if(it2!=obj_map_dt2.end())
+    {
+      const objectt &obj1=it1->second;
+      const objectt &obj2=it2->second;
+
+      if(obj1.offset_is_set != obj2.offset_is_set)
+      {
+        result=MAYBE;
+        break;
+      }
+
+      if(!obj1.offset_is_set && !obj2.offset_is_set)
+      {
+        result=MAYBE;
+        break;
+      }
+
+      if(obj1.offset==obj2.offset)
+      {
+        result=YES;
+        break;
+      }
+    }
+  }
+
+  inconclusive=false;
+
+  switch(result)
+  {
+    case YES:
+      return true;
+    case NO:
+      return false;
+    case MAYBE:
+      inconclusive=true;
+      return true;
+  }
+  
+  return false;
 }
 
 /*******************************************************************\
@@ -324,7 +520,7 @@ Function: value_sett::make_union
 
 \*******************************************************************/
 
-bool value_sett::make_union(object_mapt &dest, const object_mapt &src) const
+bool value_sett::make_union(object_mapt &dest, const object_mapt &src)
 {
   bool result=false;
   
@@ -631,7 +827,19 @@ void value_sett::get_value_set_rec(
             expr_type.id()==ID_signedbv)
     {
       // an integer constant got turned into a pointer
+#ifdef INTEGER_AS_EXPR
+      // record the value of the integer in the expression
+      insert(dest, expr);
+#else
+#ifdef INTEGER_AS_OFFSET
+      // record the value of the integer in the offset
+      mp_integer i;
+      to_integer(to_constant_expr(expr),i);
+      insert(dest, exprt(ID_integer_address, unsigned_char_type()),i);
+#else
       insert(dest, exprt(ID_integer_address, unsigned_char_type()));
+#endif
+#endif
     }
     else
       insert(dest, exprt(ID_unknown, original_type));
@@ -667,13 +875,37 @@ void value_sett::get_value_set_rec(
         if(tmp.read().size()==0)
         {
           // if not, throw in integer
-          insert(dest, exprt(ID_integer_address, unsigned_char_type()));        
+#ifdef INTEGER_AS_EXPR
+          // record the value of the integer in the expression
+          insert(dest, expr);
+#else
+#ifdef INTEGER_AS_OFFSET
+          // record the value of the integer in the offset
+          mp_integer i;
+          to_integer(to_constant_expr(expr),i);
+          insert(dest, exprt(ID_integer_address, unsigned_char_type()),i);
+#else
+          insert(dest, exprt(ID_integer_address, unsigned_char_type()));
+#endif
+#endif
         }
         else if(tmp.read().size()==1 &&
                 object_numbering[tmp.read().begin()->first].id()==ID_unknown)
         {
           // if not, throw in integer
-          insert(dest, exprt(ID_integer_address, unsigned_char_type()));        
+#ifdef INTEGER_AS_EXPR
+          // record the value of the integer in the expression
+          insert(dest, expr);
+#else
+#ifdef INTEGER_AS_OFFSET
+          // record the value of the integer in the offset
+          mp_integer i;
+          to_integer(to_constant_expr(expr),i);
+          insert(dest, exprt(ID_integer_address, unsigned_char_type()),i);
+#else
+          insert(dest, exprt(ID_integer_address, unsigned_char_type()));
+#endif
+#endif
         }
         else
         {
@@ -1089,7 +1321,7 @@ void value_sett::get_reference_set_rec(
       insert(dest, expr);
     else    
       insert(dest, expr, 0);
-
+    
     return;
   }
   else if(expr.id()==ID_dereference)
@@ -1202,9 +1434,21 @@ void value_sett::get_reference_set_rec(
         {
           // adjust type?
           if(ns.follow(struct_op.type())!=final_object_type)
+	    continue; //If a struct contains a struct, this would explode without normalising the casts... TODO: this currently assumes that structs are not arbitrarily cast to each other
+#if 0
             member_expr.op0().make_typecast(struct_op.type());
+#endif
           
           insert(dest, member_expr, o);       
+
+#ifdef DEBUG
+    std::cout << "structop: " << from_expr(ns, "", struct_op) << std::endl;
+    std::cout << "structop-type:       " << from_type(ns, "", ns.follow(struct_op.type())) << std::endl;
+    std::cout << "object: " << from_expr(ns, "", object) << std::endl;
+    std::cout << "object-type: " << from_type(ns, "", final_object_type) << std::endl;
+    std::cout << "insert: " << from_expr(ns, "", member_expr) << std::endl;
+#endif
+
         }
         else
           insert(dest, exprt(ID_unknown, expr.type()));
@@ -1465,7 +1709,7 @@ void value_sett::assign_rec(
   const namespacet &ns,
   bool add_to_sets)
 {
-  #if 0
+  #ifdef DEBUG
   std::cout << "ASSIGN_REC LHS: " << from_expr(ns, "", lhs) << std::endl;
   std::cout << "ASSIGN_REC LHS ID: " << lhs.id() << std::endl;
   std::cout << "ASSIGN_REC SUFFIX: " << suffix << std::endl;
@@ -1531,12 +1775,18 @@ void value_sett::assign_rec(
       
     const typet &type=ns.follow(lhs.op0().type());
       
-    assert(type.id()==ID_array || type.id()==ID_incomplete_array);
-
-    assign_rec(lhs.op0(), values_rhs, "[]"+suffix, ns, true);
+    if(type.id()==ID_array || type.id()==ID_incomplete_array)
+      assign_rec(lhs.op0(), values_rhs, "[]"+suffix, ns, true);
+    else
+    {
+      // ignore
+    }
   }
   else if(lhs.id()==ID_member)
   {
+#ifdef DEBUG
+    std::cout << "ASSIGN MEMBER" << std::endl;
+#endif
     if(lhs.operands().size()!=1)
       throw "member expected to have one operand";
   
@@ -1672,6 +1922,111 @@ void value_sett::do_end_function(
 
 /*******************************************************************\
 
+Function: value_sett::initialize
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void value_sett::initialize(
+  const exprt &expr,
+  const namespacet &ns)
+{
+  assert(expr.id()==ID_symbol);
+  const symbolt &symbol=ns.lookup(to_symbol_expr(expr).get_identifier());
+  bool local=symbol.is_procedure_local();
+
+  if(local)
+  {
+    initialize_rec(
+      expr,
+      ns);
+  }
+  else
+  {
+    // global is already handled in the goto binary
+  }
+}
+
+/*******************************************************************\
+
+Function: value_sett::initialize_rec
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void value_sett::initialize_rec(
+  const exprt &expr,
+  const namespacet &ns)
+{
+  const typet &type=ns.follow(expr.type());
+
+  if(type.id()==ID_pointer)
+  {
+    assign(expr, exprt(ID_invalid), ns, false, false);
+  }
+  else if(type.id()==ID_struct
+          || type.id()==ID_union)
+  {
+    const struct_union_typet &struct_union_type=to_struct_union_type(type);
+    const struct_union_typet::componentst &components=struct_union_type.components();
+
+    // split it up into components
+    for(unsigned i=0; i<components.size(); i++)
+    {
+      const typet &subtype=components[i].type();
+      const irep_idt &component_name=components[i].get_name();
+
+      member_exprt member_expr(expr, component_name, subtype);
+
+      initialize_rec(member_expr, ns);
+    }
+  }
+  else if(type.id()==ID_array)
+  {
+    const array_typet &array_type=to_array_type(type);
+    const typet &subtype=array_type.subtype();
+
+    if(array_type.size().is_constant())
+    {
+      mp_integer size;
+      if(to_integer(array_type.size(), size))
+	      throw "failed to convert array size";
+
+      unsigned long long size_int=integer2unsigned(size);
+
+      array_exprt result(array_type);
+      result.operands().resize(size_int);
+
+      // split it up into elements
+      for(unsigned long long i=0; i<size_int; ++i)
+      {
+     	  exprt index=from_integer(i, array_type.size().type());
+	      exprt index_expr=index_exprt(expr, index, subtype);
+	      initialize_rec(index_expr, ns);
+      }
+    }
+    else
+    {
+      exprt index=from_integer(0, array_type.size().type());
+      exprt index_expr=index_exprt(expr, index, subtype);
+      initialize_rec(index_expr, ns);
+    }
+  }
+}
+
+
+/*******************************************************************\
+
 Function: value_sett::apply_code
 
   Inputs:
@@ -1734,6 +2089,12 @@ void value_sett::apply_code(
       }
       else
         assign(lhs, exprt(ID_invalid), ns, false, false);
+    }
+    
+    if((lhs_type.id()==ID_array && ns.follow(lhs_type.subtype()).id()==ID_struct)
+        || lhs_type.id()==ID_struct)
+    {
+      initialize(to_symbol_expr(lhs), ns);
     }
   }
   else if(statement=="specc_notify" ||

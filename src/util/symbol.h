@@ -68,7 +68,7 @@ public:
   // ANSI-C
   bool is_static_lifetime, is_thread_local;
   bool is_lvalue, is_file_local, is_extern, is_volatile,
-       is_parameter, is_auxiliary;
+    is_parameter, is_auxiliary;
 
   symbolt()
   {

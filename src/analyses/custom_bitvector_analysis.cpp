@@ -8,10 +8,43 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/xml_expr.h>
 #include <util/simplify_expr.h>
+#include <util/prefix.h>
+#include <util/expr_util.h>
+
+#include <ansi-c/string_constant.h>
+#include <ansi-c/c_types.h>
 
 #include "custom_bitvector_analysis.h"
 
 #include <iostream>
+
+/*******************************************************************\
+
+Function: get_string
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: 
+
+\*******************************************************************/
+
+namespace {
+irep_idt get_string(const exprt &string_expr)
+{
+  if(string_expr.id()==ID_typecast)
+    return get_string(to_typecast_expr(string_expr).op());
+  else if(string_expr.id()==ID_address_of)
+    return get_string(to_address_of_expr(string_expr).object());
+  else if(string_expr.id()==ID_index)
+    return get_string(to_index_expr(string_expr).array());
+  else if(string_expr.id()==ID_string_constant)
+    return string_expr.get(ID_value); 
+  else
+    return irep_idt();
+}
+}
 
 /*******************************************************************\
 
@@ -87,7 +120,9 @@ irep_idt custom_bitvector_domaint::object2id(const exprt &src)
 {
   if(src.id()==ID_symbol)
   {
-    return to_symbol_expr(src).get_identifier();
+    irep_idt identifier=to_symbol_expr(src).get_identifier();
+    if(has_prefix(id2string(identifier), "__CPROVER_")) return irep_idt();
+    return identifier;
   }
   else if(src.id()==ID_dereference)
   {
@@ -101,6 +136,16 @@ irep_idt custom_bitvector_domaint::object2id(const exprt &src)
     {
       return object2id(dereference_exprt(to_typecast_expr(op).op()));
     }
+    else if(op.id()==ID_plus)
+    {
+      exprt ptr=nil_exprt();
+
+      forall_operands(it, op)
+        if(it->type().id()==ID_pointer) ptr=*it;
+
+      if(ptr.is_nil()) return irep_idt();
+      return object2id(dereference_exprt(ptr));
+    }
     else
     {
       irep_idt op_id=object2id(op);
@@ -110,6 +155,16 @@ irep_idt custom_bitvector_domaint::object2id(const exprt &src)
         return '*'+id2string(op_id);
     }
   }
+  else if(src.id()==ID_index)
+  {
+    if(to_index_expr(src).index().is_zero() &&
+       to_index_expr(src).array().id()==ID_string_constant)
+      return object2id(to_index_expr(src).array());
+    else
+      return irep_idt();    
+  }
+  else if(src.id()==ID_string_constant)
+    return "\""+id2string(src.get(ID_value))+"\"";
   else if(src.id()==ID_typecast)
     return object2id(to_typecast_expr(src).op());
   else
@@ -154,12 +209,12 @@ void custom_bitvector_domaint::assign_lhs(
 {
   // we erase blank ones to avoid noise
 
-  if(vectors.must_bits==0)
+  if(is_empty(vectors.must_bits))
     must_bits.erase(identifier);
   else
     must_bits[identifier]=vectors.must_bits;
   
-  if(vectors.may_bits==0)
+  if(is_empty(vectors.may_bits))
     may_bits.erase(identifier);
   else
     may_bits[identifier]=vectors.may_bits;
@@ -207,10 +262,12 @@ custom_bitvector_domaint::vectorst
   custom_bitvector_domaint::get_rhs(const exprt &rhs) const
 {
   if(rhs.id()==ID_symbol ||
-     rhs.id()==ID_dereference)
+     rhs.id()==ID_dereference ||
+     rhs.id()==ID_string_constant)
   {
     const irep_idt identifier=object2id(rhs);
-    return get_rhs(identifier);
+    if(!identifier.empty())
+      return get_rhs(identifier);
   }
   else if(rhs.id()==ID_typecast)
   {
@@ -242,19 +299,11 @@ Function: custom_bitvector_analysist::get_bit_nr
 unsigned custom_bitvector_analysist::get_bit_nr(
   const exprt &string_expr)
 {
-  if(string_expr.id()==ID_typecast)
-    return get_bit_nr(to_typecast_expr(string_expr).op());
-  else if(string_expr.id()==ID_address_of)
-    return get_bit_nr(to_address_of_expr(string_expr).object());
-  else if(string_expr.id()==ID_index)
-    return get_bit_nr(to_index_expr(string_expr).array());
-  else if(string_expr.id()==ID_string_constant)
-  {
-    irep_idt value=string_expr.get(ID_value); 
-    return bits(value);
-  }  
-  else
+  irep_idt s=get_string(string_expr);
+  if(s==irep_idt())
     return bits("(unknown)");
+  else
+    return bits(s);
 }
 
 /*******************************************************************\
@@ -338,6 +387,16 @@ void custom_bitvector_domaint::transform(
     {
       const code_assignt &code_assign=to_code_assign(instruction.code);
 
+      // We shall ignore assignments of the form *P = ..., because
+      // we don't want to override the flags on *P. This way, the flags
+      // appear to be attached to the memory location, as opposed
+      // to the data at the memory location.
+      // We should likely have separate __CPROVER_set_must_memory()
+      // or the like for that purpose.
+      
+      if(code_assign.lhs().id()==ID_dereference)
+        break;
+      
       // may alias other stuff
       std::set<exprt> lhs_set=cba.aliases(code_assign.lhs(), from);
         
@@ -455,6 +514,209 @@ void custom_bitvector_domaint::transform(
             }
           }
         }
+        else if(identifier=="__CPROVER_event")
+        {
+          if(code_function_call.arguments().size()>=1)
+          {
+            irep_idt event=get_string(code_function_call.arguments()[0]);
+            if(event=="fopen") // "fopen", filename, mode, fopen_result
+            {
+              irep_idt filename=get_string(code_function_call.arguments()[1]);
+              irep_idt mode=get_string(code_function_call.arguments()[2]);
+              
+              bool read=false, write=false;
+              
+              for(std::string::const_iterator m_it=
+                  id2string(mode).begin(); m_it!=id2string(mode).end(); m_it++)
+                switch(*m_it)
+                {
+                case 'a':
+                case 'x':
+                case 'w': write=true; break;
+                case 'r': read=true; break;
+                case '+': read=write=true; break;
+                default:;
+                }
+              
+              dereference_exprt deref(code_function_call.arguments()[3]);
+              
+              // may alias other stuff
+              std::set<exprt> lhs_set=cba.aliases(deref, from);
+              
+              for(std::set<exprt>::const_iterator
+                  l_it=lhs_set.begin(); l_it!=lhs_set.end(); l_it++)
+              {
+                // we record as "open_mode_filename"
+                if(read)
+                {
+                  unsigned bit_nr=cba.bits(
+                    std::string("open_R_"+id2string(filename)));
+
+                  set_bit(*l_it, bit_nr, SET_MAY);
+                }
+
+                if(write)
+                {
+                  unsigned bit_nr=cba.bits(
+                    std::string("open_W_"+id2string(filename)));
+
+                  set_bit(*l_it, bit_nr, SET_MAY);
+                }
+              }
+              
+            }
+            else if(event=="fclose")
+            { // "fclose", stream
+
+              dereference_exprt deref(code_function_call.arguments()[1]);
+              
+              // may alias other stuff
+              std::set<exprt> lhs_set=cba.aliases(deref, from);
+              
+              for(unsigned bit_nr=0; bit_nr<cba.bits.size(); bit_nr++)
+              {
+                irep_idt flag=cba.bits[bit_nr];
+                if(has_prefix(id2string(flag), "open_"))
+                {
+                  for(std::set<exprt>::const_iterator
+                      l_it=lhs_set.begin(); l_it!=lhs_set.end(); l_it++)
+                  {
+                    set_bit(*l_it, bit_nr, CLEAR_MAY);
+                  }
+                }
+              }
+            }
+            else if(event=="freopen") // "freopen", filename, mode, f
+            {
+              // collect filenames attached to 'f' first
+              std::set<irep_idt> filenames;
+
+              custom_bitvector_domaint::vectorst v=
+                get_rhs(dereference_exprt(code_function_call.arguments()[3]));
+          
+              for(unsigned bit_nr=0; bit_nr<cba.bits.size(); bit_nr++)
+              {
+                if(get_bit(v.may_bits, bit_nr))
+                {
+                  irep_idt flag=cba.bits[bit_nr];
+                
+                  // we record as "open_mode_filename"
+                  if(has_prefix(id2string(flag), "open_W_") ||
+                     has_prefix(id2string(flag), "open_R_"))
+                  {
+                    std::string file=std::string(id2string(flag), 7, std::string::npos);
+                    filenames.insert(file);
+                  }
+                }
+              }
+              
+              // now close 'f'
+
+              dereference_exprt deref(code_function_call.arguments()[3]);
+              
+              // may alias other stuff
+              std::set<exprt> lhs_set=cba.aliases(deref, from);
+              
+              for(unsigned bit_nr=0; bit_nr<cba.bits.size(); bit_nr++)
+              {
+                irep_idt flag=cba.bits[bit_nr];
+                if(has_prefix(id2string(flag), "open_"))
+                {
+                  for(std::set<exprt>::const_iterator
+                      l_it=lhs_set.begin(); l_it!=lhs_set.end(); l_it++)
+                  {
+                    set_bit(*l_it, bit_nr, CLEAR_MAY);
+                  }
+                }
+              }
+              
+              // now check whether there are conflicting files
+              
+              if(!filenames.empty())
+              {
+                irep_idt filename=*filenames.begin();
+              
+                irep_idt mode=get_string(code_function_call.arguments()[2]);
+                
+                bool read=false, write=false;
+                
+                for(std::string::const_iterator m_it=
+                    id2string(mode).begin(); m_it!=id2string(mode).end(); m_it++)
+                  switch(*m_it)
+                  {
+                  case 'a':
+                  case 'x':
+                  case 'w': write=true; break;
+                  case 'r': read=true; break;
+                  case '+': read=write=true; break;
+                  default:;
+                  }
+                  
+                bool conflict=false;
+                  
+                for(bitst::const_iterator b_it=may_bits.begin();
+                    b_it!=may_bits.end(); b_it++)
+                {
+                  for(unsigned bit_nr=0; bit_nr<cba.bits.size(); bit_nr++)
+                  {
+                    if(get_bit(b_it->second, bit_nr))
+                    {
+                      irep_idt flag=cba.bits[bit_nr];
+                      if(read && flag=="open_W_"+id2string(filename))
+                        conflict=true;
+                      else if(write && flag=="open_R_"+id2string(filename))
+                        conflict=true;
+                    }
+                  }
+                }
+                
+                // now open up new file
+                
+                for(std::set<exprt>::const_iterator
+                    l_it=lhs_set.begin(); l_it!=lhs_set.end(); l_it++)
+                {
+                  // we record as "open_mode_filename"
+                  if(read)
+                  {
+                    unsigned bit_nr=cba.bits(
+                      std::string("open_R_"+id2string(filename)));
+
+                    set_bit(*l_it, bit_nr, SET_MAY);
+                  }
+
+                  if(write)
+                  {
+                    unsigned bit_nr=cba.bits(
+                      std::string("open_W_"+id2string(filename)));
+
+                    set_bit(*l_it, bit_nr, SET_MAY);
+                  }
+
+                  // if we have a conflict, set "freopen_same_file_rw"
+                  if(conflict)
+                  {
+                    unsigned bit_nr=cba.bits("freopen_same_file_rw");
+                    set_bit(*l_it, bit_nr, SET_MAY);
+                  }
+                }
+              }
+              
+            }
+            else if(event=="invalidate_pointer") // "invalidate_pointer", "flag"
+            {
+              irep_idt flag=get_string(code_function_call.arguments()[1]);
+              unsigned bit_nr_flag=cba.bits(flag);
+              unsigned bit_nr_invalidated=cba.bits("invalidated");
+
+              for(bitst::const_iterator b_it=may_bits.begin();
+                  b_it!=may_bits.end(); b_it++)
+              {
+                if(get_bit(b_it->second, bit_nr_flag))
+                  set_bit(b_it->first, bit_nr_invalidated, SET_MAY);
+              }              
+            }
+          }
+        }
       }
     }
     break;
@@ -505,16 +767,11 @@ void custom_bitvector_domaint::output(
       it!=may_bits.end();
       it++)
   {
-    out << it->first << " MAY: ";
-    bit_vectort b=it->second;
+    out << it->first << " MAY:";
     
-    for(unsigned i=0; b!=0; i++, b>>=1)
-      if(b&1)
-      {
-        assert(i<cba.bits.size());
-        out << ' '
-            << cba.bits[i];
-      }
+    for(std::size_t b=0; b<it->second.size(); b++)
+      if(it->second[b])
+        out << ' ' << cba.bits[b];
 
     out << '\n';
   }
@@ -524,15 +781,10 @@ void custom_bitvector_domaint::output(
       it++)
   {
     out << it->first << " MUST:";
-    bit_vectort b=it->second;
 
-    for(unsigned i=0; b!=0; i++, b>>=1)
-      if(b&1)
-      {
-        assert(i<cba.bits.size());
-        out << ' '
-            << cba.bits[i];
-      }
+    for(std::size_t b=0; b<it->second.size(); b++)
+      if(it->second[b])
+        out << ' ' << cba.bits[b];
 
     out << '\n';
   }
@@ -573,8 +825,8 @@ bool custom_bitvector_domaint::merge(
   {
     bit_vectort &a_bits=may_bits[b_it->first];
     bit_vectort old=a_bits;
-    a_bits|=b_it->second;
-    if(old!=a_bits) changed=true;
+    if(or_vectors(a_bits, b_it->second))
+      changed=true;
   }
 
   // now do MUST
@@ -587,14 +839,14 @@ bool custom_bitvector_domaint::merge(
 
     if(b_it==b.must_bits.end())
     {
-      a_it->second=0;
+      a_it->second.clear();
       changed=true;
     }
     else
     {
       bit_vectort old=a_it->second;
-      a_it->second&=b_it->second;
-      if(old!=a_it->second) changed=true;
+      if(and_vectors(a_it->second, b_it->second))
+        changed=true;
     }
   }
   
@@ -623,7 +875,7 @@ void custom_bitvector_domaint::erase_blank_vectors(bitst &bits)
       a_it!=bits.end();
       )
   {
-    if(a_it->second==0)
+    if(is_empty(a_it->second))
       a_it=bits.erase(a_it);
     else
       a_it++;
@@ -656,6 +908,52 @@ bool custom_bitvector_domaint::has_get_must_or_may(const exprt &src)
 
 /*******************************************************************\
 
+Function: custom_bitvector_domaint::has_predicate
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: 
+
+\*******************************************************************/
+
+bool custom_bitvector_domaint::has_predicate(const exprt &src)
+{
+  if(src.id()==ID_predicate)
+    return true;
+  
+  forall_operands(it, src)
+    if(has_predicate(*it)) return true;
+
+  return false;
+}
+
+/*******************************************************************\
+
+Function: custom_bitvector_domaint::has_dereference
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: 
+
+\*******************************************************************/
+
+bool custom_bitvector_domaint::has_dereference(const exprt &src)
+{
+  if(src.id()==ID_dereference)
+    return true;
+  
+  forall_operands(it, src)
+    if(has_dereference(*it)) return true;
+
+  return false;
+}
+
+/*******************************************************************\
+
 Function: custom_bitvector_domaint::eval
 
   Inputs:
@@ -668,14 +966,14 @@ Function: custom_bitvector_domaint::eval
 
 exprt custom_bitvector_domaint::eval(
   const exprt &src,
-  custom_bitvector_analysist &custom_bitvector_analysis) const
+  custom_bitvector_analysist &cba) const
 {
   if(src.id()=="get_must" || src.id()=="get_may")
   {
     if(src.operands().size()==2)
     {
       unsigned bit_nr=
-        custom_bitvector_analysis.get_bit_nr(src.op1());
+        cba.get_bit_nr(src.op1());
 
       exprt pointer=src.op0();
       
@@ -722,13 +1020,113 @@ exprt custom_bitvector_domaint::eval(
     else
       return src;
   }
+  else if(src.id()==ID_predicate)
+  {
+    if(src.operands().size()>=1)
+    {
+      irep_idt p=get_string(src.op0());
+      if(p=="same_file_rw") // "same_file_rw", filename, mode
+      {
+        irep_idt filename=get_string(src.op1());
+        irep_idt mode=get_string(src.op2());
+        
+        bool read=false, write=false;
+        
+        for(std::string::const_iterator m_it=
+            id2string(mode).begin(); m_it!=id2string(mode).end(); m_it++)
+          switch(*m_it)
+          {
+          case 'a':
+          case 'x':
+          case 'w': write=true; break;
+          case 'r': read=true; break;
+          case '+': read=write=true; break;
+          default:;
+          }
+        
+        for(bitst::const_iterator b_it=may_bits.begin();
+            b_it!=may_bits.end(); b_it++)
+        {
+          for(unsigned bit_nr=0; bit_nr<cba.bits.size(); bit_nr++)
+          {
+            if(get_bit(b_it->second, bit_nr))
+            {
+              irep_idt flag=cba.bits[bit_nr];
+              if(read && flag=="open_W_"+id2string(filename))
+                return false_exprt();
+              else if(write && flag=="open_R_"+id2string(filename))
+                return false_exprt();
+            }
+          }
+        }
+        
+        return true_exprt();
+      }
+      else if(p=="freopen_same_file_rw") // "freopen_same_file_rw", f
+      {
+        custom_bitvector_domaint::vectorst v=
+          get_rhs(dereference_exprt(src.op1()));
+
+        unsigned bit_nr=cba.bits("freopen_same_file_rw");
+
+        if(get_bit(v.may_bits, bit_nr))
+          return false_exprt();
+        else
+          return true_exprt();
+      }
+      else
+        return src;
+    }
+    else
+      return src;
+  }
   else
   {
     exprt tmp=src;
     Forall_operands(it, tmp)
-      *it=eval(*it, custom_bitvector_analysis);
+      *it=eval(*it, cba);
   
     return tmp;
+  }
+}
+
+/*******************************************************************\
+
+Function: custom_bitvector_domaint::check_dereference
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: 
+
+\*******************************************************************/
+
+bool custom_bitvector_domaint::check_dereference(
+  const exprt &src,
+  custom_bitvector_analysist &cba) const
+{
+  if(!has_dereference(src))
+    return true;
+
+  if(src.id()==ID_dereference)
+  {
+    custom_bitvector_domaint::vectorst v=get_rhs(src);
+
+    unsigned bit_nr=cba.bits("invalidated");
+
+    if(get_bit(v.may_bits, bit_nr))
+      return false;
+    else
+      return true;
+  }
+  else 
+  {
+    forall_operands(it, src)
+      if(!check_dereference(*it, cba))
+        return false;
+    
+    return true;
   }
 }
 
@@ -767,12 +1165,14 @@ void custom_bitvector_analysist::check(
   std::ostream &out)
 {
   unsigned pass=0, fail=0, unknown=0;
-
+  
   forall_goto_functions(f_it, goto_functions)
   {
-    if(!f_it->second.body.has_assertion()) continue;
+    //if(!f_it->second.body.has_assertion()) continue;
     
-    if(f_it->first=="__actual_thread_spawn")
+    if(f_it->first=="__actual_thread_spawn" ||
+       // f_it->first=="_start" ||
+       has_prefix(id2string(f_it->first), "__CPROVER_"))
       continue;
 
     if(!use_xml)
@@ -780,44 +1180,99 @@ void custom_bitvector_analysist::check(
 
     forall_goto_program_instructions(i_it, f_it->second.body)
     {
-      if(!i_it->is_assert()) continue;
-      if(!custom_bitvector_domaint::has_get_must_or_may(i_it->guard))
+      exprt result;
+      irep_idt description;
+
+      if(i_it->is_assign() ||
+         i_it->is_other())
+      {
+        if(!custom_bitvector_domaint::has_dereference(i_it->code))
+          continue;
+
+        bool tmp=operator[](i_it).check_dereference(i_it->code, *this);
+        
+        if(tmp)
+          result=true_exprt();
+        else
+          result=false_exprt();
+          
+        description="pointer invalidated";
+      }
+      else if(i_it->is_function_call())
+      {
+        // we'll even complain about just passing an invalidated pointer
+        code_function_callt c=to_code_function_call(i_it->code);
+        
+        if(c.function().id()==ID_symbol &&
+           has_prefix(id2string(to_symbol_expr(c.function()).get_identifier()), "__CPROVER_"))
+          continue;
+
+        exprt tmp1;
+        tmp1.operands()=c.arguments();
+        bool found=false;
+        Forall_operands(it, tmp1)
+          if(it->type().id()==ID_pointer)
+          {
+            *it=dereference_exprt(*it);
+            found=true;
+          }
+
+        if(!found) continue;
+
+        bool tmp2=operator[](i_it).check_dereference(tmp1, *this);
+      
+        if(tmp2)
+          result=true_exprt();
+        else
+          result=false_exprt();
+        
+        description="pointer invalidated";        
+      }
+      else if(i_it->is_assert())
+      {
+        if(!custom_bitvector_domaint::has_get_must_or_may(i_it->guard) &&
+           !custom_bitvector_domaint::has_predicate(i_it->guard))
+          continue;
+
+        if(operator[](i_it).is_bottom) continue;
+
+        exprt tmp=eval(i_it->guard, i_it);
+        result=simplify_expr(tmp, ns);
+        
+        description=i_it->source_location.get_comment();
+      }
+      else
         continue;
-
-      if(operator[](i_it).is_bottom) continue;
-
-      exprt result=eval(i_it->guard, i_it);
-      exprt result2=simplify_expr(result, ns);
 
       if(use_xml)
       {
         out << "<result status=\"";
-        if(result2.is_true())
+        if(result.is_true())
           out << "SUCCESS";
-        else if(result2.is_false())
+        else if(result.is_false())
           out << "FAILURE";
         else 
           out << "UNKNOWN";
         out << "\">\n";
         out << xml(i_it->source_location);
         out << "<description>"
-            << i_it->source_location.get_comment()
+            << description
             << "</description>\n";
         out << "</result>\n\n";
       }
       else
       {
         out << i_it->source_location;
-        if(!i_it->source_location.get_comment().empty())
-          out << ", " << i_it->source_location.get_comment();
+        if(!description.empty())
+          out << ", " << description;
         out << ": ";
-        out << from_expr(ns, f_it->first, result2);
+        out << from_expr(ns, f_it->first, result);
         out << '\n';
       }
 
-      if(result2.is_true())
+      if(result.is_true())
         pass++;
-      else if(result2.is_false())
+      else if(result.is_false())
         fail++;
       else
         unknown++;

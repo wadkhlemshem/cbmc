@@ -22,6 +22,8 @@ Author: Daniel Kroening, kroening@kroening.com
   "(dump-c)(dump-cpp)(use-system-headers)(dot)(xml)" \
   "(bounds-check)(no-bounds-check)" \
   "(pointer-check)(memory-leak-check)(no-pointer-check)" \
+  "(static-pointer-check)" \
+  "(which-threads)" \
   "(remove-pointers)" \
   "(no-simplify)" \
   "(assert-to-assume)" \
@@ -40,11 +42,12 @@ Author: Daniel Kroening, kroening@kroening.com
   "(stack-depth):(nondet-static)" \
   "(function-enter):(function-exit):(branch):" \
   "(signed-overflow-check)(unsigned-overflow-check)(float-overflow-check)" \
-  "(show-goto-functions)(show-value-sets)" \
-  "(show-local-may-alias)(show-global-may-alias)" \
-  "(show-local-bitvector-analysis)(show-custom-bitvector-analysis)" \
-  "(show-escape-analysis)(escape-analysis)" \
-  "(custom-bitvector-analysis)" \
+  "(show-goto-functions)(show-value-sets)(show-local-may-alias)" \
+  "(show-sharing)(show-lock-sets)(show-deadlocks)" \
+  "(create-thread-function):(create-thread-arg-no):" \
+  "(lock-function):(unlock-function):" \
+  "(escape-analysis)(show-escape-analysis)" \
+  "(custom-bitvector-analysis)(show-custom-bitvector-analysis)" \
   "(show-struct-alignment)(interval-analysis)(show-intervals)" \
   "(show-uninitialized)(show-locations)" \
   "(full-slice)(reachability-slice)" \

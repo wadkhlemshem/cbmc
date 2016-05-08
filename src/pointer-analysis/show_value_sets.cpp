@@ -42,6 +42,7 @@ void show_value_sets(
     
   case ui_message_handlert::PLAIN:
     value_set_analysis.output(goto_functions, std::cout);
+    value_set_analysis.statistics(std::cout);
     break;
       
   default:;

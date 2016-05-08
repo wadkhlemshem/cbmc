@@ -106,8 +106,10 @@ void constant_propagator_domaint::transform(
   else if(from->is_goto())
   {
     exprt g; 
-    if(from->get_target()==to) g = simplify_expr(from->guard,ns);
-    else g = simplify_expr(not_exprt(from->guard),ns);
+    if(from->get_target()==to)
+      g = simplify_expr(from->guard, ns);
+    else
+      g = simplify_expr(not_exprt(from->guard), ns);
 
     two_way_propagate_rec(g, ns);
   }
@@ -130,7 +132,8 @@ void constant_propagator_domaint::transform(
          identifier=="__CPROVER_get_may" ||
          identifier=="__CPROVER_cleanup" ||
          identifier=="__CPROVER_clear_may" ||
-         identifier=="__CPROVER_clear_must")
+         identifier=="__CPROVER_clear_must" ||
+         identifier=="__CPROVER_event")
       {
       }
       else
@@ -139,7 +142,6 @@ void constant_propagator_domaint::transform(
     else
       values.set_to_top();
   }
-
 #ifdef DEBUG
   std::cout << "after:\n";
   output(std::cout,ai,ns);
@@ -283,6 +285,9 @@ bool constant_propagator_domaint::valuest::is_constant_address_of(const exprt &e
   
   if(expr.id()==ID_dereference)
     return is_constant(to_dereference_expr(expr).pointer());
+
+  if(expr.id()==ID_string_constant)
+    return true;
   
   return true;
 }
@@ -574,6 +579,11 @@ void constant_propagator_ait::replace(
         s_it->second.values.replace_const(*o_it);
         *o_it = simplify_expr(*o_it, ns);
       }
+    }
+    else if(it->is_other())
+    {
+      if(it->code.get_statement()==ID_expression)
+        s_it->second.values.replace_const(it->code);
     }
   }
 }

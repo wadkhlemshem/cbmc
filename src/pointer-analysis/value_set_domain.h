@@ -24,6 +24,11 @@ public:
   {
     return value_set.make_union(other.value_set);
   }
+  
+  bool merge_shared(
+    const namespacet &ns,
+    const value_set_domaint &other,
+    locationt to);
 
   virtual void output(
     const namespacet &ns,
@@ -52,6 +57,11 @@ public:
   {
     value_set.get_reference_set(expr, dest, ns);
   }
+  
+protected:
+  bool is_shared(
+    const irep_idt &identifer,
+    const namespacet &ns);
   
 };
 
