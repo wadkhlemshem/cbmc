@@ -72,6 +72,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "call_sequences.h"
 #include "accelerate/accelerate.h"
 #include "count_eloc.h"
+#include "uncaught_exceptions.h"
 
 /*******************************************************************\
 
@@ -316,6 +317,13 @@ int goto_instrument_parseoptionst::doit()
       return 0;
     }
 
+    if(cmdline.isset("show-uncaught-exceptions"))
+    {
+      show_uncaught_exceptions(get_ui(), symbol_table, 
+			       goto_functions, std::cout);
+      return 0;
+    }
+	
     if(cmdline.isset("interpreter"))
     {
       status() << "Starting interpreter" << eom;

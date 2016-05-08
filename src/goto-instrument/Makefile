@@ -16,6 +16,7 @@ SRC = goto_instrument_parseoptions.cpp rw_set.cpp \
       accelerate/disjunctive_polynomial_acceleration.cpp \
       accelerate/cone_of_influence.cpp accelerate/overflow_instrumenter.cpp\
       accelerate/path.cpp accelerate/acceleration_utils.cpp \
+      uncaught_exceptions.cpp \
       count_eloc.cpp reachability_slicer.cpp goto_program2code.cpp \
       wmm/abstract_event.cpp wmm/fence.cpp wmm/shared_buffers.cpp \
       wmm/cycle_collection.cpp wmm/goto2graph.cpp wmm/weak_memory.cpp \

@@ -6,6 +6,8 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+#include <iostream>
+
 #include "cpp_exception_id.h"
 
 /*******************************************************************\
@@ -62,6 +64,10 @@ void cpp_exception_list_rec(
       cpp_exception_list_rec(type, ns, suffix, dest);
     }
   }
+  else if(src.id()==ID_array)
+  {
+    cpp_exception_list_rec(src.subtype(), ns, "_array"+suffix, dest);
+  }
   else
   {
     // grab C/C++ type
@@ -72,7 +78,7 @@ void cpp_exception_list_rec(
       dest.push_back(id2string(c_type)+suffix);
       return;
     }
-  
+    assert(false);
   }
 }
 

@@ -614,7 +614,7 @@ void cpp_typecheckt::convert_class_template_specialization(
     // currently we are more restrictive
     // than the standard
     err_location(cpp_name.source_location());
-    str << "bad template-class-sepcialization name";                                                
+    str << "bad template-class-specialization name";                                                
     throw 0;
   }
 

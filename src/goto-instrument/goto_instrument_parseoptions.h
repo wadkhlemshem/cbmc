@@ -44,6 +44,7 @@ Author: Daniel Kroening, kroening@kroening.com
   "(show-local-bitvector-analysis)" \
   "(show-struct-alignment)(interval-analysis)(show-intervals)" \
   "(show-uninitialized)(show-locations)" \
+  "(show-uncaught-exceptions)" \
   "(full-slice)(reachability-slice)" \
   "(inline)" \
   "(show-claims)(show-properties)" \
