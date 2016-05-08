@@ -127,3 +127,46 @@ void cpp_token_buffert::Insert(const cpp_tokent &token)
   token_vector.insert(token_vector.begin()+current_pos,
                       --tokens.end());
 }
+
+/*******************************************************************\
+
+Function: cpp_token_buffert::Replace
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void cpp_token_buffert::Replace(const cpp_tokent &token)
+{
+  assert(current_pos<=token_vector.size());
+
+  if(token_vector.size()==current_pos) read_token();
+
+  *token_vector[current_pos]=token;
+}
+
+/*******************************************************************\
+
+Function: cpp_token_buffert::Replace
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void cpp_token_buffert::Insert(const cpp_tokent &token)
+{
+  assert(current_pos<=token_vector.size());
+
+  tokens.push_back(token);
+
+  token_vector.insert(token_vector.begin()+current_pos,
+                      --tokens.end());
+}

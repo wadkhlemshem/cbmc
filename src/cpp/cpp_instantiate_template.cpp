@@ -11,6 +11,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include "cpp_typecheck.h"
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/arith_tools.h>
 #include <util/base_exceptions.h>
 #include <util/simplify_expr.h>
@@ -220,6 +226,10 @@ const symbolt &cpp_typecheckt::instantiate_template(
   const cpp_template_args_tct &full_template_args,
   const typet &specialization)
 {
+#ifdef DEBUG
+  std::cout << "instantiate_template: " << template_symbol.name << std::endl;
+#endif
+  
   if(instantiation_stack.size()==MAX_DEPTH)
   {
     error().source_location=source_location;
@@ -233,10 +243,10 @@ const symbolt &cpp_typecheckt::instantiate_template(
   instantiation_stack.back().identifier=template_symbol.name;
   instantiation_stack.back().full_template_args=full_template_args;
 
-  #if 0
+#ifdef DEBUG
   std::cout << "L: " << source_location << '\n';
   std::cout << "I: " << template_symbol.name << '\n';
-  #endif
+#endif
 
   cpp_save_scopet cpp_saved_scope(cpp_scopes);
   cpp_saved_template_mapt saved_map(template_map);
@@ -247,7 +257,7 @@ const symbolt &cpp_typecheckt::instantiate_template(
   assert(!specialization_template_args.has_unassigned());
   assert(!full_template_args.has_unassigned());
 
-  #if 0
+#ifdef DEBUG
   std::cout << "A: <";
   forall_expr(it, specialization_template_args.arguments())
   {
@@ -258,8 +268,8 @@ const symbolt &cpp_typecheckt::instantiate_template(
     else
       std::cout << to_string(*it);
   }
-  std::cout << ">\n";
-  #endif
+  std::cout << ">\n\n";
+#endif
 
   // do we have arguments?
   if(full_template_args.arguments().empty())
@@ -314,6 +324,10 @@ const symbolt &cpp_typecheckt::instantiate_template(
   bool is_template_method=
     cpp_scopes.current_scope().get_parent().is_class() &&
     new_decl.type().id()!=ID_struct;
+  
+#if 0
+  std::cout << "is_template_method: " << is_template_method << std::endl;
+#endif
 
   irep_idt class_name;
 
@@ -377,8 +391,8 @@ const symbolt &cpp_typecheckt::instantiate_template(
     instantiated_with.get_sub().push_back(specialization_template_args);
   }
 
-  #if 0
-  std::cout << "MAP:\n";
+  #ifdef DEBUG
+  std::cout << "CLASS MAP:" << std::endl;
   template_map.print(std::cout);
   #endif
 
@@ -415,6 +429,14 @@ const symbolt &cpp_typecheckt::instantiate_template(
       static_cast<const exprt &>(
         template_symbol.value.find("template_methods"));
 
+#if 0
+    std::cout << "template_symbol: " << template_symbol << std::endl;
+#endif
+    
+#if 0
+    std::cout << "template_methods: " << template_methods.pretty() << std::endl;
+#endif
+  
     for(unsigned i=0; i<template_methods.operands().size(); i++)
     {
       cpp_saved_scope.restore();
@@ -436,6 +458,10 @@ const symbolt &cpp_typecheckt::instantiate_template(
 
       // mapping from template arguments to values/types
       template_map.build(method_type, specialization_template_args);
+#ifdef DEBUG
+      std::cout << "METHOD MAP:" << std::endl;
+      template_map.print(std::cout);
+#endif
 
       method_decl.remove(ID_template_type);
       method_decl.remove(ID_is_template);
@@ -443,8 +469,23 @@ const symbolt &cpp_typecheckt::instantiate_template(
       convert(method_decl);
     }
 
-    const symbolt &new_symb=
-      lookup(new_decl.type().get(ID_identifier));
+    const irep_idt& new_symb_id = new_decl.type().get(ID_identifier);
+    symbolt &new_symb = symbol_table.lookup(new_symb_id);
+
+    //add template arguments to type in order to retrieve template map
+    //  when typechecking function body
+    new_symb.type.set(ID_C_template, template_type);
+    new_symb.type.set(ID_C_template_arguments, specialization_template_args);
+
+#ifdef DEBUG
+    std::cout << "instance symbol: " << new_symb.name << std::endl << std::endl;
+    std::cout << "template type: " << template_type << std::endl << std::endl;
+#endif
+#ifdef DEBUG
+    std::cout << "MAP at end:" << std::endl;
+    template_map.print(std::cout);
+    std::cout << "scope: " << cpp_scopes.current_scope().prefix << std::endl;
+#endif
 
     return new_symb;
   }

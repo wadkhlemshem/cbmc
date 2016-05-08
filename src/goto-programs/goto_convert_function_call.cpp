@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+// #define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 /// \file
 /// Program Transformation
 
@@ -25,6 +31,10 @@ void goto_convertt::convert_function_call(
   const code_function_callt &function_call,
   goto_programt &dest)
 {
+#ifdef DEBUG
+  std::cout << "CONVERT FUNCTION CALL: " << function_call.pretty() << std::endl;
+#endif
+  
   do_function_call(
     function_call.lhs(),
     function_call.function(),
@@ -58,7 +68,15 @@ void goto_convertt::do_function_call(
   }
 
   Forall_expr(it, new_arguments)
+  {
+#ifdef DEBUG
+  std::cout << "ARGUMENT: " << it->pretty() << std::endl;
+#endif
     clean_expr(*it, dest);
+#ifdef DEBUG
+  std::cout << "CLEANED: " << it->pretty() << std::endl;
+#endif
+  }
 
   // split on the function
 

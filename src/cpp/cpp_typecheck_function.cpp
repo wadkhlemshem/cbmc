@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 /// \file
 /// C++ Language Type Checking
 
@@ -23,6 +29,10 @@ void cpp_typecheckt::convert_parameter(
 {
   irep_idt base_name=id2string(parameter.get_base_name());
 
+#ifdef DEBUG
+  std::cout << "parameter: " << identifier << std::endl;
+#endif 
+  
   if(base_name.empty())
   {
     base_name="#anon_arg"+std::to_string(anon_counter++);
@@ -49,6 +59,9 @@ void cpp_typecheckt::convert_parameter(
 
   symbolt *new_symbol;
 
+#ifdef DEBUG
+  std::cout << "new_symbol: " << symbol.name << std::endl;
+#endif 
   if(symbol_table.move(symbol, new_symbol))
   {
     error().source_location=symbol.location;
@@ -77,6 +90,10 @@ void cpp_typecheckt::convert_parameters(
 
 void cpp_typecheckt::convert_function(symbolt &symbol)
 {
+#ifdef DEBUG
+  std::cout << "convert_function: " << symbol.name << std::endl;
+#endif
+  
   code_typet &function_type=
     to_code_type(template_subtype(symbol.type));
 

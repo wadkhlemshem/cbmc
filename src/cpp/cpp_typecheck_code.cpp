@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 /// \file
 /// C++ Language Type Checking
 
@@ -21,6 +27,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 void cpp_typecheckt::typecheck_code(codet &code)
 {
+#if 0
+  std::cout << "typecheck_code: "
+	    << code.pretty() 
+	    << std::endl << std::endl;
+#endif
+  
   const irep_idt &statement=code.get_statement();
 
   if(statement==ID_try_catch)
@@ -365,7 +377,14 @@ void cpp_typecheckt::typecheck_decl(codet &code)
 
   typet &type=declaration.type();
 
-  bool is_typedef=declaration.is_typedef();
+#if 0
+  std::cout << "typecheck_decl: "
+	    << code.op0().pretty() << std::endl
+	    << "type: " << type.pretty() 
+	    << std::endl << std::endl;
+#endif
+  
+  bool is_typedef=convert_typedef(type);
 
   typecheck_type(type);
   assert(type.is_not_nil());
@@ -438,6 +457,12 @@ void cpp_typecheckt::typecheck_decl(codet &code)
         new_code.move_to_operands(constructor_call);
     }
   }
+
+#if 0
+  std::cout << "decl: "
+	    << new_code.pretty() 
+	    << std::endl << std::endl;
+#endif
 
   code.swap(new_code);
 }

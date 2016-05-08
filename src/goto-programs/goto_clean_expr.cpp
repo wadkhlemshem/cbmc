@@ -495,9 +495,11 @@ void goto_convertt::clean_expr_address_of(
     // do again
     clean_expr_address_of(expr, dest);
   }
-  else
-    Forall_operands(it, expr)
-      clean_expr_address_of(*it, dest);
+  else //do everything else
+//    Forall_operands(it, expr) 
+//      clean_expr_address_of(*it, dest); //wrong
+//      clean_expr(*it, dest); //better, but still wrong
+    clean_expr(expr, dest); // expr is already the operand of address_of!
 }
 
 void goto_convertt::remove_gcc_conditional_expression(

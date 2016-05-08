@@ -13,6 +13,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include "cpp_typecheck.h"
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 std::ostream &operator << (std::ostream &out, cpp_scopet::lookup_kindt kind)
 {
   switch(kind)
@@ -31,6 +37,13 @@ void cpp_scopet::lookup(
   lookup_kindt kind,
   id_sett &id_set)
 {
+#ifdef DEBUG
+  std::cout << "lookup base name: " << base_name << std::endl;
+  if(base_name == "T") 
+    std::cout << "in scope: " << *this << std::endl;
+#endif
+
+  
   cpp_id_mapt::iterator
     lower_it=sub.lower_bound(base_name);
 
@@ -143,7 +156,8 @@ void cpp_scopet::lookup(
   }
 
   if(!id_set.empty() &&
-     id_class!=id_classt::TEMPLATE) return; // done, upwards scopes are hidden
+     id_class!=id_classt::TEMPLATE)
+    return; // done, upwards scopes are hidden
 
   // secondary scopes
   for(scope_listt::iterator

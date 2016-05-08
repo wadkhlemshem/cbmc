@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \********************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 /// \file
 /// C++ Language Type Checking
 
@@ -13,16 +19,40 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include "cpp_declarator_converter.h"
 
+bool cpp_typecheckt::convert_typedef(typet &type)
+{
+  if(type.id()==ID_merged_type &&
+     type.subtypes().size()>=2 &&
+     type.subtypes()[0].id()==ID_typedef)
+  {
+    type.subtypes().erase(type.subtypes().begin());
+    return true;
+  }
+
+  return false;
+}
+
 void cpp_typecheckt::convert(cpp_declarationt &declaration)
 {
-  // see if the declaration is empty
+#ifdef DEBUG
+  std::cout << "convert_declaration: "
+	    << declaration.pretty() << std::endl << std::endl;
+#endif
+
+    // see if the declaration is empty
   if(declaration.is_empty())
     return;
 
+  //The function bodies must not be checked here,
+  //  but only at the very end when all declarations have been
+  //  processed (or considering forward declarations at least)
+  //REMOVE THE FOLLOWING
+#if 0
   // Record the function bodies so we can check them later.
   // This function is used recursively, so we save them.
   method_bodiest old_method_bodies;
   old_method_bodies.swap(method_bodies);
+#endif
 
   // templates are done in a dedicated function
   if(declaration.is_template())
@@ -30,10 +60,13 @@ void cpp_typecheckt::convert(cpp_declarationt &declaration)
   else
     convert_non_template_declaration(declaration);
 
+  //REMOVE THE FOLLOWING
+#if 0
   method_bodiest b;
   b.swap(method_bodies);
   typecheck_method_bodies(b);
   method_bodies.swap(old_method_bodies);
+#endif
 }
 
 void cpp_typecheckt::convert_anonymous_union(

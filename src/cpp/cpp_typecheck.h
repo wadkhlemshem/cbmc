@@ -322,6 +322,8 @@ protected:
   struct method_bodyt
   {
   public:
+    //TODO: cleanup
+#if 1
     method_bodyt(
       symbolt *_method_symbol,
       const template_mapt &_template_map,
@@ -331,23 +333,26 @@ protected:
       instantiation_stack(_instantiation_stack)
     {
     }
+#endif
 
     symbolt *method_symbol;
     template_mapt template_map;
     instantiation_stackt instantiation_stack;
   };
-
+  
+#if 1
   typedef std::list<method_bodyt> method_bodiest;
+  std::set<irep_idt> methods_seen;
+#else
+  typedef std::map<irep_idt, method_bodyt> method_bodiest;
+#endif
   method_bodiest method_bodies;
-
-  void add_method_body(symbolt *_method_symbol)
-  {
-    method_bodies.push_back(method_bodyt(
-      _method_symbol, template_map, instantiation_stack));
-  }
+  
+  void add_method_body(symbolt *_method_symbol);
 
   // types
 
+  bool convert_typedef(typet &type);
   void typecheck_type(typet &type);
 
   cpp_scopet &typecheck_template_parameters(

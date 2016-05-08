@@ -1278,6 +1278,10 @@ bool Parser::rTempArgDeclaration(cpp_declarationt &declaration)
       return false;
 
     #ifdef DEBUG
+    std::cout << std::string(__indent, ' ') << "Parser::rTempArgDeclaration 4\n";
+    #endif
+
+    #ifdef DEBUG
     std::cout << std::string(__indent, ' ')
               << "Parser::rTempArgDeclaration 4\n";
     #endif
@@ -1764,16 +1768,21 @@ bool Parser::rOtherDeclaration(
     #endif
 
     // FRIEND name ';'
-    // if(Ptree::Length(member_spec)==1 && member_spec->Car()->What()==FRIEND)
+#if 0
+    if(Ptree::Length(member_spec)==1 && member_spec->Car()->What()==FRIEND)
+#endif
     {
       cpp_tokent tk;
       lex.get_token(tk);
-      // statement=new PtreeDeclaration(head, Ptree::List(type_name,
-      //                                                   new Leaf(tk)));
+#if 0
+      statement=new PtreeDeclaration(head, Ptree::List(type_name,
+#endif
       return true;
     }
-    // else
-    //  return false;
+#if 0
+    else
+      return false;
+#endif
   }
   else
   {
@@ -1862,10 +1871,8 @@ bool Parser::isConstructorDecl()
   }
 }
 
-/*
-  ptr.to.member
-  : {'::'} (identifier {'<' any* '>'} '::')+ '*'
-*/
+///  ptr.to.member
+///  : {'::'} (identifier {'<' any* '>'} '::')+ '*'
 bool Parser::isPtrToMember(int i)
 {
   int t0=lex.LookAhead(i++);
@@ -1949,10 +1956,8 @@ bool Parser::optMemberSpec(cpp_member_spect &member_spec)
   return true;
 }
 
-/*
-  storage.spec : STATIC | EXTERN | AUTO | REGISTER | MUTABLE | ASM |
-                 THREAD_LOCAL
-*/
+///  storage.spec : STATIC | EXTERN | AUTO | REGISTER | MUTABLE | ASM |
+///                 THREAD_LOCAL
 bool Parser::optStorageSpec(cpp_storage_spect &storage_spec)
 {
   int t=lex.LookAhead(0);
@@ -2101,6 +2106,59 @@ bool Parser::optAlignas(typet &cv)
   return true;
 }
 
+/*
+  dcl.align
+  : ALIGNAS unary.expr
+  | ALIGNAS '(' type.name ')'
+*/
+bool Parser::optAlignas(typet &cv)
+{
+  if(lex.LookAhead(0)!=TOK_ALIGNAS)
+    return true;
+
+  cpp_tokent tk;
+  lex.get_token(tk);
+
+  if(lex.LookAhead(0)!='(')
+    return false;
+
+  typet tname;
+  cpp_tokent op, cp;
+
+  cpp_token_buffert::post pos=lex.Save();
+  lex.get_token(op);
+
+  if(rTypeName(tname))
+    if(lex.get_token(cp)==')')
+    {
+      // TODO
+      return true;
+    }
+
+  lex.Restore(pos);
+
+  exprt unary;
+
+  if(!rUnaryExpr(unary))
+    return false;
+
+  // TODO
+
+  return true;
+}
+
+/*******************************************************************\
+
+Function:
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
 bool Parser::rAttribute()
 {
   cpp_tokent tk;
@@ -2156,6 +2214,50 @@ bool Parser::optAttribute(cpp_declarationt &declaration)
 
   return true;
 }
+
+bool Parser::optAttribute(cpp_declarationt &declaration)
+{
+  if(lex.LookAhead(0)!='[' ||
+     lex.LookAhead(1)!='[')
+    return true;
+
+  lex.get_token();
+  lex.get_token();
+
+  for(;;)
+  {
+    cpp_tokent tk;
+    lex.get_token(tk);
+
+    switch(tk.kind)
+    {
+    case ']':
+      lex.get_token();
+      return true;
+
+    case TOK_NORETURN:
+      // TODO
+      break;
+
+    default:
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*******************************************************************\
+
+Function:
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
 
 /*
 
@@ -2554,7 +2656,9 @@ bool Parser::optThrowDecl(irept &throw_decl)
     if(lex.get_token(tk)!=')')
       return false;
 
-    // p=Ptree::Snoc(p, new Leaf(tk));
+#if 0
+    p=Ptree::Snoc(p, new Leaf(tk));
+#endif
   }
   else if(lex.LookAhead(0)==TOK_NOEXCEPT)
   {
@@ -2624,7 +2728,9 @@ bool Parser::rDeclaratorWithInit(
     bit_field_type.subtype().make_nil();
     set_location(bit_field_type, tk);
 
-    // merge_types(bit_field_type, declarator.type());
+#if 0
+    merge_types(bit_field_type, declarator.type());
+#endif
 
     return true;
   }
@@ -6573,6 +6679,9 @@ bool Parser::rPrimaryExpr(exprt &exp)
 
       if(type.is_not_nil() && lex.LookAhead(0)==TOK_SCOPE)
       {
+        #ifdef DEBUG
+        std::cout << std::string(__indent, ' ') << "Parser::rPrimaryExpr 15\n";
+        #endif
         lex.get_token(tk);
         lex.get_token(tk);
 
