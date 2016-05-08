@@ -178,7 +178,7 @@ bool ansi_c_languaget::parse(
 
   return result;
 }
-             
+
 /*******************************************************************\
 
 Function: ansi_c_languaget::typecheck

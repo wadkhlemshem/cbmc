@@ -34,6 +34,7 @@ public:
   cfgt cfg;
 
   void operator()(P &program);
+  void operator()(P &program, T start, bool start_dominates_itself=true);
 
   target_sett top;
   T entry_node;
@@ -43,6 +44,7 @@ public:
 protected:
   void initialise(P &program);
   void fixedpoint(P &program);
+  void fixedpoint(P &program, T start, bool start_dominates_itself=true);
 };
 
 /*******************************************************************\
@@ -87,6 +89,28 @@ void cfg_dominators_templatet<P, T, post_dom>::operator()(P &program)
 
 /*******************************************************************\
 
+Function: operator ()
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: Compute dominators
+
+\*******************************************************************/
+
+template <class P, class T, bool post_dom>
+void cfg_dominators_templatet<P, T, post_dom>::operator()(
+  P &program,
+  T start,
+  bool start_dominates_itself)
+{
+  initialise(program);
+  fixedpoint(program, start, start_dominates_itself);
+}
+
+/*******************************************************************\
+
 Function: cfg_dominators_templatet::initialise
 
   Inputs:
@@ -124,19 +148,43 @@ Function: cfg_dominators_templatet::fixedpoint
 template <class P, class T, bool post_dom>
 void cfg_dominators_templatet<P, T, post_dom>::fixedpoint(P &program)
 {
+  if(post_dom)
+    fixedpoint(program, --program.instructions.end());
+  else
+    fixedpoint(program, program.instructions.begin());
+}
+
+/*******************************************************************\
+
+Function: cfg_dominators_templatet::fixedpoint
+
+  Inputs:
+
+ Outputs:
+
+ Purpose: Computes the MOP for the dominator analysis
+
+\*******************************************************************/
+
+template <class P, class T, bool post_dom>
+void cfg_dominators_templatet<P, T, post_dom>::fixedpoint(
+  P &program,
+  T start,
+  bool start_dominates_itself)
+{
   std::list<T> worklist;
 
   if(program.instructions.empty())
     return;
 
-  if(post_dom)
-    entry_node = --program.instructions.end();
-  else
-    entry_node = program.instructions.begin();
-  typename cfgt::nodet &n=cfg[cfg.entry_map[entry_node]];
-  n.dominators.insert(entry_node);
+  entry_node=start;
 
-  for(typename cfgt::edgest::const_iterator 
+  typename cfgt::nodet &n=cfg[cfg.entry_map[entry_node]];
+
+  if (start_dominates_itself)
+    n.dominators.insert(entry_node);
+
+  for(typename cfgt::edgest::const_iterator
       s_it=(post_dom?n.in:n.out).begin();
       s_it!=(post_dom?n.in:n.out).end();
       ++s_it)
@@ -151,7 +199,7 @@ void cfg_dominators_templatet<P, T, post_dom>::fixedpoint(P &program)
     bool changed=false;
     typename cfgt::nodet &node=cfg[cfg.entry_map[current]];
     if(node.dominators.empty())
-      for(typename cfgt::edgest::const_iterator 
+      for(typename cfgt::edgest::const_iterator
           p_it=(post_dom?node.out:node.in).begin();
           !changed && p_it!=(post_dom?node.out:node.in).end();
           ++p_it)
@@ -163,11 +211,11 @@ void cfg_dominators_templatet<P, T, post_dom>::fixedpoint(P &program)
         }
 
     // compute intersection of predecessors
-    for(typename cfgt::edgest::const_iterator 
+    for(typename cfgt::edgest::const_iterator
           p_it=(post_dom?node.out:node.in).begin();
         p_it!=(post_dom?node.out:node.in).end();
         ++p_it)
-    {   
+    {
       const target_sett &other=cfg[p_it->first].dominators;
       if(other.empty())
         continue;
@@ -198,7 +246,7 @@ void cfg_dominators_templatet<P, T, post_dom>::fixedpoint(P &program)
 
     if(changed) // fixed point for node reached?
     {
-      for(typename cfgt::edgest::const_iterator 
+      for(typename cfgt::edgest::const_iterator
             s_it=(post_dom?node.in:node.out).begin();
           s_it!=(post_dom?node.in:node.out).end();
           ++s_it)
@@ -234,11 +282,21 @@ void cfg_dominators_templatet<P, T, post_dom>::output(std::ostream &out) const
       out << n << " post-dominated by ";
     else
       out << n << " dominated by ";
-    for(typename target_sett::const_iterator d_it=it->second.dominators.begin();
-        d_it!=it->second.dominators.end();)
+
+    int entry_num=it->second;
+    const nodet &node=cfg[entry_num];
+
+    for(typename target_sett::const_iterator d_it=node.dominators.begin();
+        d_it!=node.dominators.end();)
     {
+      bool has_location;
+      has_location=cfg.entry_map.find(*d_it)!=cfg.entry_map.end();
+      assert(has_location);
+
       out << (*d_it)->location_number;
-      if (++d_it!=it->second.dominators.end()) 
+
+      d_it++;
+      if(d_it!=node.dominators.end())
         out << ", ";
     }
     out << "\n";

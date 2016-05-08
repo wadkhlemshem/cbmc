@@ -1,0 +1,175 @@
+Reading GOTO program from `main.o'
+Pointer Analysis (0.004s)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+main /* main */
+        // 0 file main.c line 31 function main
+        unsigned int tHandle[2l];
+        // 1 file main.c line 33 function main
+        void *return_value_malloc$1;
+        // 2 file main.c line 33 function main
+        return_value_malloc$1=malloc(sizeof(unsigned long int) /*8ul*/ );
+        // 3 file main.c line 33 function main
+        m1 = (void *)return_value_malloc$1;
+        // 4 file main.c line 34 function main
+        void *return_value_malloc$2;
+        // 5 file main.c line 34 function main
+        return_value_malloc$2=malloc(sizeof(unsigned long int) /*8ul*/ );
+        // 6 file main.c line 34 function main
+        m2 = (void *)return_value_malloc$2;
+        // 7 file main.c line 36 function main
+        tHandle[(signed long int)1]=_beginthread(thr1, (unsigned int)0, NULL);
+        // 8 file main.c line 37 function main
+        tHandle[(signed long int)2]=_beginthread(thr2, (unsigned int)0, NULL);
+        // 9 file main.c line 39 function main
+        return 0;
+        // 10 file main.c line 39 function main
+        dead return_value_malloc$2;
+        // 11 file main.c line 39 function main
+        dead return_value_malloc$1;
+        // 12 file main.c line 39 function main
+        dead tHandle;
+        // 13 file main.c line 39 function main
+        GOTO 1
+        // 14 file main.c line 40 function main
+        dead return_value_malloc$2;
+        // 15 file main.c line 40 function main
+        dead return_value_malloc$1;
+        // 16 file main.c line 40 function main
+        dead tHandle;
+        // 17 file main.c line 40 function main
+     1: END_FUNCTION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+_start /* _start */
+        // 18 no location
+        __CPROVER_initialize();
+        // 19 file main.c line 29
+        main();
+        // 20 no location
+        END_FUNCTION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+thr1 /* thr1 */
+        // 21 file main.c line 11 function thr1
+        WaitForSingleObject(m1, (unsigned long int)0);
+        // 22 file main.c line 12 function thr1
+        WaitForSingleObject(m2, (unsigned long int)0);
+        // 23 file main.c line 13 function thr1
+        x = x + 1;
+        // 24 file main.c line 14 function thr1
+        ReleaseMutex(m2);
+        // 25 file main.c line 15 function thr1
+        ReleaseMutex(m1);
+        // 26 file main.c line 16 function thr1
+        END_FUNCTION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+thr2 /* thr2 */
+        // 27 file main.c line 21 function thr2
+        WaitForSingleObject(m2, (unsigned long int)0);
+        // 28 file main.c line 22 function thr2
+        WaitForSingleObject(m1, (unsigned long int)0);
+        // 29 file main.c line 23 function thr2
+        x = x + 1;
+        // 30 file main.c line 24 function thr2
+        ReleaseMutex(m1);
+        // 31 file main.c line 25 function thr2
+        ReleaseMutex(m2);
+        // 32 file main.c line 26 function thr2
+        END_FUNCTION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+__CPROVER_initialize /* __CPROVER_initialize */
+        // 33 no location
+        // Labels: __CPROVER_HIDE
+        SKIP
+        // 34 file <built-in-additions> line 39
+        __CPROVER_dead_object = NULL;
+        // 35 file <built-in-additions> line 38
+        __CPROVER_deallocated = NULL;
+        // 36 file <built-in-additions> line 42
+        __CPROVER_malloc_is_new_array = 0 != 0;
+        // 37 file <built-in-additions> line 40
+        __CPROVER_malloc_object = NULL;
+        // 38 file <built-in-additions> line 41
+        __CPROVER_malloc_size = 0ul;
+        // 39 file <built-in-additions> line 43
+        __CPROVER_memory_leak = NULL;
+        // 40 file <built-in-additions> line 31
+        __CPROVER_next_thread_id = (unsigned long int)0;
+        // 41 file <built-in-additions> line 87
+        __CPROVER_pipe_count = (unsigned int)0;
+        // 42 file <built-in-additions> line 65
+        __CPROVER_rounding_mode = 0;
+        // 43 file <built-in-additions> line 29
+        __CPROVER_thread_id = (unsigned long int)0;
+        // 44 file <built-in-additions> line 30
+        __CPROVER_threads_exited = ARRAY_OF(FALSE);
+        // 45 file main.c line 5
+        m1 = NULL;
+        // 46 file main.c line 5
+        m2 = NULL;
+        // 47 file main.c line 7
+        x = 0;
+        // 48 no location
+        END_FUNCTION
+May Lock Set Analysis (0s)
+Must Lock Set Analysis (0s)
+ADD LOCK at ([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 21): 
+owned: 
+acquired: return_value_malloc$1$object
+ADD LOCK at ([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 22): 
+owned: return_value_malloc$1$object
+acquired: return_value_malloc$2$object
+ADD LOCK at ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 27): 
+owned: 
+acquired: return_value_malloc$2$object
+ADD LOCK at ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 28): 
+owned: return_value_malloc$2$object
+acquired: return_value_malloc$1$object
+Construct Lock Graph (0.001s)
+0 lock return_value_malloc$1$object
+  owned at {([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 21), ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 28)}
+  acquired ([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 22)
+  -> 1
+1 lock return_value_malloc$2$object
+  owned at {([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 22), ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 27)}
+  acquired ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 28)
+  -> 0
+node path: 0
+edge path:
+edge? 0
+follow edge: 0
+node path: 0 1
+edge path: 0
+edge? 1
+follow edge: 1
+node path: 0 1 0
+edge path: 0 1
+cycle found!
+edge? 0
+no edge to follow
+node path: 0 1
+edge path: 0
+edge? 1
+no edge to follow
+node path: 0
+edge path:
+edge? 0
+no edge to follow
+Check Cycles (0.001s)
+* potential deadlocks    1
+  0 - ([(_start, (19, file main.c line 29), function_call), (main, (7, file main.c line 36 function main), thread_create)], 22) -> 1 - ([(_start, (19, file main.c line 29), function_call), (main, (8, file main.c line 37 function main), thread_create)], 28) -> 0
+*** Statistics: 
+  Number of threads:                3
+  Number of threads in loop:        0
+  Number of locks:                  2
+  Number of lock operations:        4
+  Number of indeterminate lock ops: 0
+  Size of largest lock set:         2
+  Number of cycles:                 1
+  Number of non-concurrency checks: 1
+  Length of longest valid cycle:    2
+EXIT=0
+SIGNAL=0

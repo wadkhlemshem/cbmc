@@ -2,14 +2,13 @@
 
 int main()
 {
-  int a, b, neg;
+  int a, b;
   
   // this should not overflow, even not for a=INT_MIN
   b=a-a;
   
-  // this should also not overflow as long as pos<0
-  if(neg<0)
-    b=neg-INT_MIN;
+  // this should also not overflow
+  b=a-INT_MIN;
   
   int x, y, z;
 

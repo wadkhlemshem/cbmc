@@ -8,10 +8,10 @@ Date: October 2012
 
 \*******************************************************************/
 
-#include "static_analysis.h"
+#include "ai.h"
 #include "is_threaded.h"
 
-class is_threaded_domaint:public domain_baset
+class is_threaded_domaint:public ai_domain_baset
 {
 public:
   bool is_threaded;
@@ -20,7 +20,8 @@ public:
   {
   }
 
-  inline bool merge(const is_threaded_domaint &other, locationt to)
+  inline bool merge(const is_threaded_domaint &other, 
+		    locationt from, locationt to)
   {
     bool old=is_threaded;
     is_threaded=is_threaded || other.is_threaded;
@@ -28,9 +29,10 @@ public:
   }
   
   void transform(
-    const namespacet &ns,
     locationt from,
-    locationt to)
+    locationt to,
+    ai_baset &ai,
+    const namespacet &ns)
   {
     if(from->is_start_thread())
       is_threaded=true;
@@ -55,9 +57,9 @@ void is_threadedt::compute(const goto_functionst &goto_functions)
   symbol_tablet symbol_table;
   const namespacet ns(symbol_table);
 
-  static_analysist<is_threaded_domaint> is_threaded_analysis(ns);
+  ait<is_threaded_domaint> is_threaded_analysis;
   
-  is_threaded_analysis(goto_functions);
+  is_threaded_analysis(goto_functions, ns);
   
   for(goto_functionst::function_mapt::const_iterator
       f_it=goto_functions.function_map.begin();

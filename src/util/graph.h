@@ -53,7 +53,7 @@ public:
   }
 };
 
-// a node type with an exta bit
+// a node type with an extra bit
 template<class E>
 class visited_nodet:public graph_nodet<E>
 {
@@ -116,6 +116,13 @@ public:
     nodes.push_back(nodet());
     return no;
   }
+
+  inline node_indext add_node(const nodet& node)
+  {
+    node_indext no=nodes.size();
+    nodes.push_back(node);
+    return no;
+  }
   
   inline void swap(graph &other)
   {
@@ -172,6 +179,10 @@ public:
   inline edget &edge(node_indext a, node_indext b)
   {
     return nodes[a].out[b];
+  }
+  inline const edget &edge(node_indext a, node_indext b) const
+  {
+    return nodes[a].out.at(b);
   }
 
   void add_undirected_edge(node_indext a, node_indext b);

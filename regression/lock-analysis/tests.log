@@ -1,0 +1,2464 @@
+Test 'CheckReachable1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-reachable --stack _start,9,function_call --loc 0"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-reachable --stack _start,9,function_call --loc 0" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'CheckReachable2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-reachable --stack _start,9,function_call --loc 7"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-reachable --stack _start,9,function_call --loc 7" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'CheckReachable3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-reachable --loc 9"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-reachable --loc 9" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'CheckReachable4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-reachable --stack _start,rmain\(\),function_call;main,rfunc1\(\),function_call;func1,rpthread_create\(.*\),thread_create;thread,rfunc2\(\),function_call --loc rx\s*=\s*3"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-reachable --stack _start,rmain\(\),function_call;main,rfunc1\(\),function_call;func1,rpthread_create\(.*\),thread_create;thread,rfunc2\(\),function_call --loc rx\s*=\s*3" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'CheckReachable5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-reachable --loc 9"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-reachable --loc 9" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'CheckStack1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-stack _start,rmain\(\),function_call;main,rfunc1\(\),function_call;func1,rpthread_create\(.*\),thread_create;thread,rfunc2\(\),function_call"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-stack _start,rmain\(\),function_call;main,rfunc1\(\),function_call;func1,rpthread_create\(.*\),thread_create;thread,rfunc2\(\),function_call" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'CheckStack2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-stack main,0,function_call;func1,30,function_call;thread,6,function_call"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-stack main,0,function_call;func1,30,function_call;thread,6,function_call" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'CheckStack3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-stack main,1,function_call;func1,30,wrong_indicator;thread,6,function_call"
+  Results:
+    ^EXIT=11$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+    true$
+Running ../chain.sh "--check-stack main,1,function_call;func1,30,wrong_indicator;thread,6,function_call" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=11\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+true\r\\?$ [OK]
+
+Test 'Cmdline1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-option x\s=\s1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    x\\s=\\s1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-option x\s=\s1" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+x\\\\s=\\\\s1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Cmdline2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-option x\s*=\s*1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    x\\s\*=\\s\*1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-option x\s*=\s*1" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+x\\\\s\\*=\\\\s\\*1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Cmdline3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-option rpthread_create.*\(.*thread1.*\)"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    rpthread_create\.\*\\(\.\*thread1\.\*\\)
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-option rpthread_create.*\(.*thread1.*\)" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+rpthread_create\\.\\*\\\\(\\.\\*thread1\\.\\*\\\\) [OK]
+^warning: ignoring [OK]
+
+Test 'Dead1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^        <location file="main.c" function="main" line="11"/>$
+    ^      </instruction>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^        <location file="main.c" function="main" line="11"/>\r\\?$ [OK]
+^      </instruction>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock10'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock11'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock12'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    2\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'Deadlock13'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock14'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock15'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock7'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    4$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    4\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'Deadlock8'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Deadlock9'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --flow-insensitive-value-set-analysis --simple-dependency-analysis-ii" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GlobalDepAnalysis1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-global"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-global" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GlobalDepAnalysis2'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-global"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 0$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'GlobalDepAnalysis3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-global"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-global" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GotoProgram1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-goto-functions"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-goto-functions" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GotoProgram2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-instructions"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-instructions" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GotoProgram3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-goto-functions --remove-returns"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-goto-functions --remove-returns" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GotoProgram4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-code r132"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-code r132" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'GotoProgram5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-code r138"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-code r138" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'HasPath1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--has-path 1:2"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--has-path 1:2" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'HasPath2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--has-path 3:5"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--has-path 3:5" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'HasPath3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--has-path 5:7"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--has-path 5:7" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'HasPath4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--has-path 5:7"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--has-path 5:7" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'InLoop1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--in-loop 1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--in-loop 1" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'InLoop2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--in-loop 4"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--in-loop 4" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'InLoop3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--in-loop 1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--in-loop 1" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Increment1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects 1$
+    ^* race-free objects      1$
+    ^* races                  0$
+    ^* potential races        0$
+    ^* potential race (lock?) 0$
+    ^* potential race (obj?)  0$
+Running ../chain.sh "--show-sharing" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects 1\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^* potential races        0\r\\?$ [OK]
+^* potential race (lock?) 0\r\\?$ [OK]
+^* potential race (obj?)  0\r\\?$ [OK]
+
+Test 'Init1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--pointer-check --static-pointer-check"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Value set check: properties 7 passed 1 failed 0 inconclusive$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--pointer-check --static-pointer-check" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Value set check: properties 7 passed 1 failed 0 inconclusive\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      2$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      2\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  2$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Locks3'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  3$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'MayLockset1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-may-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    lock.*lock.*lock
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-may-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock.*lock.*lock [OK]
+^warning: ignoring [OK]
+
+Test 'MayLockset2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-may-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    lock.*lock.*lock.*lock.*lock
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-may-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock.*lock.*lock.*lock.*lock [OK]
+^warning: ignoring [OK]
+
+Test 'MayLockset3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-may-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    lock1.*lock2
+    lock2.*lock1
+    ^warning: ignoring
+Running ../chain.sh "--show-may-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock1.*lock2 [OK]
+lock2.*lock1 [OK]
+^warning: ignoring [OK]
+
+Test 'MayLockset4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-may-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    lock1.*lock2
+    lock2.*lock1
+    ^warning: ignoring
+Running ../chain.sh "--show-may-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock1.*lock2 [OK]
+lock2.*lock1 [OK]
+^warning: ignoring [OK]
+
+Test 'MayLockset5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-may-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    lock.*lock.*lock
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-may-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock.*lock.*lock [OK]
+^warning: ignoring [OK]
+
+Test 'MayLockset6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-may-lock-sets
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-may-lock-sets main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'MustLockset1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-must-lock-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    lock.*lock.*lock
+    ^warning: ignoring
+Running ../chain.sh "--show-must-lock-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+lock.*lock.*lock [OK]
+^warning: ignoring [OK]
+
+Test 'Next1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^    <race>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-sharing --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^    <race>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Next2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-sharing --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^    <race>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-sharing --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^    <race>\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'NoRace02'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-deadlocks main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NoRace08'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NoRace09'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 16 --stack2 _start,12,function_call;main,3,thread_create --loc2 23"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 16 --stack2 _start,12,function_call;main,3,thread_create --loc2 23" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent10'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --non-concurrent --stack1 _start,14,function_call;main,2,thread_create --loc1 17 --stack2 _start,14,function_call;main,3,thread_create --loc2 24"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --non-concurrent --stack1 _start,14,function_call;main,2,thread_create --loc1 17 --stack2 _start,14,function_call;main,3,thread_create --loc2 24" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent11'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --non-concurrent --stack1 _start,14,function_call;main,2,thread_create --loc1 24 --stack2 _start,14,function_call;main,3,thread_create --loc2 17"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --non-concurrent --stack1 _start,14,function_call;main,2,thread_create --loc1 24 --stack2 _start,14,function_call;main,3,thread_create --loc2 17" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent12'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 rx\s*=\s*1 --stack2 _start,12,function_call;main,3,thread_create --loc2 ry\s*=\s*1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 rx\s*=\s*1 --stack2 _start,12,function_call;main,3,thread_create --loc2 ry\s*=\s*1" main.c >main.out 2>&1
+  Exit: 134
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent13'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 rx\s*=\s*2 --stack2 _start,12,function_call;main,3,thread_create --loc2 ry\s*=\s*1"
+  Results:
+    ^EXIT=11$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 rx\s*=\s*2 --stack2 _start,12,function_call;main,3,thread_create --loc2 ry\s*=\s*1" main.c >main.out 2>&1
+  Exit: 134
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=11\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 16 --stack2 _start,12,function_call;main,3,thread_create --loc2 23"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-lock-protected --stack1 _start,12,function_call;main,2,thread_create --loc1 16 --stack2 _start,12,function_call;main,3,thread_create --loc2 23" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,5,function_call;main,0,function_call;func1,26,function_call --loc1 24 --stack2 _start,5,function_call;main,1,function_call --loc2 22"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,5,function_call;main,0,function_call;func1,26,function_call --loc1 24 --stack2 _start,5,function_call;main,1,function_call --loc2 22" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,14,function_call;main,3,thread_create --loc1 30 --stack2 _start,14,function_call;main,5,thread_create --loc2 33"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,14,function_call;main,3,thread_create --loc1 30 --stack2 _start,14,function_call;main,5,thread_create --loc2 33" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,12,function_call --loc1 1 --stack2 _start,12,function_call;main,2,thread_create --loc2 8"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,12,function_call --loc1 1 --stack2 _start,12,function_call;main,2,thread_create --loc2 8" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,12,function_call;main,1,function_call;func1,31,function_call --loc1 29 --stack2 _start,12,function_call;main,2,thread_create --loc2 8"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,12,function_call;main,1,function_call;func1,31,function_call --loc1 29 --stack2 _start,12,function_call;main,2,thread_create --loc2 8" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent7'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-lock-protected --stack1 _start,rmain\(\),function_call;main,rpthread_create.*thread1,thread_create --loc1 rx\s*=\s*1 --stack2 _start,rmain\(\),function_call;main,rpthread_create.*thread2,thread_create --loc2 ry\s*=\s*1"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-lock-protected --stack1 _start,rmain\(\),function_call;main,rpthread_create.*thread1,thread_create --loc1 rx\s*=\s*1 --stack2 _start,rmain\(\),function_call;main,rpthread_create.*thread2,thread_create --loc2 ry\s*=\s*1" main.c >main.out 2>&1
+  Exit: 11
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [FAILED]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent8'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,21,function_call;main,5,thread_create --loc1 23 --stack2 _start,21,function_call;main,9,thread_create --loc2 29"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,21,function_call;main,5,thread_create --loc1 23 --stack2 _start,21,function_call;main,9,thread_create --loc2 29" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'NonConcurrent9'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--verbosity 10 --is-non-concurrent --stack1 _start,13,function_call;main,2,thread_create --loc1 30 --stack2 _start,13,function_call;main,4,thread_create --loc2 33"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^Result: false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--verbosity 10 --is-non-concurrent --stack1 _start,13,function_call;main,2,thread_create --loc1 30 --stack2 _start,13,function_call;main,4,thread_create --loc2 33" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^Result: false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'OnAllPaths1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--on-all-paths 3:12:17"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--on-all-paths 3:12:17" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'OnAllPaths2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--on-all-paths 3:13:18"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    false$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--on-all-paths 3:13:18" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+false\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'OnAllPaths3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--on-all-paths 6:11:17"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    true$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--on-all-paths 6:11:17" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+true\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PointerAnalysis1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --verbosity 10"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --verbosity 10" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PointerAnalysisFi1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets-fi --verbosity 10"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets-fi --verbosity 10" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PointerAnalysisFi2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets-fi --verbosity 10"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets-fi --verbosity 10" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^func1::f -> thread1$
+    ^func2::f -> thread1$
+    ^func2::g -> thread1$
+    ^func2::h -> thread3$
+    ^func3::f -> thread3$
+    ^func4::f -> thread1$
+    ^func4::f -> thread2$
+    ^func6::f -> thread1$
+    ^func6::f -> thread2$
+    ^func6::f -> thread3$
+    --
+    ^warning: ignoring
+Running ../chain.sh --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^func1::f -> thread1\r\\?$ [OK]
+^func2::f -> thread1\r\\?$ [OK]
+^func2::g -> thread1\r\\?$ [OK]
+^func2::h -> thread3\r\\?$ [OK]
+^func3::f -> thread3\r\\?$ [OK]
+^func4::f -> thread1\r\\?$ [OK]
+^func4::f -> thread2\r\\?$ [OK]
+^func6::f -> thread1\r\\?$ [OK]
+^func6::f -> thread2\r\\?$ [OK]
+^func6::f -> thread3\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--print-reachable"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--print-reachable" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^func1::f -> thread1$
+    ^func1::f -> thread2$
+    ^func2::f -> thread1$
+    ^func2::f -> thread2$
+    --
+    ^warning: ignoring
+Running ../chain.sh --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^func1::f -> thread1\r\\?$ [OK]
+^func1::f -> thread2\r\\?$ [OK]
+^func2::f -> thread1\r\\?$ [OK]
+^func2::f -> thread2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'PrintReachable7'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --print-reachable
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh --print-reachable main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      2$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      2\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race13'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race14'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      0$
+    ^* races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects 1$
+    ^* race-free objects      0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects 1\r\\?$ [OK]
+^* race-free objects      0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    * tracked shared objects 1$
+    * race-free objects      0$
+    * races                  1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+* tracked shared objects 1\r\\?$ [OK]
+* race-free objects      0\r\\?$ [OK]
+* races                  1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* race-free objects      1\r\\?$ [OK]
+^* races                  0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Race5'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* race-free objects      1$
+    ^* races                  0$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'RemoveFunctionPointers1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-goto-functions --remove-function-pointers"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-goto-functions --remove-function-pointers" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'RemoveFunctionPointers2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-goto-functions"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-goto-functions" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'RemoveFunctionPointers3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-instructions --remove-function-pointers"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-instructions --remove-function-pointers" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'RemoveFunctionPointers4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--check-instructions"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--check-instructions" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Shared1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^  Nr of Shared functions 1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^  Nr of Shared functions 1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 3$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 3\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 7$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 7\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis3'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 3$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 3\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis4'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 2$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis5'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 7$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 7\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis6'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 3$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 3\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis7'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 2$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 2\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'SimpleDepAnalysis8'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-lock-dependencies-simple"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    significant assignments: 3$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-lock-dependencies-simple" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+significant assignments: 3\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'StructBug1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: " --show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^          <identifier>main::1::ptr_struct.a</identifier>$
+    ^          <value>\&amp;lt;x, 0, signed int\&amp;gt;</value>$
+    --
+    ^warning: ignoring
+Running ../chain.sh " --show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^          <identifier>main::1::ptr_struct.a</identifier>\r\\?$ [OK]
+^          <value>\\&amp;lt;x, 0, signed int\\&amp;gt;</value>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Stub1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Stub2'
+  Level: FUTURE
+  Input: main.c
+  Output: main.out
+  Options: --show-deadlocks
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    2$
+    --
+    ^warning: ignoring
+Execution [SKIPPED]
+
+Test 'ThreadCreationLoop1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^spawn =1\*=> thr1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^spawn =1\\*=> thr1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'ThreadCreationLoop2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --which-threads
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^spawn =1\*=> thr1$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --which-threads main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^spawn =1\\*=> thr1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'ThreadId1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--add-library --show-value-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--add-library --show-value-sets" main.c >main.out 2>&1
+  Exit: 134
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [FAILED]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'ValueSet1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Win1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --create-thread-function CreateThread --create-thread-arg-no 2 --create-thread-arg-no-of-arg 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --create-thread-function CreateThread --create-thread-arg-no 2 --create-thread-arg-no-of-arg 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'Win2'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-deadlocks --create-thread-function _beginthread --create-thread-arg-no 0 --create-thread-arg-no-of-arg 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* potential deadlocks    1$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-deadlocks --create-thread-function _beginthread --create-thread-arg-no 0 --create-thread-arg-no-of-arg 2 --lock-function WaitForSingleObject --unlock-function ReleaseMutex" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* potential deadlocks    1\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'array-address1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^        <variable>$
+    ^          <identifier>main::1::s</identifier>$
+    ^          <value>\*</value>$
+    ^        </variable>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^        <variable>\r\\?$ [OK]
+^          <identifier>main::1::s</identifier>\r\\?$ [OK]
+^          <value>\\*</value>\r\\?$ [OK]
+^        </variable>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'nested-struct1'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options: "--show-value-sets --xml-ui"
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^        <variable>$
+    ^          <identifier>main::1::s1.t.next</identifier>$
+    ^          <value>&amp;lt;s2, 0, struct S&amp;gt;</value>$
+    ^        </variable>$
+    --
+    ^warning: ignoring
+Running ../chain.sh "--show-value-sets --xml-ui" main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^        <variable>\r\\?$ [OK]
+^          <identifier>main::1::s1.t.next</identifier>\r\\?$ [OK]
+^          <value>&amp;lt;s2, 0, struct S&amp;gt;</value>\r\\?$ [OK]
+^        </variable>\r\\?$ [OK]
+^warning: ignoring [OK]
+
+Test 'sysidle'
+  Level: CORE
+  Input: main.c
+  Output: main.out
+  Options:  --show-sharing
+  Results:
+    ^EXIT=0$
+    ^SIGNAL=0$
+    ^* tracked shared objects [1-9][0-9]$
+    ^* race-free objects      [1-9][0-9]$
+    ^* races                  [1-9][0-9]$
+    ^* potential races        0$
+    ^* potential race (lock?) 0$
+    ^* potential race (obj?)  0$
+    --
+    ^warning: ignoring
+Running ../chain.sh  --show-sharing main.c >main.out 2>&1
+  Exit: 0
+  Signal: 0
+  Core: 0
+Execution [OK]
+^EXIT=0\r\\?$ [OK]
+^SIGNAL=0\r\\?$ [OK]
+^* tracked shared objects [1-9][0-9]\r\\?$ [OK]
+^* race-free objects      [1-9][0-9]\r\\?$ [OK]
+^* races                  [1-9][0-9]\r\\?$ [OK]
+^* potential races        0\r\\?$ [OK]
+^* potential race (lock?) 0\r\\?$ [OK]
+^* potential race (obj?)  0\r\\?$ [OK]
+^warning: ignoring [OK]
+

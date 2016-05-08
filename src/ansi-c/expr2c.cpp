@@ -2192,7 +2192,7 @@ std::string expr2ct::convert_constant(
     else
     {
       dest=integer2string(int_value);
-      
+
       if(c_type==ID_unsigned_int)
         dest+='u';
       else if(c_type==ID_unsigned_long_int)
