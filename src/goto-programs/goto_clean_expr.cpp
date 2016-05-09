@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/simplify_expr.h>
 #include <util/expr_util.h>
 #include <util/std_expr.h>
@@ -202,6 +208,10 @@ void goto_convertt::clean_expr(
   goto_programt &dest,
   bool result_is_used)
 {
+#ifdef DEBUG
+  std::cout << "CLEAN: " << expr.pretty() << std::endl;
+#endif
+
   // this cleans:
   //   && || ?: comma (control-dependency)
   //   function calls
@@ -525,9 +535,11 @@ void goto_convertt::clean_expr_address_of(
     // do again
     clean_expr_address_of(expr, dest);
   }
-  else
-    Forall_operands(it, expr)
-      clean_expr_address_of(*it, dest);
+  else //do everything else
+//    Forall_operands(it, expr) 
+//      clean_expr_address_of(*it, dest); //wrong
+//      clean_expr(*it, dest); //better, but still wrong
+    clean_expr(expr, dest); // expr is already the operand of address_of!
 }
 
 /*******************************************************************\

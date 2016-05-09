@@ -8,6 +8,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include <ostream>
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include "template_map.h"
 
 /*******************************************************************\
@@ -23,7 +29,11 @@ Function: template_mapt::apply
 \*******************************************************************/
 
 void template_mapt::apply(typet &type) const
-{
+{  
+#ifdef DEBUG
+  std::cout << "MAP.apply_type(): " << type.pretty() << std::endl;
+#endif
+
   if(type.id()==ID_array)
   {
     apply(type.subtype());
@@ -43,6 +53,16 @@ void template_mapt::apply(typet &type) const
       typet &subtype=static_cast<typet &>(it->add(ID_type));
       apply(subtype);
     }
+
+#if 0
+    //Do body, too
+    irept::subt &body=type.add(ID_body).get_sub();
+
+    Forall_irep(it, body)
+    {
+      apply(static_cast<exprt &>(*it));
+    }
+#endif
   }
   else if(type.id()==ID_symbol)
   {
@@ -71,7 +91,7 @@ void template_mapt::apply(typet &type) const
   {
     Forall_subtypes(it, type)
       apply(*it);
-  }
+  } 
 }
 
 /*******************************************************************\
@@ -88,10 +108,20 @@ Function: template_mapt::apply
 
 void template_mapt::apply(exprt &expr) const
 {
+#ifdef DEBUG
+  std::cout << "MAP.apply_expr(): " << expr.pretty() << std::endl;
+#endif
   apply(expr.type());
 
-  if(expr.id()==ID_symbol)
+  if(expr.id()==ID_symbol
+#if 0
+     || expr.id()==ID_name
+#endif
+    )
   {
+#ifdef DEBUG
+    std::cout << "symbol: " << expr.get(ID_identifier) << std::endl;
+#endif
     expr_mapt::const_iterator m_it=
       expr_map.find(expr.get(ID_identifier));
 
@@ -101,7 +131,12 @@ void template_mapt::apply(exprt &expr) const
       return;
     }
   }
-
+#if 0
+  else if(expr.id()==ID_cpp_declarator)
+  {
+     apply(static_cast<exprt &>(expr.add(ID_value)));
+  }
+#endif
   Forall_operands(it, expr)
     apply(*it);
 }
@@ -120,6 +155,10 @@ Function: template_mapt::lookup
 
 exprt template_mapt::lookup(const irep_idt &identifier) const
 {
+#ifdef DEBUG
+  std::cout << "MAP.lookup(): " << identifier << std::endl;
+  std::cout << "MAP: " << std::endl; print(std::cout);
+#endif
   type_mapt::const_iterator t_it=
     type_map.find(identifier);
 

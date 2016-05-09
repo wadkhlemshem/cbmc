@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \********************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/i2string.h>
 #include <util/expr_util.h>
 
@@ -111,15 +117,26 @@ Function: cpp_typecheckt::convert
 
 void cpp_typecheckt::convert(cpp_declarationt &declaration)
 {
-  // see if the declaration is empty
+#ifdef DEBUG
+  std::cout << "convert_declaration: "
+	    << declaration.pretty() << std::endl << std::endl;
+#endif
+
+    // see if the declaration is empty
   if(declaration.find(ID_type).is_nil() &&
      !declaration.has_operands())
     return;
 
+  //The function bodies must not be checked here,
+  //  but only at the very end when all declarations have been
+  //  processed (or considering forward declarations at least)
+  //REMOVE THE FOLLOWING
+#if 0
   // Record the function bodies so we can check them later.
   // This function is used recursively, so we save them.
   function_bodiest old_function_bodies=function_bodies;
   function_bodies.clear();
+#endif
 
   // templates are done in a dedicated function
   if(declaration.is_template())
@@ -127,8 +144,11 @@ void cpp_typecheckt::convert(cpp_declarationt &declaration)
   else
     convert_non_template_declaration(declaration);
 
+  //REMOVE THE FOLLOWING
+#if 0
   typecheck_function_bodies();
   function_bodies=old_function_bodies;
+#endif
 }
 
 /*******************************************************************\

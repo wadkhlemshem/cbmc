@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/symbol_table.h>
 #include <util/namespace.h>
 #include <util/std_expr.h>
@@ -50,6 +56,10 @@ void add_failed_symbol(symbolt &symbol, symbol_tablet &symbol_table)
 
   if(symbol.type.id()==ID_pointer)
   {
+#if 0
+    std::cout << "add_failed_symbol: " << symbol.base_name << std::endl;
+#endif
+    
     symbolt new_symbol;
     new_symbol.is_lvalue=true;
     new_symbol.module=symbol.module;
@@ -124,6 +134,10 @@ exprt get_failed_symbol(
     return nil_exprt();
     
   const symbolt &failed_symbol=ns.lookup(failed_symbol_id);
-  
+
+#ifdef DEBUG
+  std::cout << "get_failed_symbol: " << expr.get_identifier() << std::endl;
+#endif
+    
   return symbol_exprt(failed_symbol_id, failed_symbol.type);
 }

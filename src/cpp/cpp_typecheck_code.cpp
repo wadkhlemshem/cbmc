@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/i2string.h>
 #include <util/expr_util.h>
 #include <util/source_location.h>
@@ -31,6 +37,12 @@ Function: cpp_typecheckt::typecheck_code
 
 void cpp_typecheckt::typecheck_code(codet &code)
 {
+#if 0
+  std::cout << "typecheck_code: "
+	    << code.pretty() 
+	    << std::endl << std::endl;
+#endif
+  
   const irep_idt &statement=code.get_statement();
 
   if(statement==ID_try_catch)
@@ -436,7 +448,14 @@ void cpp_typecheckt::typecheck_decl(codet &code)
     to_cpp_declaration(code.op0());
     
   typet &type=declaration.type();
-    
+
+#if 0
+  std::cout << "typecheck_decl: "
+	    << code.op0().pretty() << std::endl
+	    << "type: " << type.pretty() 
+	    << std::endl << std::endl;
+#endif
+  
   bool is_typedef=declaration.is_typedef();
 
   typecheck_type(type);
@@ -509,6 +528,12 @@ void cpp_typecheckt::typecheck_decl(codet &code)
     }
   }
 
+#if 0
+  std::cout << "decl: "
+	    << new_code.pretty() 
+	    << std::endl << std::endl;
+#endif
+
   code.swap(new_code);
 }
 
@@ -546,7 +571,6 @@ Function: cpp_typecheckt::typecheck_assign
 
 void cpp_typecheckt::typecheck_assign(codet &code)
 {
-
   if(code.operands().size()!=2)
     throw "assignment statement expected to have two operands";
 

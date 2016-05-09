@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/expr_util.h>
 #include <util/i2string.h>
 #include <util/simplify_expr.h>
@@ -95,6 +101,11 @@ Function: cpp_typecheckt::typecheck_class_template
 void cpp_typecheckt::typecheck_class_template(
   cpp_declarationt &declaration)
 {
+#ifdef DEBUG
+  std::cout << "class_template: " << declaration.pretty() 
+    << std::endl << std::endl;
+#endif
+  
   // Do template parameters. This also sets up the template scope.
   cpp_scopet &template_scope=
     typecheck_template_parameters(declaration.template_type());
@@ -230,6 +241,11 @@ void cpp_typecheckt::typecheck_class_template(
   symbol.pretty_name=
     cpp_scopes.current_scope().prefix+id2string(symbol.base_name);
 
+#ifdef DEBUG
+  std::cout << "template_decl: " << symbol
+	    << std::endl << std::endl;
+#endif
+  
   symbolt *new_symbol;
   if(symbol_table.move(symbol, new_symbol))
     throw "cpp_typecheckt::typecheck_compound_type: symbol_table.move() failed";
@@ -262,6 +278,11 @@ void cpp_typecheckt::typecheck_function_template(
 {
   assert(declaration.declarators().size()==1);
 
+#ifdef DEBUG
+  std::cout << "function_template: " << declaration.pretty() 
+    << std::endl << std::endl;
+#endif
+  
   cpp_declaratort &declarator=declaration.declarators()[0];
   const cpp_namet &cpp_name=to_cpp_name(declarator.add(ID_name));
 
@@ -361,7 +382,7 @@ Function: cpp_typecheckt::typecheck_class_template_member
 
  Outputs:
 
- Purpose: typecheck class tempalte members;
+ Purpose: typecheck class template members;
           these can be methods or static members
 
 \*******************************************************************/
@@ -371,6 +392,11 @@ void cpp_typecheckt::typecheck_class_template_member(
 {
   assert(declaration.declarators().size()==1);
 
+#ifdef DEBUG
+  std::cout << "class_template_member: " << declaration.pretty() 
+    << std::endl << std::endl;
+#endif
+  
   cpp_declaratort &declarator=declaration.declarators()[0];
   const cpp_namet &cpp_name=to_cpp_name(declarator.add(ID_name));
 
@@ -395,7 +421,7 @@ void cpp_typecheckt::typecheck_class_template_member(
   }
   else
   {
-    return; // TODO
+//    return; // TODO
     err_location(cpp_name);
     str << "bad template name";
     throw 0;
@@ -441,6 +467,11 @@ void cpp_typecheckt::typecheck_class_template_member(
   symbolt &template_symbol=
     symbol_table.symbols.find(cpp_id.identifier)->second;
 
+#ifdef DEBUG
+  std::cout << "template_symbol: " << template_symbol 
+    << std::endl << std::endl;
+#endif
+  
   exprt &template_methods=static_cast<exprt &>(
     template_symbol.value.add("template_methods"));
     
@@ -590,6 +621,12 @@ Function: cpp_typecheckt::convert_class_template_specialization
 void cpp_typecheckt::convert_class_template_specialization(
   cpp_declarationt &declaration)
 {
+
+#ifdef DEBUG
+  std::cout << "class_template_specialization: " << declaration.pretty() 
+    << std::endl << std::endl;
+#endif
+  
   cpp_save_scopet saved_scope(cpp_scopes);
 
   typet &type=declaration.type();
@@ -836,7 +873,16 @@ cpp_scopet &cpp_typecheckt::typecheck_template_parameters(
 
   assert(type.id()==ID_template);
 
-  std::string id_suffix="template::"+i2string(template_counter++);
+  //TODO: Incrementing the counter here looks wrong.
+  //        The counter must only be incremented once per template keyword
+  //        otherwise we get too many names for the same template parameter
+  //        which causes trouble when different names appear in different scopes
+  std::string id_suffix="template::"+i2string(template_counter++); 
+//  std::string id_suffix="template::"+i2string(template_counter); 
+#ifdef DEBUG
+  std::cout << "typecheck_template_parameters: suffix = " << id_suffix << std::endl;
+  std::cout << "  type = " << type.pretty() << std::endl << std::endl;
+#endif
 
   // produce a new scope for the template parameters
   cpp_scopet &template_scope=
@@ -976,6 +1022,10 @@ cpp_template_args_tct cpp_typecheckt::typecheck_template_args(
   const symbolt &template_symbol,
   const cpp_template_args_non_tct &template_args)
 {
+#ifdef DEBUG
+  std::cout << "template args: " << template_args << std::endl;
+#endif
+  
   // old stuff
   assert(template_args.id()!=ID_already_typechecked);
 
@@ -1175,7 +1225,7 @@ void cpp_typecheckt::convert_template_declaration(
     typecheck_class_template(declaration);
     return;
   }
-  else // maybe function template, maybe class template member, maye template variable
+  else // maybe function template, maybe class template member, maybe template variable
   {
     // there should be declarators in either case
     if(declaration.declarators().empty())

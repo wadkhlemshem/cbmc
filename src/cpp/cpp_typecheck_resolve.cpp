@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <cstdlib>
 #include <algorithm>
 
@@ -270,6 +276,11 @@ Purpose:
 exprt cpp_typecheck_resolvet::convert_template_parameter(
   const cpp_idt &identifier)
 {
+#ifdef DEBUG
+  std::cout << "RESOLVE MAP:" << std::endl;
+  cpp_typecheck.template_map.print(std::cout);
+#endif
+
   // look up the parameter in the template map
   exprt e=cpp_typecheck.template_map.lookup(identifier.identifier);
   
@@ -811,6 +822,32 @@ void cpp_typecheck_resolvet::make_constructors(
 
 /*******************************************************************\
 
+Function: cpp_typecheck_resolvet::resolve_argument
+
+Inputs:
+
+Outputs:
+
+Purpose:
+
+\*******************************************************************/
+
+void cpp_typecheck_resolvet::resolve_argument(
+  exprt &argument,
+  const cpp_typecheck_fargst &fargs)
+{
+  if(argument.id()=="ambiguous") //could come from a template parameter
+  {
+    //this must be resolved in the template scope
+    cpp_save_scopet save_scope(cpp_typecheck.cpp_scopes);
+    cpp_typecheck.cpp_scopes.go_to(*original_scope);
+
+    argument = resolve(to_cpp_name(argument.type()),VAR,fargs,false);
+  }
+}
+
+/*******************************************************************\
+
 Function: cpp_typecheck_resolvet::do_builtin
 
 Inputs:
@@ -823,6 +860,7 @@ Purpose:
 
 exprt cpp_typecheck_resolvet::do_builtin(
   const irep_idt &base_name,
+  const cpp_typecheck_fargst &fargs,
   const cpp_template_args_non_tct &template_args)
 {
   exprt dest;
@@ -840,7 +878,7 @@ exprt cpp_typecheck_resolvet::do_builtin(
         "but got "+i2string(arguments.size());
     }
 
-    const exprt &argument=arguments[0];
+    exprt argument=arguments[0];
 
     if(argument.id()==ID_type)
     {
@@ -848,7 +886,9 @@ exprt cpp_typecheck_resolvet::do_builtin(
       throw id2string(base_name)+" expects one integer template argument, "
       "but got type";
     }
-
+    
+    resolve_argument(argument, fargs);
+    
     mp_integer i;
     if(to_integer(argument, i))
     {
@@ -874,8 +914,10 @@ exprt cpp_typecheck_resolvet::do_builtin(
         "but got "+i2string(arguments.size());
     }
 
-    const exprt &argument0=arguments[0];
-    const exprt &argument1=arguments[1];
+    exprt argument0=arguments[0];
+    resolve_argument(argument0, fargs);
+    exprt argument1=arguments[1];
+    resolve_argument(argument1, fargs);
 
     if(argument0.id()==ID_type)
     {
@@ -1034,10 +1076,11 @@ cpp_scopet &cpp_typecheck_resolvet::resolve_scope(
           cpp_idt::TEMPLATE,
           id_set);
 
-//        std::cout << "S: " << cpp_typecheck.cpp_scopes.current_scope().identifier << std::endl;
-//        cpp_typecheck.cpp_scopes.current_scope().print(std::cout);
-//        std::cout << "X: " << id_set.size() <<std::endl;
-          
+#ifdef DEBUG
+        std::cout << "S: " << cpp_typecheck.cpp_scopes.current_scope().identifier << std::endl;
+        cpp_typecheck.cpp_scopes.current_scope().print(std::cout);
+        std::cout << "X: " << id_set.size() <<std::endl;
+#endif          
         symbol_typet instance=
           disambiguate_template_classes(final_base_name, id_set, template_args);
           
@@ -1551,6 +1594,13 @@ exprt cpp_typecheck_resolvet::resolve(
   // this changes the scope
   resolve_scope(cpp_name, base_name, template_args);
 
+#ifdef DEBUG
+  std::cout << "base name: " << base_name << std::endl;
+  std::cout << "template args: " << template_args << std::endl;
+  std::cout << "original-scope: " << original_scope->prefix << std::endl;
+  std::cout << "scope: " << cpp_typecheck.cpp_scopes.current_scope().prefix << std::endl;
+#endif
+  
   const source_locationt &source_location=cpp_name.source_location();
   bool qualified=cpp_name.is_qualified();
 
@@ -1558,7 +1608,7 @@ exprt cpp_typecheck_resolvet::resolve(
   if(qualified)
   {
     if(cpp_typecheck.cpp_scopes.current_scope().identifier=="__CPROVER")
-      return do_builtin(base_name, template_args);
+      return do_builtin(base_name, fargs, template_args); 
   }
   else
   {

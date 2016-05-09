@@ -3869,7 +3869,7 @@ bool Parser::rOperatorName(irept &name)
   case '<':
   case '>':
   case ',':
-    operator_id=irep_idt(std::string(char(t), 1));
+    operator_id=irep_idt(std::string(1, char(t)));
     break;
 
   case TOK_MULTASSIGN: operator_id="*="; break;
@@ -7565,7 +7565,7 @@ bool Parser::rPrimaryExpr(exprt &exp)
 
   case TOK_MSC_UUIDOF:
     #ifdef DEBUG
-    std::cout << std::string(__indent, ' ') << "Parser::rPrimaryExpr 12\n";
+(??)
     #endif
     return rMSCuuidof(exp);
 
@@ -7594,6 +7594,9 @@ bool Parser::rPrimaryExpr(exprt &exp)
 
       if(type.is_not_nil() && lex.LookAhead(0)==TOK_SCOPE)
       {
+        #ifdef DEBUG
+        std::cout << std::string(__indent, ' ') << "Parser::rPrimaryExpr 15\n";
+        #endif
         lex.get_token(tk);
         lex.get_token(tk);
 

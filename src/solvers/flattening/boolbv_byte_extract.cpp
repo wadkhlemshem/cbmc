@@ -97,7 +97,12 @@ void boolbvt::convert_byte_extract(
   const exprt &offset=expr.offset();
   
   bool little_endian;
-  
+
+#if 1 //for _Bool arrays
+  if(expr.type().id()==ID_bool) 
+    little_endian=false;
+  else
+#endif 
   if(expr.id()==ID_byte_extract_little_endian)
     little_endian=true;
   else if(expr.id()==ID_byte_extract_big_endian)
@@ -122,6 +127,14 @@ void boolbvt::convert_byte_extract(
   {
     if(index<0)
       throw "byte_extract flatting with negative offset: "+expr.pretty();
+
+#if 1 //for _Bool arrays
+    if(expr.type().id()==ID_bool) 
+    {
+      assert(width == 1);
+      byte_width = 1;
+    }
+#endif
 
     mp_integer offset=index*byte_width;
     

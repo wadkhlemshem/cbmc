@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/expr_util.h>
 #include <util/byte_operators.h>
 #include <util/cprover_prefix.h>
@@ -60,6 +66,11 @@ void goto_symext::symex_assign(
   exprt lhs=code.lhs();
   exprt rhs=code.rhs();
 
+#ifdef DEBUG
+  std::cout << "\nlhs: " << from_expr(ns, "", lhs) << std::endl;
+  std::cout << "rhs: " << from_expr(ns, "", rhs) << std::endl;
+#endif
+  
   replace_nondet(lhs);
   replace_nondet(rhs);
   
@@ -177,6 +188,11 @@ void goto_symext::symex_assign_rec(
   guardt &guard,
   assignment_typet assignment_type)
 {
+#ifdef DEBUG
+  std::cout << "\nrec-lhs: " << from_expr(ns, "", lhs) << std::endl;
+  std::cout << "rec-rhs: " << from_expr(ns, "", rhs) << std::endl;
+#endif
+  
   if(lhs.id()==ID_symbol &&
      lhs.get_bool(ID_C_SSA_symbol))
     symex_assign_symbol(state, to_ssa_expr(lhs), full_lhs, rhs, guard, assignment_type);

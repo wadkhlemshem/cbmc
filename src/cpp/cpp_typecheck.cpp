@@ -135,6 +135,8 @@ void cpp_typecheckt::typecheck()
       it++)
     convert(*it);
 
+  typecheck_function_bodies();
+
   static_and_dynamic_initialization();
 
   do_not_typechecked();

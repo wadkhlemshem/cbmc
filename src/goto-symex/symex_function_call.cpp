@@ -8,6 +8,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <iostream>
 #include <cassert>
+#include <iostream>
 
 #include <util/expr_util.h>
 #include <util/i2string.h>
@@ -268,6 +269,8 @@ void goto_symext::symex_function_call_code(
 {
   const irep_idt &identifier=
     to_symbol_expr(call.function()).get_identifier();
+
+//  std::cout << "FUNCTION CALL: " << identifier << std::endl;
   
   // find code in function map
   

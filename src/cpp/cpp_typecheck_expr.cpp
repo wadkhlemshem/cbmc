@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+//#ifdef DEBUG
+#include <iostream>
+//#endif
+
 #include <cstdlib>
 
 #include <util/expr_util.h>
@@ -522,7 +528,13 @@ bool cpp_typecheckt::overloadable(const exprt &expr)
     if(is_reference(t))
       t=t.subtype();
 
+#if 0
+    std::cout << "TYPE: " << t.pretty() << std::endl << std::endl;
+#endif
+
     if(t.id()==ID_struct ||
+       //this might be an incomplete struct (template) here
+       t.id()==ID_incomplete_struct ||
        t.id()==ID_union ||
        t.id()==ID_c_enum)
       return true;
@@ -581,11 +593,19 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
   // Check argument types first.
   // At least one struct/enum operand is required.
   
+#if 0
+  std::cout << "OVERLOAD: " << expr.pretty() << std::endl;
+#endif
+
   if(!overloadable(expr))
     return false;
   else if(expr.id()==ID_dereference &&
           expr.get_bool(ID_C_implicit))
     return false;
+
+#if 0
+  std::cout << "OVERLOADED " << std::endl << std::endl;
+#endif
     
   assert(expr.operands().size()>=1);
 
@@ -607,7 +627,7 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
     cpp_name.get_sub().back().set(ID_identifier, op_name);
     cpp_name.get_sub().back().add(ID_C_source_location)=expr.source_location();
 
-    // See if the struct decalares the cast operator as a member
+    // See if the struct declares the cast operator as a member
     bool found_in_struct = false;
     assert(!expr.operands().empty());
     typet t0(follow(expr.op0().type()));
@@ -704,6 +724,8 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
       // We try and fail silently, maybe conversions will work
       // instead.
   
+
+      //TODO: need to resolve an incomplete struct (template) here
       // go into scope of first operand        
       if(expr.op0().type().id()==ID_symbol &&
          follow(expr.op0().type()).id()==ID_struct)
@@ -1636,6 +1658,11 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
   exprt &expr,
   const cpp_typecheck_fargst &fargs)
 {
+#if 0
+  std::cout << "typecheck_expr_cpp_name: "
+	    << expr.pretty() << std::endl << std::endl;
+#endif
+  
   source_locationt source_location=
     to_cpp_name(expr).source_location();
 
@@ -2128,6 +2155,11 @@ Purpose:
 void cpp_typecheckt::typecheck_side_effect_function_call(
   side_effect_expr_function_callt &expr)
 {
+#ifdef DEBUG
+  std::cout << "FUNCTION_CALL: " 
+	    << expr.pretty()
+	    << std::endl;
+#endif
   // For virtual functions, it is important to check whether
   // the function name is qualified. If it is qualified, then
   // the call is not virtual.
@@ -2483,6 +2515,12 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
   exprt tmp=do_special_functions(expr);
   if(tmp.is_not_nil())
     expr.swap(tmp);
+
+#ifdef DEBUG
+  std::cout << "RESULT: " 
+	    << expr.pretty()
+	    << std::endl;
+#endif
 }
 
 /*******************************************************************\
@@ -2619,7 +2657,28 @@ void cpp_typecheckt::typecheck_method_application(
   member_expr.swap(expr.function());
 
   const symbolt &symbol=lookup(member_expr.get(ID_component_name));
-  add_function_body(&(symbol_table.symbols.find(symbol.name)->second));
+  symbolt &method_symbol = symbol_table.symbols.find(symbol.name)->second;
+  const symbolt &tag_symbol = lookup(symbol.type.get("#member_name"));
+
+#ifdef DEBUG
+  std::cout << "template type: " << tag_symbol.type.find(ID_C_template) << std::endl;
+#endif 
+  // build the right template map if this is an instantiated template class method
+  if(tag_symbol.type.find(ID_C_template)!=irept())
+  {
+    cpp_saved_template_mapt saved_map(template_map);
+    const irept &template_type=tag_symbol.type.find(ID_C_template);
+    const irept &template_args=tag_symbol.type.find(ID_C_template_arguments);
+    template_map.build(static_cast<const template_typet &>(template_type),
+		       static_cast<const cpp_template_args_tct &>(template_args));
+    add_function_body(&method_symbol);
+#ifdef DEBUG
+    std::cout << "MAP for " << symbol << ":" << std::endl;
+    template_map.print(std::cout);
+#endif
+  }
+  else
+    add_function_body(&method_symbol);
 
   // build new function expression
   exprt new_function(cpp_symbol_expr(symbol));

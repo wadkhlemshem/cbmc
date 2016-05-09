@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <cassert>
 
 #include <util/std_expr.h>
@@ -243,7 +249,7 @@ void goto_symext::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
-  #if 0
+  #ifdef DEBUG
   std::cout << "\ninstruction type is " << state.source.pc->type << std::endl;
   std::cout << "Location: " << state.source.pc->source_location << std::endl;
   std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << std::endl;

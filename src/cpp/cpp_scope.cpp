@@ -6,6 +6,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include "cpp_typecheck.h"
 #include "cpp_scope.h"
 
@@ -51,6 +57,13 @@ void cpp_scopet::lookup(
   lookup_kindt kind,
   id_sett &id_set)
 {
+#ifdef DEBUG
+  std::cout << "lookup base name: " << base_name << std::endl;
+  if(base_name == "T") 
+    std::cout << "in scope: " << *this << std::endl;
+#endif
+
+  
   cpp_id_mapt::iterator
     lower_it=sub.lower_bound(base_name);
 
