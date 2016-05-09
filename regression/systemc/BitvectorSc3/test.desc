@@ -1,5 +1,5 @@
 CORE
-*.cpp
+main.cpp
 
 ^EXIT=0$
 ^SIGNAL=0$
