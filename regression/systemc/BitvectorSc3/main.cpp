@@ -1,7 +1,7 @@
 #include <cassert>
-#include "systemc_util.cpp"
-#include "sc_uint_base.cpp"
-#include "sc_uint.h"
+#include "../systemc_util.cpp"
+#include "../sc_uint_base.cpp"
+#include "../sc_uint.h"
 
 //#define IO
 

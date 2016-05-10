@@ -10,13 +10,16 @@ class sc_uint_base;
 class sc_uint_subref
 {
  friend class sc_uint_base;
-
+ 
  public:
   sc_uint_subref(sc_uint_base *_ptr, int _left, int _right)
     : ptr(_ptr), left(_left), right(_right)
   {}
 
+ // operator sc_uint_base () { return sc_uint_base(*this); }
+
   sc_uint_base &operator=(const sc_uint_base &other);
+  sc_uint_base &operator=(const sc_uint_subref &other);
 
   int length() const
   {
@@ -41,6 +44,8 @@ class sc_uint_base
   {
   }
 
+  sc_uint_base(const sc_uint_subref &other);
+
   sc_uint_base &operator=(const sc_uint_base &other)
   {
     val = other.val;
@@ -60,6 +65,34 @@ class sc_uint_base
     return *this;
   }
 
+  sc_uint_base operator-=(const sc_uint_base &other)
+  {
+    val -= other.val; 
+    return *this;
+  }
+
+  sc_uint_base operator*=(const sc_uint_base &other)
+  {
+    val *= other.val; 
+    return *this;
+  }
+
+  sc_uint_base operator>>=(int v) //uint_type v
+  {
+    val >>= v; 
+    return *this;
+  }
+
+  sc_uint_base operator+(const sc_uint_base &other)
+  {
+    return sc_uint_base(val+other.val, m_len);
+  }
+
+  sc_uint_base operator*(const sc_uint_base &other)
+  {
+    return sc_uint_base(val*other.val, m_len);
+  }
+
   sc_uint_subref range(int left, int right);
 
   int length() const
@@ -72,8 +105,8 @@ class sc_uint_base
     return val;
   }
 
- protected:
   bv_type val;
+ protected:
   const int m_len;
 };
 
