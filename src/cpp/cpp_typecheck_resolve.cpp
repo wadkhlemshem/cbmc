@@ -1422,6 +1422,7 @@ exprt cpp_typecheck_resolvet::resolve(
   std::cout << "template args: " << template_args << std::endl;
   std::cout << "original-scope: " << original_scope->prefix << std::endl;
   std::cout << "scope: " << cpp_typecheck.cpp_scopes.current_scope().prefix << std::endl;
+  std::cout << "qualified: " << cpp_name.is_qualified() << std::endl;
 #endif
   
   const source_locationt &source_location=cpp_name.source_location();

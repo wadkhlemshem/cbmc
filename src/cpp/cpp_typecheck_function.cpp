@@ -154,6 +154,10 @@ void cpp_typecheckt::convert_function(symbolt &symbol)
   symbol.value.type()=symbol.type;
 
   return_type = old_return_type;
+
+#ifdef DEBUG
+  std::cout << "RESULT: " << symbol.value.pretty() << std::endl;
+#endif
 }
 
 /// for function overloading

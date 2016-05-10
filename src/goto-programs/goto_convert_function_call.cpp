@@ -8,9 +8,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 // #define DEBUG
 
-#ifdef DEBUG
+//#ifdef DEBUG
 #include <iostream>
-#endif
+//#endif
 
 /// \file
 /// Program Transformation
@@ -99,6 +99,11 @@ void goto_convertt::do_function_call(
   }
   else
   {
+#if 1
+    std::cout << "FUNCTION: " << function.pretty() << std::endl;
+    forall_expr(it, new_arguments)
+      std::cout << "ARGUMENT: " << it->pretty() << std::endl;
+#endif
     error().source_location=function.find_source_location();
     error() << "unexpected function argument: " << new_function.id()
             << eom;
