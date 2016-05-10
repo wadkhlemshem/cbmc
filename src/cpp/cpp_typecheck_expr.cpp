@@ -8,9 +8,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-//#ifdef DEBUG
+#ifdef DEBUG
 #include <iostream>
-//#endif
+#endif
 
 #include <cstdlib>
 
@@ -454,6 +454,11 @@ void cpp_typecheckt::typecheck_function_expr(
   exprt &expr,
   const cpp_typecheck_fargst &fargs)
 {
+#if 0
+  std::cout << "typecheck_function_expr: "
+	    << expr.pretty() << std::endl << std::endl;
+#endif
+
   if(expr.id()==ID_cpp_name)
     typecheck_expr_cpp_name(expr, fargs);
   else if(expr.id()==ID_member)
@@ -2067,6 +2072,10 @@ void cpp_typecheckt::typecheck_expr_cpp_name(
       cpp_typecheck_resolvet::VAR,
       fargs);
 
+#if 0
+  std::cout << "resolved symbol: " << symbol_expr.pretty() << std::endl;
+#endif
+
   // we want VAR
   assert(symbol_expr.id()!=ID_type);
 
@@ -2187,6 +2196,11 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
   // now do the function -- this has been postponed
   typecheck_function_expr(expr.function(), cpp_typecheck_fargst(expr));
   
+#if 0
+  std::cout << "CONVERTED: "
+	    << expr.function().pretty() << std::endl << std::endl;
+#endif
+
   if(expr.function().id()=="pod_constructor")
   {
     assert(expr.function().type().id()==ID_code);
@@ -2516,7 +2530,7 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
   if(tmp.is_not_nil())
     expr.swap(tmp);
 
-#ifdef DEBUG
+#if 0
   std::cout << "RESULT: " 
 	    << expr.pretty()
 	    << std::endl;

@@ -8,9 +8,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 //#define DEBUG
 
-#ifdef DEBUG
+//#ifdef DEBUG
 #include <iostream>
-#endif
+//#endif
 
 #include <cassert>
 
@@ -121,6 +121,11 @@ void goto_convertt::do_function_call(
   }
   else
   {
+#if 1
+    std::cout << "FUNCTION: " << function.pretty() << std::endl;
+    forall_expr(it, new_arguments)
+      std::cout << "ARGUMENT: " << it->pretty() << std::endl;
+#endif
     err_location(function);
     throw "unexpected function argument: "+new_function.id_string();
   }

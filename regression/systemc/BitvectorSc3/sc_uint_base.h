@@ -54,7 +54,7 @@ class sc_uint_base
     return val == other.val;
   }
 
-  sc_uint_base operator += (const sc_uint_base &other)
+  sc_uint_base operator+=(const sc_uint_base &other)
   {
     val += other.val; 
     return *this;

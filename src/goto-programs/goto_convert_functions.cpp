@@ -251,7 +251,7 @@ void goto_convert_functionst::convert_function(const irep_idt &identifier)
   }
   
   const codet &code=to_code(symbol.value);
-  
+
   source_locationt end_location;
 
   if(code.get_statement()==ID_block)
