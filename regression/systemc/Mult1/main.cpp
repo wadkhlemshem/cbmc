@@ -47,7 +47,7 @@ uint512_t mult256_impl (uint256_t a, uint256_t b)
 #endif
     }
     result.range(k*W+W-1,k*W) = p_product.range(W-1,0); //.to_uint();
-#if 1
+#if 0
     std::cout << "result.range(" << (k*W+W-1) << "," << (k*W) << "): " << result.range(k*W+W-1,k*W).to_uint() << std::endl;
     std::cout << "p_product.range(" << (W-1) << ",0): " << p_product.range(W-1,0).to_uint() << std::endl;
 #endif
