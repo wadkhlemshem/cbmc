@@ -8,21 +8,26 @@ template <int W>
 class sc_uint : public sc_uint_base
 {
  public:
-  explicit sc_uint(unsigned long v)
+  sc_uint() : sc_uint_base(0, W) {}
+
+  sc_uint(unsigned long v)
     : sc_uint_base(v, W)
+  {
+  }
+
+  sc_uint(const sc_uint_base &b)
+    : sc_uint_base(b.val, W)
   {
   }
 
   sc_uint<W> &operator=(const sc_uint_base &other)
   {
-    //TODO: does not convert this correctly
     sc_uint_base::operator=(other);
     return *this;
   }
 
   sc_uint<W> &operator=(const sc_uint_subref &other)
   {
-    //TODO: does not convert this correctly
     sc_uint_base::operator=(other);
     return *this;
   }
@@ -34,10 +39,30 @@ class sc_uint : public sc_uint_base
 
   sc_uint<W> operator += (const sc_uint_base &other)
   {
-    //TODO: does not convert this correctly
     return sc_uint_base::operator+=(other);
   }
 
+  sc_uint<W> operator *= (const sc_uint_base &other)
+  {
+    return sc_uint_base::operator*=(other);
+  }
+
+  sc_uint<W> operator+ (const sc_uint_base &other)
+  {
+    return sc_uint<W>(sc_uint_base::operator+(other));
+  }
+
+  sc_uint<W> operator* (const sc_uint_base &other)
+  {
+    return sc_uint<W>(sc_uint_base::operator*(other));
+  }
+
+  sc_uint<W> operator >>= (int v)
+  {
+    return sc_uint_base::operator>>=(v);
+  }
+
 };
+
 
 #endif
