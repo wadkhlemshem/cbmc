@@ -233,6 +233,8 @@ void cpp_typecheck_resolvet::remove_duplicates(
   resolve_identifierst old_identifiers;
   old_identifiers.swap(identifiers);
   
+  identifiers.clear();
+
   std::set<irep_idt> ids;
   std::set<exprt> other;
 
@@ -612,7 +614,7 @@ void cpp_typecheck_resolvet::disambiguate_functions(
     }
   }
 
-  identifiers.clear();
+  old_identifiers.clear();
 
   // put in the top ones
   if(!distance_map.empty())
@@ -623,39 +625,36 @@ void cpp_typecheck_resolvet::disambiguate_functions(
         it=distance_map.begin();
         it!=distance_map.end() && it->first==distance;
         it++)
-      identifiers.push_back(it->second);
+      old_identifiers.push_back(it->second);
   }
+
+  identifiers.clear();
   
-  if(identifiers.size()>1 && fargs.in_use)
+  if(old_identifiers.size()>1 && fargs.in_use)
   {
     // try to further disambiguate functions
 
-    for(resolve_identifierst::iterator
-        it1=identifiers.begin();
-        it1!=identifiers.end();
+    for(resolve_identifierst::const_iterator
+        it1=old_identifiers.begin();
+        it1!=old_identifiers.end();
         it1++)
     {
-      if(it1->type().id()!=ID_code) continue;
+
+      if(it1->type().id()!=ID_code) 
+      {
+	identifiers.push_back(*it1);
+	continue;
+      }
       
       const code_typet &f1=
         to_code_type(it1->type());
 
-      for(resolve_identifierst::iterator it2=
-          identifiers.begin();
-          it2!=identifiers.end();
-          ) // no it2++
+      resolve_identifierst::const_iterator it2 = it1;
+      it2++;
+      for(;it2!=old_identifiers.end(); it2++)
       {
-        if(it1 == it2)
-        {
-          it2++;
-          continue;
-        }
-
         if(it2->type().id()!=ID_code)
-        {
-          it2++;
           continue;
-        }
 
         const code_typet &f2 =
           to_code_type(it2->type());
@@ -666,7 +665,8 @@ void cpp_typecheck_resolvet::disambiguate_functions(
         bool f1_better=true;
         bool f2_better=true;
 
-        for(std::size_t i=0; i < f1.parameters().size() && (f1_better || f2_better); i++)
+        for(std::size_t i=0; i < f1.parameters().size() && 
+	      (f1_better || f2_better); i++)
         {
           typet type1 = f1.parameters()[i].type();
           typet type2 = f2.parameters()[i].type();
@@ -708,15 +708,15 @@ void cpp_typecheck_resolvet::disambiguate_functions(
           }
         }
 
-        resolve_identifierst::iterator prev_it = it2;
-        it2++;
-
         if(f1_better && !f2_better)
-          identifiers.erase(prev_it);
+	  identifiers.push_back(*it1);
       }
     }
   }
-
+  else
+  {
+    identifiers.swap(old_identifiers);
+  }
 }
 
 /*******************************************************************\
