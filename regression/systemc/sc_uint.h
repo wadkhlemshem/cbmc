@@ -20,6 +20,11 @@ class sc_uint : public sc_uint_base
   {
   }
 
+  sc_uint(const sc_uint_subref &b)
+    : sc_uint_base(b)
+  {
+  }
+
   sc_uint<W> &operator=(const sc_uint_base &other)
   {
     sc_uint_base::operator=(other);
