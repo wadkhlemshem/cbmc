@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   sc_uint<1> b, c;
 
   b = (sc_uint<1>)a.range(2,2);
-  c = a.range(0,0);
+  c = (sc_uint_base)a.range(0,0);
   a.range(0,0) = b;
   a.range(1,1) = c;
 
