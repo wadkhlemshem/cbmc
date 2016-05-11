@@ -16,7 +16,7 @@ class sc_uint_subref
     : ptr(_ptr), left(_left), right(_right)
   {}
 
- // operator sc_uint_base () { return sc_uint_base(*this); }
+ //operator sc_uint_base ();
 
   sc_uint_base &operator=(const sc_uint_base &other);
   sc_uint_base &operator=(const sc_uint_subref &other);
