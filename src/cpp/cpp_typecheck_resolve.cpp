@@ -164,6 +164,8 @@ void cpp_typecheck_resolvet::remove_duplicates(
 {
   resolve_identifierst old_identifiers;
   old_identifiers.swap(identifiers);
+  
+  identifiers.clear();
 
   std::set<irep_idt> ids;
   std::set<exprt> other;
@@ -487,7 +489,7 @@ void cpp_typecheck_resolvet::disambiguate_functions(
     }
   }
 
-  identifiers.clear();
+  resolve_identifierst new_identifiers;
 
   // put in the top ones
   if(!distance_map.empty())
@@ -498,40 +500,65 @@ void cpp_typecheck_resolvet::disambiguate_functions(
         it=distance_map.begin();
         it!=distance_map.end() && it->first==distance;
         it++)
-      identifiers.push_back(it->second);
+      new_identifiers.push_back(it->second);
   }
 
-  if(identifiers.size()>1 && fargs.in_use)
+#ifdef DEBUG
+  for(resolve_identifierst::const_iterator
+        it1=new_identifiers.begin();
+      it1!=new_identifiers.end();
+      it1++)
+  {
+    std::cout << "Before: " << it1->get(ID_identifier) << std::endl;
+  }
+#endif
+
+  identifiers.clear();
+  
+  if(new_identifiers.size()>1 && fargs.in_use)
   {
     // try to further disambiguate functions
 
-    for(resolve_identifierst::iterator
-        it1=identifiers.begin();
-        it1!=identifiers.end();
+    for(resolve_identifierst::const_iterator
+        it1=new_identifiers.begin();
+        it1!=new_identifiers.end();
         it1++)
     {
-      if(it1->type().id()!=ID_code)
-        continue;
+#if 0
+      std::cout << "I1: " << it1->get(ID_identifier) << std::endl;
+#endif
 
+      if(it1->type().id()!=ID_code) 
+      {
+	identifiers.push_back(*it1);
+	continue;
+      }
+      
       const code_typet &f1=
         to_code_type(it1->type());
 
       for(resolve_identifierst::iterator it2=
-          identifiers.begin();
-          it2!=identifiers.end();
+          new_identifiers.begin();
+          it2!=new_identifiers.end();
           ) // no it2++
       {
         if(it1 == it2)
         {
+  	  identifiers.push_back(*it2);
           it2++;
           continue;
         }
 
         if(it2->type().id()!=ID_code)
         {
+  	  identifiers.push_back(*it2);
           it2++;
           continue;
         }
+
+#if 0
+        std::cout << "I2: " << it2->get(ID_identifier) << std::endl;
+#endif
 
         const code_typet &f2 =
           to_code_type(it2->type());
@@ -589,11 +616,26 @@ void cpp_typecheck_resolvet::disambiguate_functions(
         resolve_identifierst::iterator prev_it=it2;
         it2++;
 
-        if(f1_better && !f2_better)
-          identifiers.erase(prev_it);
+        if(!(f1_better && !f2_better))
+	{
+#ifdef DEBUG
+	  std::cout << "Keep: " << prev_it->get(ID_identifier) << std::endl;
+#endif
+	  identifiers.push_back(*prev_it);
+	}
       }
     }
   }
+
+#ifdef DEBUG
+    for(resolve_identifierst::iterator
+        it1=identifiers.begin();
+        it1!=identifiers.end();
+        it1++)
+    {
+      std::cout << "After: " << it1->get(ID_identifier) << std::endl;
+    }
+#endif
 }
 
 void cpp_typecheck_resolvet::make_constructors(
