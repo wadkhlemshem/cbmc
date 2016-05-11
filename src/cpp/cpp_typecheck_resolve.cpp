@@ -6,7 +6,7 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #include <iostream>
@@ -581,6 +581,8 @@ void cpp_typecheck_resolvet::disambiguate_functions(
 {
   resolve_identifierst old_identifiers;
   old_identifiers.swap(identifiers);
+
+  remove_duplicates(old_identifiers);
   
   // sort according to distance
   std::multimap<std::size_t, exprt> distance_map;
