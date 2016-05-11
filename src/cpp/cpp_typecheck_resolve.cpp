@@ -11,7 +11,7 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include "cpp_typecheck_resolve.h"
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #include <iostream>
@@ -489,7 +489,7 @@ void cpp_typecheck_resolvet::disambiguate_functions(
     }
   }
 
-  resolve_identifierst new_identifiers;
+  old_identifiers.clear();
 
   // put in the top ones
   if(!distance_map.empty())
@@ -500,7 +500,7 @@ void cpp_typecheck_resolvet::disambiguate_functions(
         it=distance_map.begin();
         it!=distance_map.end() && it->first==distance;
         it++)
-      new_identifiers.push_back(it->second);
+      old_identifiers.push_back(it->second);
   }
 
 #ifdef DEBUG
@@ -515,13 +515,13 @@ void cpp_typecheck_resolvet::disambiguate_functions(
 
   identifiers.clear();
   
-  if(new_identifiers.size()>1 && fargs.in_use)
+  if(old_identifiers.size()>1 && fargs.in_use)
   {
     // try to further disambiguate functions
 
     for(resolve_identifierst::const_iterator
-        it1=new_identifiers.begin();
-        it1!=new_identifiers.end();
+        it1=old_identifiers.begin();
+        it1!=old_identifiers.end();
         it1++)
     {
 #if 0
@@ -537,10 +537,9 @@ void cpp_typecheck_resolvet::disambiguate_functions(
       const code_typet &f1=
         to_code_type(it1->type());
 
-      for(resolve_identifierst::iterator it2=
-          new_identifiers.begin();
-          it2!=new_identifiers.end();
-          ) // no it2++
+      resolve_identifierst::const_iterator it2 = it1;
+      it2++;
+      for(;it2!=old_identifiers.end(); it2++)
       {
         if(it1 == it2)
         {
