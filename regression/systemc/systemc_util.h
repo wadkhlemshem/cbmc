@@ -21,5 +21,11 @@ void bitvector_assign_from(const bv_type &src,
 			   int length,
 			   bv_type &dst);
 
+bool bitvector_get_bit(const bv_type &val,
+		       int index);
+
+void bitvector_assign_bit(bv_type &val,
+			  int index,
+			  bool b);
 
 #endif
