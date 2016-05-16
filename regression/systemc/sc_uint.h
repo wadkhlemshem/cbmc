@@ -4,6 +4,10 @@
 #include <cassert>
 #include "sc_uint_base.h"
 
+#ifdef IO
+#include <iostream>
+#endif
+
 template <int W>
 class sc_uint : public sc_uint_base
 {
@@ -37,7 +41,12 @@ class sc_uint : public sc_uint_base
     return *this;
   }
 
-  bool operator==(const sc_uint_base &other)
+  bool operator[](int index) const
+  {
+    return sc_uint_base::operator[](index);
+  }
+
+  bool operator==(const sc_uint_base &other) const
   {
     return sc_uint_base::operator==(other);
   }
@@ -69,5 +78,13 @@ class sc_uint : public sc_uint_base
 
 };
 
+#ifdef IO
+template<int W>
+std::ostream& operator<<(std::ostream& out,  sc_uint<W> v)
+{
+  out << v.to_uint();
+  return out;
+}
+#endif
 
 #endif

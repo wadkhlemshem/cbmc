@@ -31,3 +31,31 @@ void bitvector_assign_from(const bv_type &src,
   dst <<= MAX_SIZE-(offset+length);
   dst >>= MAX_SIZE-length;
 }
+
+bool bitvector_get_bit(const bv_type &val,
+		       int index)
+{
+  //TODO: expose bit access operators at the interface
+  bv_type tmp = val;
+  tmp >>= index;
+  return tmp & 1;
+}
+
+void bitvector_assign_bit(bv_type &val,
+			  int index,
+			  bool b)
+{
+  //TODO: expose bit access operators at the interface
+  if(b)
+  {
+    bv_type tmp = 1;
+    tmp <<= index;
+    val |= tmp;
+  }
+  else
+  {
+    bv_type tmp = 1;
+    tmp <<= index;
+    val &= ~tmp;
+  }
+}

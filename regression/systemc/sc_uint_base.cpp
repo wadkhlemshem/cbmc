@@ -18,7 +18,16 @@ sc_uint_subref sc_uint_base::range(int left, int right)
   return sc_uint_subref(this, left, right);
 }
 
-//sc_uint_subref::operator sc_uint_base () { return sc_uint_base(*this); }
+sc_uint_bitref sc_uint_base::operator[](int index)
+{
+  return sc_uint_bitref(this, index);
+}
+
+bool sc_uint_bitref::operator=(bool b)
+{ 
+  bitvector_assign_bit(ptr->val, index, b);
+  return b;
+}
 
 sc_uint_base &sc_uint_subref::operator=(const sc_uint_base &other)
 { 

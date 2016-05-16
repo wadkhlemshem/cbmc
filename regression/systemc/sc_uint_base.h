@@ -5,6 +5,7 @@
 #include "systemc_util.h"
 
 class sc_uint_subref;
+class sc_uint_bitref;
 class sc_uint_base;
 
 class sc_uint_subref
@@ -16,11 +17,9 @@ class sc_uint_subref
     : ptr(_ptr), left(_left), right(_right)
   {}
 
- //operator sc_uint_base ();
-
   sc_uint_base &operator=(const sc_uint_base &other);
   sc_uint_base &operator=(const sc_uint_subref &other);
-
+  
   int length() const
   {
     return left-right+1;
@@ -34,9 +33,29 @@ class sc_uint_subref
   
 };
 
+class sc_uint_bitref
+{
+ friend class sc_uint_base;
+ 
+ public:
+  sc_uint_bitref(sc_uint_base *_ptr, int _index)
+    : ptr(_ptr), index(_index)
+  {}
+
+  bool operator=(bool b);
+
+  bool to_bool() const;
+
+ protected:
+  sc_uint_base *ptr;
+  int index;
+  
+};
+
 class sc_uint_base
 {
  friend class sc_uint_subref;
+ friend class sc_uint_bitref;
 
  public:
   explicit sc_uint_base(unsigned long v, int _len)
@@ -53,8 +72,15 @@ class sc_uint_base
   }
 
   sc_uint_base &operator=(const sc_uint_subref &other);
-  
-  bool operator==(const sc_uint_base &other)
+
+  bool operator[](int index) const
+  {
+    return bitvector_get_bit(val, index);
+  }
+
+  sc_uint_bitref operator[](int index);
+
+  bool operator==(const sc_uint_base &other) const
   {
     return val == other.val;
   }
