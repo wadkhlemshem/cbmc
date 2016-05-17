@@ -8,9 +8,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-//#ifdef DEBUG
+#ifdef DEBUG
 #include <iostream>
-//#endif
+#endif
 
 #include <util/i2string.h>
 #include <util/expr_util.h>
@@ -449,7 +449,7 @@ void cpp_typecheckt::typecheck_decl(codet &code)
     
   typet &type=declaration.type();
 
-#if 1
+#if 0
   std::cout << "typecheck_decl: "
 	    << code.op0().pretty() << std::endl
 	    << "type: " << type.pretty() 
