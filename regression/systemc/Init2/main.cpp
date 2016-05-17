@@ -9,12 +9,11 @@ typedef sc_uint<2> uint2_t;
 
 int main(int argc, char *argv[]) 
 {
-  uint1_t w(0);
   uint1_t x(1);
   x = uint1_t(0);
-  assert(x == w);
   x = 1;
-  uint2_t y = 1;
+  uint2_t v(1);
+  uint2_t y = v; //uint2_t(1);
   uint2_t z = x;
   
   assert(y == z);

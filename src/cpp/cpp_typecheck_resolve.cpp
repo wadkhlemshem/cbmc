@@ -1602,9 +1602,22 @@ exprt cpp_typecheck_resolvet::resolve(
       id_set, want, fargs, identifiers);
   }
 
+  #if 0
+  //cpp_typecheck.symbol_table.show(std::cout);
+  std::cout << "P0a " << base_name << " " << identifiers.size() << "\n";
+  show_identifiers(base_name, identifiers, std::cout);
+  std::cout << "\n";
+  #endif
+
   // change types into constructors if we want a constructor
   if(want==wantt::VAR)
     make_constructors(identifiers);
+
+  #if 0
+  std::cout << "P0b " << base_name << " " << identifiers.size() << "\n";
+  show_identifiers(base_name, identifiers, std::cout);
+  std::cout << "\n";
+  #endif
 
   filter(identifiers, want);
 
@@ -1648,6 +1661,12 @@ exprt cpp_typecheck_resolvet::resolve(
       if(new_identifiers.empty())
         new_identifiers=identifiers;
     }
+
+    #if 0
+    std::cout << "P3a " << base_name << " " << new_identifiers.size() << "\n";
+    show_identifiers(base_name, new_identifiers, std::cout);
+    std::cout << "\n";
+    #endif
 
     disambiguate_functions(new_identifiers, fargs);
 
