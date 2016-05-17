@@ -41,6 +41,12 @@ class sc_uint : public sc_uint_base
     return *this;
   }
 
+  sc_uint<W> &operator=(unsigned long v)
+  {
+    this->val = v;
+    return *this;
+  }
+
   bool operator[](int index) const
   {
     return sc_uint_base::operator[](index);
