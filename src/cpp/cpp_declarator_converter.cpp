@@ -13,9 +13,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-//#ifdef DEBUG
+#ifdef DEBUG
 #include <iostream>
-//#endif
+#endif
 
 #include <util/source_location.h>
 #include <util/std_types.h>
@@ -43,10 +43,6 @@ symbolt &cpp_declarator_convertert::convert(
   const cpp_member_spect &member_spec,
   cpp_declaratort &declarator)
 {
-#if 1
-  std::cout << "convert declarator: " << declarator.pretty() << std::endl;
-#endif
-
   assert(declaration_type.is_not_nil());
 
   if(declaration_type.id()=="cpp-cast-operator")
@@ -349,10 +345,6 @@ void cpp_declarator_convertert::handle_initializer(
   cpp_declaratort &declarator)
 {
   exprt &value=declarator.value();
-
-#if 1
-  std::cout << "handle_initializer: " << value.pretty() << std::endl;
-#endif
   
   // moves member initializers into 'value'
   cpp_typecheck.move_member_initializers(

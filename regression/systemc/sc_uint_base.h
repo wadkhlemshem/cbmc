@@ -63,6 +63,11 @@ class sc_uint_base
   {
   }
 
+  sc_uint_base(const sc_uint_base &other)
+    : val(other.val), m_len(other.m_len)
+  {
+  }
+
   sc_uint_base(const sc_uint_subref &other);
 
   sc_uint_base &operator=(const sc_uint_base &other)

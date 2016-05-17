@@ -13,9 +13,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-//#ifdef DEBUG
+#ifdef DEBUG
 #include <iostream>
-//#endif
+#endif
 
 #include <util/arith_tools.h>
 #include <util/base_exceptions.h>
@@ -226,7 +226,7 @@ const symbolt &cpp_typecheckt::instantiate_template(
   const cpp_template_args_tct &full_template_args,
   const typet &specialization)
 {
-#if 1
+#if 0
   std::cout << "instantiate_template: " << template_symbol.name << std::endl;
 #endif
   
