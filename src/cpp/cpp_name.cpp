@@ -32,6 +32,9 @@ irep_idt cpp_namet::get_base_name() const
 
   if(sub[base].id()==ID_name)
     return sub[base].get(ID_identifier);
+  else if(base+1<sub.size() && sub[base].id()==ID_operator &&
+           sub[base+1].id()==ID_name)
+    return "operator"+sub[base+1].get_string(ID_identifier);
   else if(base+1<sub.size() && sub[base].id()==ID_operator)
     return "operator"+sub[base+1].id_string();
   else if(base+1<sub.size() && sub[base].id()=="~" && sub[base+1].id()==ID_name)
