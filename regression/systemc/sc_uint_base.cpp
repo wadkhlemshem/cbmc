@@ -7,6 +7,11 @@ sc_uint_base::sc_uint_base(const sc_uint_subref &other) :
   bitvector_assign_from(other.ptr->val,other.right,other.length(),val);
 }
 
+sc_uint_base::sc_uint_base(const sc_uint_bitref &other) :
+  val(bitvector_get_bit(other.ptr->val, other.index)), m_len(1)
+{
+}
+
 sc_uint_base &sc_uint_base::operator=(const sc_uint_subref &other)
 {
   bitvector_assign_from(other.ptr->val,other.right,other.length(),val);
