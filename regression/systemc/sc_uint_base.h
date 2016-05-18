@@ -74,6 +74,7 @@ class sc_uint_base
   }
 
   sc_uint_base(const sc_uint_subref &other);
+  sc_uint_base(const sc_uint_bitref &other);
 
   sc_uint_base &operator=(const sc_uint_base &other)
   {
