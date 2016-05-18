@@ -29,6 +29,11 @@ bool sc_uint_bitref::operator=(bool b)
   return b;
 }
 
+sc_uint_bitref::operator bool () const
+{ 
+  return bitvector_get_bit(ptr->val, index);
+}
+
 sc_uint_base &sc_uint_subref::operator=(const sc_uint_base &other)
 { 
   bitvector_assign_to(other.val, ptr->val,right,other.length());

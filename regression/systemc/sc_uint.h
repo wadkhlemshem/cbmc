@@ -47,11 +47,6 @@ class sc_uint : public sc_uint_base
     return *this;
   }
 
-  bool operator[](int index) const
-  {
-    return sc_uint_base::operator[](index);
-  }
-
   bool operator==(const sc_uint_base &other) const
   {
     return sc_uint_base::operator==(other);

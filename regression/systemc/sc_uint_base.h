@@ -44,7 +44,12 @@ class sc_uint_bitref
 
   bool operator=(bool b);
 
-  bool to_bool() const;
+  operator bool() const;
+  
+  bool to_bool() const
+  {
+    return (bool)(*this);
+  }
 
  protected:
   sc_uint_base *ptr;
@@ -77,11 +82,6 @@ class sc_uint_base
   }
 
   sc_uint_base &operator=(const sc_uint_subref &other);
-
-  bool operator[](int index) const
-  {
-    return bitvector_get_bit(val, index);
-  }
 
   sc_uint_bitref operator[](int index);
 
