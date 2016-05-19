@@ -55,7 +55,7 @@ int main(void) {
 
   assert(arrb[0] == true);
   assert(arrb[1] == false);
-  assert(arrb[2] == true);
+  assert(arrb[2] == true); //problem: fails without constant propagation
   assert(arrb[3] == false);
 
   myarray<uint, 3> arru;
