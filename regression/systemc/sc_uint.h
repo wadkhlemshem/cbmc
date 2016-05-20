@@ -45,13 +45,13 @@ class sc_uint : public sc_uint_base
     sc_uint_base::operator=(other);
     return *this;
   }
-
+/*
   sc_uint<W> &operator=(unsigned long v)
   {
     this->val = v;
     return *this;
   }
-
+*/
   bool operator==(const sc_uint_base &other) const
   {
     return sc_uint_base::operator==(other);

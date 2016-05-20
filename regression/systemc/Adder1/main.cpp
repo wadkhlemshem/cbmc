@@ -43,8 +43,8 @@ tuple<uint1_t, uint256_t> add256_impl(uint256_t a, uint256_t b)
 // SPEC: a biguint adder
 
 tuple<uint1_t,uint256_t> bigadd (uint256_t a, uint256_t b) {
-  uint257_t result; // = a+b; //TODO
-  result = a+b;
+  uint257_t result = a+b; //TODO
+  //result = a+b;
   return tuple<uint1_t,uint256_t> ((uint1_t)result[K*W], result.range(K*W-1,0));
 }
 

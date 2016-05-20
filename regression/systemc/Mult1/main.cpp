@@ -66,7 +66,7 @@ uint512_t mult256_impl (uint256_t a, uint256_t b)
 }
 
 uint512_t bigmult (uint256_t a, uint256_t b) {
-  uint512_t result = a * b;
+  uint512_t result = a * b; // TODO
   return result;
 }
 
