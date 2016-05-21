@@ -2,7 +2,7 @@
 #include "../systemc_util.cpp"
 #include "../sc_uint_base.cpp"
 #include "../sc_uint.h"
-#include "../tuple.h"
+#include "../masc.h"
 
 typedef sc_uint<1> uint1_t;
 typedef sc_uint<2> uint2_t;

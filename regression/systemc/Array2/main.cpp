@@ -1,17 +1,8 @@
 #include <assert.h>
-
-class myarray {
-
-  int elt[4];
-
-public:
-  int& operator[] (int idx) {
-    return elt[idx];
-  }
-};
+#include "../masc.h"
 
 int main(void) {
-  myarray x;
+  array<int, 4> x;
 
   for (int i=0; i<4; i++) {
     x[i] = i;
@@ -20,7 +11,7 @@ int main(void) {
   assert(x[0] == 0);
   assert(x[3] == 3);
 
-  myarray y = x; //copy constructor does not typecheck
+  array<int, 4> y = x; //copy constructor does not typecheck
   assert(y[0] == 0);
   assert(y[3] == 3);
  

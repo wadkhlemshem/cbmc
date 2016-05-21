@@ -1,20 +1,10 @@
 #include <assert.h>
+#include "../masc.h"
 
 #define FUNCTION
 
-template<int m>
-class myarray {
-
-  int elt[m];
-
-public:
-  int& operator[] (int idx) {
-    return elt[idx];
-  }
-};
-
 #ifdef FUNCTION
-void check(myarray<4> &y)
+void check(array<int, 4> &y)
 {
   assert(y[0] == 0);
   assert(y[3] == 3);
@@ -22,7 +12,7 @@ void check(myarray<4> &y)
 #endif
 
 int main(void) {
-  myarray<4> x;
+  array<int, 4> x;
 
   for (int i=0; i<4; i++) {
     x[i] = i;
@@ -34,7 +24,7 @@ int main(void) {
 #ifdef FUNCTION
   check(x); //this doesn't work
 #else
-  myarray<4> &y = x; //this works
+  array<int, 4> &y = x; //this works
   assert(y[0] == 0);
   assert(y[3] == 3);
 #endif 

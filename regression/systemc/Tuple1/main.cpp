@@ -1,7 +1,7 @@
 #include <cassert>
-#include "tuple.h"
+#include "../masc.h"
 
-#ifndef NO_STRING
+#ifndef __CPROVER__
 #include <string>
 #endif
 
@@ -12,13 +12,13 @@ int main(int argc, char** argv)
 
   p = tuple<int,int>(1,2);
 
-#ifndef NO_IO
+#ifndef __CPROVER__
   std::cout << p << std::endl;
 #endif
   
   p = tuple<int,int>(3,4);
 
-#ifndef NO_IO
+#ifndef __CPROVER__
   std::cout << p << std::endl;
 
   std::cout << x << "," << y << std::endl;
@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 
   tie(x,y) = p;
 
-#ifndef NO_IO
+#ifndef __CPROVER__
   std::cout << x << "," << y << std::endl;
 #endif
   assert(x==3);
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
   
   p = tuple<int,int>(5,6);
 
-#ifndef NO_IO
+#ifndef __CPROVER__
   std::cout << p << std::endl;
 
   std::cout << x << "," << y << std::endl;

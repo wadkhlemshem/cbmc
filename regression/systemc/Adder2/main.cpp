@@ -1,15 +1,13 @@
-//#define IO
-
 #include <cassert>
 #include "../systemc_util.cpp"
 #include "../sc_uint_base.cpp"
 #include "../sc_uint.h"
-#include "../tuple.h"
+#include "../masc.h"
 
 #define K 2 //4 //8
 #define W 2 //8 //32
 
-#ifdef IO
+#ifndef __CPROVER__
 #include <iostream>
 #include <bitset>
 #endif
@@ -56,7 +54,7 @@ int main(int argc, char *argv[])
   spec_r = bigadd(a,b);
   impl_r = add256_impl(a,b);
 
-#ifdef IO
+#ifndef __CPROVER__
   std::cout << "spec_r: " << spec_r << std::endl;
   std::cout << "impl_r: " << impl_r << std::endl;
 #endif
