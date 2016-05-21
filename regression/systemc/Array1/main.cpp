@@ -1,32 +1,13 @@
 #include <assert.h>
+#include "../masc.h"
 
 #define COPY
 
 typedef unsigned uint;
 
-template <class T, uint m>
-class myarray {
-
-  T elt[m];
-
-public:
-#if 0
-  myarray &operator=(const myarray &other) {
-    for (int i=0; i<m; i++) {
-      elt[i] = other.elt[i];
-    }
-    return *this;
-  }
-#endif
-
-  T& operator[] (int idx) {
-    return elt[idx];
-  }
-};
-
 #ifdef COPY
-myarray<uint, 3> rev3u(myarray<uint, 3> x) {
-  myarray<uint, 3> y;
+array<uint, 3> rev3u(array<uint, 3> x) {
+  array<uint, 3> y;
   y[0] = x[2];
   y[1] = x[1];
   y[2] = x[0];
@@ -35,7 +16,7 @@ myarray<uint, 3> rev3u(myarray<uint, 3> x) {
 
 #else
 
-void rev3u(myarray<uint, 3> x, myarray<uint, 3> &y) {
+void rev3u(array<uint, 3> x, array<uint, 3> &y) {
   y[0] = x[2];
   y[1] = x[1];
   y[2] = x[0];
@@ -46,7 +27,7 @@ extern bool arbb();
 extern uint arbu();
 
 int main(void) {
-  myarray<bool, 4> arrb;
+  array<bool, 4> arrb;
 
   for (int i=0; i<4; i++) {
     bool cond = (i%2 == 0);
@@ -58,12 +39,12 @@ int main(void) {
   assert(arrb[2] == true); //problem: fails without constant propagation
   assert(arrb[3] == false);
 
-  myarray<uint, 3> arru;
+  array<uint, 3> arru;
   for (int i=0; i<3; i++) {
     arru[i] = arbu();
   }
 
-  myarray<uint, 3> arru2;
+  array<uint, 3> arru2;
 #ifdef COPY
   arru2 = rev3u(arru); //problem: copy constructor refuses to copy array (solved)
                        //new problem: byte_extract_little_endian ignored
