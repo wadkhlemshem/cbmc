@@ -31,11 +31,10 @@ tuple<uint1_t, uint256_t> add256_impl(uint256_t a, uint256_t b)
   uint i;
   for(i=0; i<K; i++)
   {
-    p_sum += (uint33_t)a.range(i*W+(W-1),i*W)/*.to_uint()*/ + b.range(i*W+(W-1),i*W); //.to_uint();
+    p_sum += (uint33_t)a.range(i*W+(W-1),i*W) + b.range(i*W+(W-1),i*W);
     result.range(i*W+(W-1),i*W) = p_sum.range((W-1),0);
     p_sum >>= W;
   }
-  result = 5;
   return tuple<uint1_t, uint256_t> ((uint1_t)p_sum[0], result);
 }
 
@@ -49,9 +48,9 @@ tuple<uint1_t,uint256_t> bigadd (uint256_t a, uint256_t b) {
 int main(int argc, char *argv[]) 
 {
   uint256_t a(15), b(15);
-  tuple<uint1_t,uint256_t> spec_r, impl_r;
+  tuple<uint1_t,uint256_t> spec_r(1,13), impl_r;
 
-  spec_r = bigadd(a,b);
+//  spec_r = bigadd(a,b);
   impl_r = add256_impl(a,b);
 
 #ifndef __CPROVER__
