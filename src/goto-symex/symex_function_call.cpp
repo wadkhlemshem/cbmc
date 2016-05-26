@@ -6,7 +6,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#include <iostream>
 #include <cassert>
 #include <iostream>
 
@@ -495,7 +494,8 @@ void goto_symext::locality(
     
     while(state.l1_history.find(l1_name)!=state.l1_history.end())
     {
-      state.level1.increase_counter(l0_name);
+      if(offset>0)
+	state.level1.increase_counter(l0_name);
       ssa.set_level_1(frame_nr+offset);
       l1_name=ssa.get_identifier();
       ++offset;
