@@ -60,7 +60,10 @@ template<class T, uint m>
 // ---------------------------------------------------------------------------
 
 // null type
-struct null_type {};
+struct null_type
+{
+  bool operator==(const null_type &other) const { return true; }
+};
 
 // a const value of null_type
 inline const null_type cnull() {return null_type();}
@@ -120,6 +123,16 @@ public:
 
   tuple(T0 t0, T1 t1, T2 t2, T3 t3): el0(t0), el1(t1), el2(t2), el3(t3) {}
 
+  bool operator==(const tuple<T0,T1,T2,T3> &other) const
+  {
+    return
+      el0 == other.el0 &&
+      el1 == other.el1 &&
+      el2 == other.el2 &&
+      el3 == other.el3;           
+  }
+
+  
 };
 
 #if !defined(__CPROVER__)
