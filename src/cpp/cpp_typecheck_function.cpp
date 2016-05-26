@@ -5,7 +5,6 @@ Module: C++ Language Type Checking
 Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
-
 //#define DEBUG
 
 #ifdef DEBUG
@@ -153,7 +152,7 @@ void cpp_typecheckt::convert_function(symbolt &symbol)
   cpp_scopet &function_scope=cpp_scopes.set_scope(symbol.name);
 
   // fix the scope's prefix
-  function_scope.prefix+=id2string(symbol.name)+"::"; 
+  function_scope.prefix = id2string(symbol.name)+"::"; 
 
   // genuine function definition -- do the parameter declarations
   convert_parameters(symbol.mode, function_type);
