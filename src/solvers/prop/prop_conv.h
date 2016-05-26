@@ -21,6 +21,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "literal_expr.h"
 #include "prop.h"
 
+#define DEBUG_MODE
+
 // API that provides a "handle" in the form of a literalt
 // for expressions.
 
@@ -78,8 +80,10 @@ public:
   virtual ~prop_conv_solvert() { }
 
   // overloading from decision_proceduret
+#ifndef DEBUG_MODE
   virtual void set_to(const exprt &expr, bool value);
   virtual decision_proceduret::resultt dec_solve();
+#endif
   virtual void print_assignment(std::ostream &out) const;
   virtual std::string decision_procedure_text() const
   { return "propositional reduction"; }
@@ -111,7 +115,16 @@ public:
   const cachet &get_cache() const { return cache; }
   const symbolst &get_symbols() const { return symbols; }
   
+#ifdef DEBUG_MODE
+  virtual void set_to(const exprt &expr, bool value);
+  virtual decision_proceduret::resultt dec_solve();
+#endif
+  
 protected:
+#ifdef DEBUG_MODE
+  bvt formula;
+  exprt::operandst formula_exprs;
+#endif
   virtual void post_process();
   
   bool post_processing_done;

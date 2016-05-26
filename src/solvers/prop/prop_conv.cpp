@@ -18,6 +18,11 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "prop_conv.h"
 #include "literal_expr.h"
 
+#ifdef DEBUG_MODE
+#include <iostream>
+#include <langapi/language_util.h>
+#endif
+
 //#define DEBUG
 
 /*******************************************************************\
@@ -495,6 +500,7 @@ Function: prop_conv_solvert::set_to
 
 \*******************************************************************/
 
+#ifndef DEBUG_MODE
 void prop_conv_solvert::set_to(const exprt &expr, bool value)
 {
   if(expr.type().id()!=ID_bool)
@@ -593,6 +599,24 @@ void prop_conv_solvert::set_to(const exprt &expr, bool value)
   // fall back to convert
   prop.l_set_to(convert(expr), value);
 }
+#else
+void prop_conv_solvert::set_to(const exprt &expr, bool value)
+{
+  literalt l = convert(value ? expr : not_exprt(expr));
+  if(l.is_false())
+  {
+    literalt dummy = convert(symbol_exprt("goto_symex::\\dummy", 
+						 bool_typet()));
+    formula.push_back(dummy);
+    formula.push_back(!dummy);
+  }
+  else if(!l.is_true()) 
+  {
+    formula.push_back(l);
+    formula_exprs.push_back(expr);
+  }  
+}
+#endif
 
 /*******************************************************************\
 
@@ -643,6 +667,7 @@ Function: prop_conv_solvert::solve
 
 \*******************************************************************/
 
+#ifndef DEBUG_MODE
 decision_proceduret::resultt prop_conv_solvert::dec_solve()
 {
   // post-processing isn't incremental yet
@@ -666,6 +691,41 @@ decision_proceduret::resultt prop_conv_solvert::dec_solve()
 
   return D_ERROR;
 }
+#else
+decision_proceduret::resultt prop_conv_solvert::dec_solve()
+{
+  // post-processing isn't incremental yet
+  if(!post_processing_done)
+  {
+    print(8, "Post-processing");
+    post_process();
+    post_processing_done=true; 
+  }
+
+  print(7, "Solving with "+prop.solver_text());
+
+  set_assumptions(formula);
+
+  propt::resultt result=prop.prop_solve();
+
+  switch(result)
+  {
+   case propt::P_SATISFIABLE: return D_SATISFIABLE;
+   case propt::P_UNSATISFIABLE:
+   {
+    for(unsigned i=0; i<formula.size(); i++) 
+    {
+      if(is_in_conflict(formula[i]))
+        debug() << "is_in_conflict: " << from_expr(ns, "", formula_exprs[i]) << eom;
+     }      
+     return D_UNSATISFIABLE;
+   }
+   default: return D_ERROR;
+  }
+
+  return D_ERROR;
+}
+#endif
 
 /*******************************************************************\
 
