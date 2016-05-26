@@ -82,6 +82,31 @@ class sc_uint : public sc_uint_base
     return sc_uint_base::operator>>=(v);
   }
 
+  sc_uint<W> operator <<= (int v)
+  {
+    return sc_uint_base::operator<<=(v);
+  }
+
+  sc_uint<W> operator~ ()
+  {
+    return sc_uint_base::operator~();
+  }
+
+  sc_uint<W> operator^ (const sc_uint_base &other)
+  {
+    return sc_uint<W>(sc_uint_base::operator^(other));
+  }
+
+  sc_uint<W> operator| (const sc_uint_base &other)
+  {
+    return sc_uint<W>(sc_uint_base::operator|(other));
+  }
+
+  sc_uint<W> operator& (const sc_uint_base &other)
+  {
+    return sc_uint<W>(sc_uint_base::operator&(other));
+  }
+
 };
 
 #ifndef __CPROVER__

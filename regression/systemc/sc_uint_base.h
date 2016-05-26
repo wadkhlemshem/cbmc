@@ -114,9 +114,35 @@ class sc_uint_base
     return *this;
   }
 
+  sc_uint_base operator<<=(int v) //uint_type v
+  {
+    val <<= v; 
+    return *this;
+  }
+
   sc_uint_base operator+(const sc_uint_base &other)
   {
     return sc_uint_base(val+other.val, m_len);
+  }
+
+  sc_uint_base operator~()
+  {
+    return sc_uint_base(~val, m_len);
+  }
+
+  sc_uint_base operator^(const sc_uint_base &other)
+  {
+    return sc_uint_base(val^other.val, m_len);
+  }
+
+  sc_uint_base operator|(const sc_uint_base &other)
+  {
+    return sc_uint_base(val|other.val, m_len);
+  }
+
+  sc_uint_base operator&(const sc_uint_base &other)
+  {
+    return sc_uint_base(val&other.val, m_len);
   }
 
   sc_uint_base operator*(const sc_uint_base &other)
