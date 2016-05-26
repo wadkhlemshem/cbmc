@@ -5,7 +5,6 @@ Module: C++ Language Type Checking
 Author: Daniel Kroening, kroening@cs.cmu.edu
 
 \*******************************************************************/
-
 //#define DEBUG
 
 #ifdef DEBUG
