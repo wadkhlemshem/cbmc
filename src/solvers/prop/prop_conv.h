@@ -21,7 +21,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "literal_expr.h"
 #include "prop.h"
 
-#define DEBUG_MODE
+//#define DEBUG_MODE
 
 // API that provides a "handle" in the form of a literalt
 // for expressions.
