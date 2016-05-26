@@ -2,53 +2,25 @@
 #include "../systemc_util.cpp"
 #include "../sc_uint_base.cpp"
 #include "../sc_uint.h"
-#include "../masc.h"
-
-#define K 2 //4 //8
-#define W 2 //8 //32
-
-#ifndef __CPROVER__
-#include <iostream>
-#include <bitset>
-#endif
-
-typedef unsigned int uint;
-#define W 2 //32
-#define K 2 //8
 
 typedef sc_uint<1> uint1_t;
-typedef sc_uint<W+1> uint33_t;
-typedef sc_uint<K*W> uint256_t;
-typedef sc_uint<K*W+1> uint257_t;
+typedef sc_uint<4> uint256_t;
 
-// IMPL: a 32b-at-a-time adder
-
-void add256_impl()
+void check()
 {
-  uint256_t a(15), b(15);
-  uint33_t p_sum = 0;
-  uint256_t result;
+  uint1_t result;
+  result.range(0,0) = result.range(0,0);
 
-  uint i;
-  for(i=0; i<K; i++)
-  {
-    p_sum = p_sum + a.range(i*W+(W-1),i*W) + b.range(i*W+(W-1),i*W);
-    uint33_t x =  p_sum.range((W-1),0);
-    result.range(i*W+(W-1),i*W) = x;
-    p_sum >>= W;
-  }
-  tuple<uint1_t,uint256_t> spec_r(1,14), impl_r((uint1_t)p_sum[0], result);
-
-#ifndef __CPROVER__
-  std::cout << "spec_r: " << spec_r << std::endl;
-  std::cout << "impl_r: " << impl_r << std::endl;
-#endif  
-  assert(impl_r == spec_r);
+  uint1_t spec(0), impl(1);
+  assert(impl == spec);
 }
 
 int main(int argc, char *argv[]) 
 {
-  add256_impl();
+#if 1
+  uint1_t abc;
+#endif
+  check();
 
   return 0;
 }
