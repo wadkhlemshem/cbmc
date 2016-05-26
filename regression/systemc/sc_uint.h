@@ -4,7 +4,7 @@
 #include <cassert>
 #include "sc_uint_base.h"
 
-#ifdef IO
+#ifndef __CPROVER__
 #include <iostream>
 #endif
 
@@ -84,7 +84,7 @@ class sc_uint : public sc_uint_base
 
 };
 
-#ifdef IO
+#ifndef __CPROVER__
 template<int W>
 std::ostream& operator<<(std::ostream& out,  sc_uint<W> v)
 {

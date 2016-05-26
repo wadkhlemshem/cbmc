@@ -1,7 +1,6 @@
 #ifndef SYSTEMC_SC_UINT_BASE_H
 #define SYSTEMC_SC_UINT_BASE_H
 
-#include <cassert>
 #include "systemc_util.h"
 
 class sc_uint_subref;
