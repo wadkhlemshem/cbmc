@@ -54,8 +54,11 @@ void cpp_typecheckt::typecheck_function_bodies()
     function_bodies.erase(function_bodies.begin());
 
     if(function_symbol.name==ID_main)
+    {
       add_argc_argv(function_symbol);
-
+      function_symbol.mode=ID_cpp; //main has mode C by default
+    }
+    
     exprt &body=function_symbol.value;
     if(body.id()=="cpp_not_typechecked")
       continue;
