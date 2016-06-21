@@ -277,7 +277,8 @@ void cpp_typecheckt::typecheck_compound_declarator(
 
     typet type=static_cast<typet &>(declarator.name().get_sub()[1]);
     declarator.type().subtype()=type;
-
+    cpp_convert_plain_type(type); //need to normalize type first
+      
     irept name(ID_name);
     name.set(ID_identifier, "("+cpp_type2name(type)+")");
     declarator.name().get_sub().back().swap(name);

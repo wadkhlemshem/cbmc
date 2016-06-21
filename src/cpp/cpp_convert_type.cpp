@@ -13,6 +13,12 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 #include <cassert>
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/config.h>
 #include <util/arith_tools.h>
 #include <util/std_types.h>
@@ -66,7 +72,7 @@ void cpp_convert_typet::read(const typet &type)
 
 void cpp_convert_typet::read_rec(const typet &type)
 {
-  #if 0
+  #ifdef DEBUG
   std::cout << "cpp_convert_typet::read_rec: "
             << type.pretty() << '\n';
   #endif
@@ -542,6 +548,11 @@ void cpp_convert_typet::write(typet &type)
   // is it volatile?
   if(volatile_cnt)
     type.set(ID_C_volatile, true);
+
+#ifdef DEBUG
+  std::cout << "cpp_convert_typet::write: "
+            << type.pretty() << std::endl;
+#endif
 }
 
 void cpp_convert_plain_type(typet &type)

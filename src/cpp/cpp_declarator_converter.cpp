@@ -47,16 +47,21 @@ symbolt &cpp_declarator_convertert::convert(
 
   if(declaration_type.id()=="cpp-cast-operator")
   {
+#if 0
+    std::cout << "cast: " << declarator.name().pretty() << std::endl;
+#endif
     typet type;
     type.swap(declarator.name().get_sub().back());
     declarator.type().subtype()=type;
-    std::string tmp;
     cpp_typecheck.typecheck_type(type);
     irept name(ID_name);
     name.set(ID_identifier, "("+cpp_type2name(type)+")");
     declarator.name().get_sub().back().swap(name);
   }
 
+#if 0
+  std::cout << "convert: " << declarator.name().pretty() << std::endl;
+#endif
   assert(declarator.id()==ID_cpp_declarator);
   final_type=declarator.merge_type(declaration_type);
   assert(final_type.is_not_nil());
@@ -95,6 +100,15 @@ symbolt &cpp_declarator_convertert::convert(
     cpp_typecheck.check_fixed_size_array(final_type);
 
   get_final_identifier();
+
+#if 0
+    if(declaration_type.id()=="cpp-cast-operator")
+    {
+      std::cout << "convert: " << final_identifier << std::endl
+		<< declarator.pretty() << std::endl;
+      scope->print(std::cout); 
+    }
+#endif     
 
   // first see if it is a member
   if(scope->id_class==cpp_idt::id_classt::CLASS && !is_friend)
