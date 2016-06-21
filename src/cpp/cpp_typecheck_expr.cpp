@@ -621,6 +621,10 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
     typet t=expr.type();
     typecheck_type(t);
     std::string op_name=std::string("operator")+"("+cpp_type2name(t)+")";
+#if 0
+  std::cout << "overloaded cast: " << op_name << std::endl;
+  std::cout << t.pretty() << std::endl;
+#endif
 
     // turn this into a function call
     side_effect_expr_function_callt function_call;
@@ -661,6 +665,7 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
 
     if(!found_in_struct)
       return false;
+
 
     {
       exprt member(ID_member);

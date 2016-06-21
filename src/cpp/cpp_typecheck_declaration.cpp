@@ -117,7 +117,7 @@ Function: cpp_typecheckt::convert
 
 void cpp_typecheckt::convert(cpp_declarationt &declaration)
 {
-#ifdef DEBUG
+#if 0
   std::cout << "convert_declaration: "
 	    << declaration.pretty() << std::endl << std::endl;
 #endif
