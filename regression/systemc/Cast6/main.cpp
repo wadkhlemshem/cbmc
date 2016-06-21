@@ -5,20 +5,18 @@ class myclass
   int x;
 public:
   myclass(int _x) : x(_x) {}
-  operator int ();
+  operator int () { return x; }  
 };
+
 
 int main(int argc, char *argv[]) 
 {
   int y;
   myclass a(y);
-  int z = (int)a;
+  int z = (signed int)a;
   
   assert(y == z);
 
   return 0;
 }
-
-inline
-myclass::operator int () { return x; }  
 
