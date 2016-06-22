@@ -5,7 +5,7 @@ class mysuperclass
   int x;
 public:
   mysuperclass(int _x) : x(_x) {}
-  operator int () { return x+1; }  
+  int get() { return x; }  
 };
 
 class myclass : public mysuperclass
@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
 {
   int y;
   myclass a(y);
-  int z = a; //(int)(mysuperclass)
+  int z = a.get();
   
-  assert(y+1 == z);
+  assert(y == z);
 
   return 0;
 }

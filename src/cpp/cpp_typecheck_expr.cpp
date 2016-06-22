@@ -8,9 +8,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-#ifdef DEBUG
+//#ifdef DEBUG
 #include <iostream>
-#endif
+//#endif
 
 #include <cstdlib>
 
@@ -665,7 +665,6 @@ bool cpp_typecheckt::operator_is_overloaded(exprt &expr)
 
     if(!found_in_struct)
       return false;
-
 
     {
       exprt member(ID_member);
