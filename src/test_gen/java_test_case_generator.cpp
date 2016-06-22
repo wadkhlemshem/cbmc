@@ -13,35 +13,18 @@ namespace
 {
 bool is_meta(const irep_idt &id)
 {
-  const std::string &n=id2string(id);
-  return std::string::npos != n.find("$assertionsDisabled")
-      || std::string::npos != n.find("tmp_struct_init$");
+  return std::string::npos != id2string(id).find("$assertionsDisabled");
 }
 
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
     const goto_tracet &trace)
 {
-  std::cout << "starting interpreter" << std::endl;
-  interpretert interpreter(st,gf);
-  std::map<const irep_idt, exprt> result=interpreter.load_counter_example_inputs(trace);
-/*  std::map<const irep_idt, exprt> result;
-  for (const goto_trace_stept &step : trace.steps)
-  {
-    if (goto_trace_stept::ASSIGNMENT == step.type)
-    {
-      const exprt &lhs=step.full_lhs;
-      if (ID_symbol == lhs.id())
-      {
-        const irep_idt &id=to_symbol_expr(lhs).get_identifier();
-        if (st.has_symbol(id) && !is_meta(id))
-        {
-          const exprt &value=step.full_lhs_value;
-          result.insert(std::make_pair(id, value));
-        }
-      }
-    }
-  }*/
-  return result;
+  interpretert interpreter(st, gf);
+  inputst res(interpreter.load_counter_example_inputs(trace));
+  for (inputst::const_iterator it(res.begin()); it != res.end();)
+    if (is_meta(it->first)) res.erase(it++);
+    else ++it;
+  return res;
 }
 
 const irep_idt &get_entry_function_id(const goto_functionst &gf)
@@ -101,8 +84,8 @@ int generate_java_test_case(optionst &o, const symbol_tablet &st,
 {
   try
   {
-    return generate_test_case(o, st, gf, bmc,
-        generate_java_test_case_from_inputs);
+    const test_case_generatort source_gen=generate_java_test_case_from_inputs;
+    return generate_test_case(o, st, gf, bmc, source_gen);
   } catch (const std::string &ex)
   {
     std::cerr << ex << std::endl;
