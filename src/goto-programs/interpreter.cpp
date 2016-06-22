@@ -665,7 +665,11 @@ void interpretert::execute_assign()
       goto_trace_stept &trace_step=steps.get_last_step();
       assign(address, rhs);
       trace_step.full_lhs=code_assign.lhs();
-      trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
+
+      // TODO: need to look at other cases on ssa_exprt
+      const exprt &expr=trace_step.full_lhs;
+      if((expr.id()==ID_member) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+        trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
       trace_step.full_lhs_value=get_value(trace_step.full_lhs.type(),rhs);
       trace_step.lhs_object_value=trace_step.full_lhs_value;
     }
@@ -1256,7 +1260,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();it!=trace.steps.begin();)
   {
     it--;
-    if(it->pc->is_other() || it->pc->is_assign())
+    if(goto_trace_stept::ASSIGNMENT == it->type &&
+       (it->pc->is_other() || it->pc->is_assign() || it->pc->is_function_call()))
     {
       mp_integer address;
       symbol_exprt symbol_expr=to_symbol_expr((it->full_lhs.id()==ID_member) ? to_member_expr(it->full_lhs).symbol() : it->full_lhs);
