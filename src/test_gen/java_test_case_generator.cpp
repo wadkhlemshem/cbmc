@@ -22,7 +22,7 @@ inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
   interpretert interpreter(st, gf);
   inputst res(interpreter.load_counter_example_inputs(trace));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
-    if (is_meta(it->first)) res.erase(it++);
+    if (is_meta(it->first)) it=res.erase(it);
     else ++it;
   return res;
 }
