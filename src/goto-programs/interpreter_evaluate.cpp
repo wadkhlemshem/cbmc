@@ -8,10 +8,12 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <cassert>
 #include <iostream>
+#include <sstream>
 
 #include <util/ieee_float.h>
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
+#include <string.h>
 
 #include "interpreter_class.h"
 
@@ -89,8 +91,10 @@ Function: interpretert::allocate
 
 void interpretert::clear_input_flags()
 {
-  for(unsigned long i=0; i<memory.size(); i++)
-    memory[i].initialised=0;
+  for(unsigned long i=0; i<memory.size(); i++) {
+    const memory_cellt &cell=memory[i];
+    if (cell.initialised>0) cell.initialised=0;
+  }
 }
 
 /*******************************************************************\
@@ -113,6 +117,44 @@ void interpretert::evaluate(
   {
     if(expr.type().id()==ID_struct)
     {
+      dest.reserve(get_size(expr.type()));
+      bool error=false;
+
+      forall_operands(it, expr)
+      {
+        if(it->type().id()==ID_code) continue;
+
+        unsigned sub_size=get_size(it->type());
+        if(sub_size==0) continue;
+
+        std::vector<mp_integer> tmp;
+        evaluate(*it, tmp);
+
+        if(tmp.size()==sub_size)
+        {
+          for(unsigned i=0; i<sub_size; i++)
+            dest.push_back(tmp[i]);
+        }
+        else
+          error=true;
+      }
+
+      if(!error)
+        return;
+
+      dest.clear();
+    } else if((expr.type().id()==ID_pointer) || (expr.type().id()==ID_address_of)) {
+      mp_integer i;
+      if(!to_integer(expr, i))
+      {
+    	dest.push_back(i);
+    	return;
+      }
+      if (expr.has_operands() && expr.op0().id()==ID_address_of)
+      {
+        evaluate(expr.op0(),dest);
+        return;
+      }
     }
     else if(expr.type().id()==ID_floatbv)
     {
@@ -131,6 +173,16 @@ void interpretert::evaluate(
     else if(expr.type().id()==ID_bool)
     {
       dest.push_back(expr.is_true());
+      return;
+    }
+    else if(expr.type().id()==ID_string)
+    {
+      irep_idt value=to_constant_expr(expr).get_value();
+      const char *str=value.c_str();
+      unsigned length=strlen(str)+1;
+      if (show) std::cout << "string decoding not fully implemented " << length << std::endl;
+      mp_integer tmp=value.get_no();
+      dest.push_back(tmp);
       return;
     }
     else
@@ -171,6 +223,27 @@ void interpretert::evaluate(
       return;
       
     dest.clear();
+  }
+  else if(expr.id()==ID_side_effect)
+  {
+    side_effect_exprt side_effect=to_side_effect_expr(expr);
+    if(side_effect.get_statement()==ID_nondet)
+    {
+      if (show) std::cout << "nondet not implemented" << std::endl;
+      return;
+    }
+    else if(side_effect.get_statement()==ID_malloc)
+    {
+      if (show) std::cout << "malloc not fully implemented " << expr.type().subtype().pretty() << std::endl;
+      std::stringstream buffer;
+      num_dynamic_objects++;
+      buffer <<"symex_dynamic::dynamic_object" << num_dynamic_objects;
+      irep_idt id(buffer.str().c_str());
+      mp_integer address=build_memory_map(id,expr.type().subtype());//TODO: check array of type
+     dest.push_back(address);
+      return;
+    }
+    if (show) std::cout << "side effect not implemented " << side_effect.get_statement() << std::endl;
   }
   else if(expr.id()==ID_equal ||
           expr.id()==ID_notequal ||
@@ -400,7 +473,6 @@ void interpretert::evaluate(
   {
     if(expr.operands().size()!=1)
       throw "address_of expects one operand";
-
     dest.push_back(evaluate_address(expr.op0()));
     return;
   }
@@ -476,6 +548,7 @@ void interpretert::evaluate(
   std::cout << "!! failed to evaluate expression: "
             << from_expr(ns, function->first, expr)
             << std::endl;
+  std::cout << expr.id() << "[" << expr.type().id() << "]" << std::endl;
 }
 
 /*******************************************************************\
@@ -495,10 +568,10 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
   if(expr.id()==ID_symbol)
   {
     const irep_idt &identifier=expr.get(ID_identifier);
-    
+
     interpretert::memory_mapt::const_iterator m_it1=
       memory_map.find(identifier);
-   
+
     if(m_it1!=memory_map.end())
       return m_it1->second;
 
@@ -510,6 +583,10 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
       if(m_it2!=call_stack.top().local_map.end())
         return m_it2->second;
     }
+    mp_integer address=memory.size();
+    build_memory_map(to_symbol_expr(expr).get_identifier(),expr.type());
+    return address;
+
   }
   else if(expr.id()==ID_dereference)
   {
@@ -563,9 +640,11 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
     return evaluate_address(expr.op0())+offset;
   }
   
-  std::cout << "!! failed to evaluate address: "
-            << from_expr(ns, function->first, expr)
-            << std::endl;
-
+  if (show)
+  {
+    std::cout << "!! failed to evaluate address: "
+              << from_expr(ns, function->first, expr)
+              << std::endl;
+  }
   return 0;
 }

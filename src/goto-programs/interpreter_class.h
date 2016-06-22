@@ -34,9 +34,11 @@ protected:
   const symbol_tablet &symbol_table;
   const namespacet ns;
   const goto_functionst &goto_functions;
+  typedef std::map<const irep_idt,const typet> dynamic_typest;
+  mutable dynamic_typest dynamic_types;
 
   typedef hash_map_cont<irep_idt, unsigned, irep_id_hash> memory_mapt;
-  memory_mapt memory_map;
+  mutable memory_mapt memory_map;
   
   class memory_cellt
   {
@@ -48,16 +50,18 @@ protected:
   };
   
   typedef std::vector<memory_cellt> memoryt;
-  memoryt memory;
+  mutable memoryt memory;
   
   unsigned stack_pointer;
   
   void build_memory_map();
   void build_memory_map(const symbolt &symbol);
+  mp_integer build_memory_map(const irep_idt &id,const typet &type) const;
   unsigned get_size(const typet &type) const;
 
-  irep_idt get_component_id(irep_idt &object,unsigned offset);
-  exprt get_value(const typet &type,unsigned offset=0);
+  irep_idt get_component_id(const irep_idt &object,unsigned offset);
+  typet get_type(const irep_idt &id);
+  exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
 
   void step();
@@ -96,7 +100,7 @@ protected:
   };
 
   typedef std::stack<stack_framet> call_stackt;
-  typedef std::map<irep_idt,exprt> input_varst;
+  typedef std::map<const irep_idt,exprt> input_varst;
   
   call_stackt call_stack;  
   input_varst input_vars;
@@ -106,6 +110,7 @@ protected:
   bool done;
   bool show;
   int num_steps;
+  mutable int num_dynamic_objects;
   int stack_depth;
   int thread_id;
   
@@ -128,9 +133,12 @@ protected:
 
   void list_inputs(bool use_non_det = false);
   void list_inputs(input_varst &inputs);
-  void print_inputs();
   void fill_inputs(input_varst &inputs);
+  void print_inputs();
+  void print_memory(bool input_flags);
+
+ public:
   input_varst& load_counter_example_inputs(const std::string &filename);
-  input_varst& load_counter_example_inputs(goto_tracet &trace);
+  input_varst& load_counter_example_inputs(const goto_tracet &trace);
 
 };
