@@ -13,6 +13,12 @@ Author:
 
 #include <cstdlib>
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 #include <util/config.h>
 #include <util/arith_tools.h>
 #include <util/std_types.h>
@@ -454,7 +460,8 @@ bool cpp_typecheckt::standard_conversion_pointer(
   exprt &new_expr)
 {
   if(type.id()!=ID_pointer ||
-     is_reference(type))
+     is_reference(type) ||
+     type.find("to-member").is_not_nil())
     return false;
 
   if(expr.get_bool(ID_C_lvalue))
@@ -469,10 +476,6 @@ bool cpp_typecheckt::standard_conversion_pointer(
     new_expr.type()=type;
     return true;
   }
-
-  if(type.find("to-member").is_not_nil())
-    return false;
-
   if(expr.type().id() != ID_pointer ||
      expr.type().find("to-member").is_not_nil())
     return false;
@@ -1068,6 +1071,9 @@ bool cpp_typecheckt::user_defined_conversion_sequence(
   if(from.id()==ID_struct)
   {
     struct_typet from_struct=to_struct_type(from);
+#ifdef DEBUG
+    std::cout << "from: " << from_struct.pretty() << std::endl;
+#endif
 
     bool found=false;
     for(struct_typet::componentst::const_iterator
@@ -1077,9 +1083,10 @@ bool cpp_typecheckt::user_defined_conversion_sequence(
       const irept &component=*it;
       const typet comp_type=static_cast<const typet&>(component.find(ID_type));
 
+#if 0 //UNCLEAR why we shouldn't take a cast operator from a base class
       if(component.get_bool(ID_from_base))
         continue;
-
+#endif
       if(!component.get_bool("is_cast_operator"))
         continue;
 

@@ -5,7 +5,7 @@ class myclass
   int x;
 public:
   myclass(int _x) : x(_x) {}
-  operator int () { return x; }  
+  operator int () { return x+1; }  
 };
 
 
@@ -13,9 +13,9 @@ int main(int argc, char *argv[])
 {
   int y;
   myclass a(y);
-  int z = (int)a;
+  int z = a; // (int)
   
-  assert(y == z);
+  assert(y+1 == z);
 
   return 0;
 }
