@@ -7,6 +7,7 @@
 #include <java_bytecode/java_entry_point.h>
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/java_test_case_generator.h>
+#include <goto-programs/interpreter_class.h>
 
 namespace
 {
@@ -20,7 +21,10 @@ bool is_meta(const irep_idt &id)
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
     const goto_tracet &trace)
 {
-  std::map<const irep_idt, exprt> result;
+  std::cout << "starting interpreter" << std::endl;
+  interpretert interpreter(st,gf);
+  std::map<const irep_idt, exprt> result=interpreter.load_counter_example_inputs(trace);
+/*  std::map<const irep_idt, exprt> result;
   for (const goto_trace_stept &step : trace.steps)
   {
     if (goto_trace_stept::ASSIGNMENT == step.type)
@@ -36,7 +40,7 @@ inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
         }
       }
     }
-  }
+  }*/
   return result;
 }
 
