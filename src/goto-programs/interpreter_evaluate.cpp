@@ -143,7 +143,9 @@ void interpretert::evaluate(
         return;
 
       dest.clear();
-    } else if((expr.type().id()==ID_pointer) || (expr.type().id()==ID_address_of)) {
+    }
+     else if((expr.type().id()==ID_pointer) || (expr.type().id()==ID_address_of))
+    {
       mp_integer i;
       if(!to_integer(expr, i))
       {
@@ -543,6 +545,11 @@ void interpretert::evaluate(
     forall_operands(it,expr) {
       evaluate(*it,dest);
     }
+    return;
+  }
+  else if (expr.id()==ID_nil)
+  {
+    dest.push_back(0);
     return;
   }
   std::cout << "!! failed to evaluate expression: "
