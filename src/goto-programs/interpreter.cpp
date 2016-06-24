@@ -1235,8 +1235,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     try {
       initialise(true);
       fill_inputs(inputs);
-      while(!done)
-        step();
+      while(!done) {
+    	command();
+        //step();
+        //show_state();
+      }
     } catch(const char *e) {
       std::cout << e << std::endl;
     }
@@ -1246,7 +1249,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   return input_vars;
 }
 
-interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_tracet &trace) {
+interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_tracet &trace,bool filtered) {
   jsont counter_example;
   message_clientt messgae_client;
   show=false;
@@ -1286,18 +1289,21 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_
     }
   }
 
-  try {
-    input_vars=inputs;
-    fill_inputs(inputs);
-    while(!done) {
-      show_state();
-      step();
+  input_vars=inputs;
+  if (filtered)
+  {
+    try {
+      fill_inputs(inputs);
+      while(!done) {
+        show_state();
+        step();
+      }
+    } catch(const char *e) {
+      std::cout << e << std::endl;
     }
-  } catch(const char *e) {
-    std::cout << e << std::endl;
+    list_inputs();
+    list_inputs(inputs);
   }
-  list_inputs();
-  list_inputs(inputs);
   print_inputs();
   show=true;
   return input_vars;

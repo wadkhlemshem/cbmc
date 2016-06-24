@@ -139,6 +139,6 @@ protected:
 
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
-  input_varst& load_counter_example_inputs(const goto_tracet &trace);
+  input_varst& load_counter_example_inputs(const goto_tracet &trace,bool filtered=false);
 
 };
