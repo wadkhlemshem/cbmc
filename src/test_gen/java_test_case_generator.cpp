@@ -11,9 +11,16 @@
 
 namespace
 {
+bool contains(const std::string &id, const char * const needle)
+{
+  return std::string::npos != id.find(needle);
+}
+
 bool is_meta(const irep_idt &id)
 {
-  return std::string::npos != id2string(id).find("$assertionsDisabled");
+  const std::string &str=id2string(id);
+  return contains(str, "$assertionsDisabled")
+      || contains(str, "symex_dynamic::");
 }
 
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,

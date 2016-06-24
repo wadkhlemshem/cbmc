@@ -55,9 +55,20 @@ void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
     const symbolt &symbol)
 {
   const namespacet ns(st);
-  if (ID_pointer != symbol.type.id()) result+=type2java(symbol.type, ns);
-  else add_qualified_class_name(result, ns, symbol.type.subtype());
+  const typet &type=symbol.type;
+  const typet &subt=type.subtype();
+  const irep_idt &type_id=type.id();
+  if (ID_symbol == type_id || ID_struct == type_id) add_qualified_class_name(
+      result, ns, type);
+  else if (ID_pointer == type_id) add_qualified_class_name(result, ns, subt);
+  else result+=type2java(symbol.type, ns);
   result+=' ';
+}
+
+void expr2java(std::string &result, const exprt &value, const namespacet &ns)
+{
+  std::string item=expr2java(value, ns);
+  result+=item.substr(0, item.find('!', 0));
 }
 
 void add_value(std::string &result, const symbol_tablet &st,
@@ -72,7 +83,15 @@ void add_value(std::string &result, const symbol_tablet &st, const exprt &value,
       to_address_of_expr(value).object());
   else if (ID_struct == id) add_value(result, st, to_struct_expr(value),
       var_name);
-  else result+=expr2java(value, ns);
+  else if (ID_constant == id && !value.operands().empty()) add_value(result, st,
+      value.op0(), var_name);
+  else expr2java(result, value, ns);
+}
+
+bool is_class_name_comp(const struct_typet::componentt &comp,
+    const size_t index)
+{
+  return ID_string == comp.type().id() && index == 0;
 }
 
 class member_factoryt
@@ -82,13 +101,20 @@ class member_factoryt
   const std::string &this_name;
   const struct_typet::componentst &comps;
   size_t comp_index;
+  bool line_terminated;
 
 public:
   member_factoryt(std::string &result, const symbol_tablet &st,
       const std::string &this_name, const typet &type) :
       result(result), st(st), this_name(this_name), comps(
-          to_struct_type(type).components()), comp_index(0u)
+          to_struct_type(type).components()), comp_index(0u), line_terminated(
+          true)
   {
+  }
+
+  bool is_line_terminated() const
+  {
+    return line_terminated;
   }
 
   void operator()(const exprt &value)
@@ -99,11 +125,11 @@ public:
       member_factoryt mem_fac(result, st, this_name, value.type());
       const struct_exprt::operandst &ops=value.operands();
       std::for_each(ops.begin(), ops.end(), mem_fac);
-      if (comp_index < comps.size() - 1) result+=";\n";
+      if (result.back() != '\n') result+=";\n";
     } else
     {
       const struct_typet::componentt &comp=comps[comp_index];
-      if (ID_symbol != comp.type().id())
+      if (!is_class_name_comp(comp, comp_index))
       {
         indent(result, 2u)+="Reflector.setInstanceField(";
         result+=this_name;
@@ -145,14 +171,21 @@ void add_assign_value(std::string &result, const symbol_tablet &st,
   result+=";\n";
 }
 
-void add_global_state_assignments(std::string &result, const symbol_tablet &st,
-    inputst &inputs)
+bool is_input_struct(const symbolt &symbol)
 {
-  for (inputst::value_type &input : inputs)
+  return std::string::npos != id2string(symbol.name).find("tmp_struct_init");
+}
+
+void add_global_state_assignments(std::string &result, const symbol_tablet &st,
+    inputst &in)
+{
+  for (inputst::const_reverse_iterator it=in.rbegin(); it != in.rend(); ++it)
   {
-    const symbolt &symbol=st.lookup(input.first);
+    const symbolt &symbol=st.lookup(it->first);
     if (!symbol.is_static_lifetime) continue;
-    add_assign_value(indent(result, 2u), st, symbol, input.second);
+    indent(result, 2u);
+    if (is_input_struct(symbol)) add_decl_with_init_prefix(result, st, symbol);
+    add_assign_value(result, st, symbol, it->second);
   }
 }
 
