@@ -453,9 +453,8 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   if(cmdline.isset("graphml-cex"))
     options.set_option("graphml-cex", cmdline.get_value("graphml-cex"));
 
-  if(cmdline.isset("gen-java-test-case")) {
+  if(cmdline.isset("gen-java-test-case"))
     options.set_option("gen-java-test-case", true);
-  }
 }
 
 /*******************************************************************\
