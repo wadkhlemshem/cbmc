@@ -244,7 +244,10 @@ std::string get_escaped_func_name(const symbolt &symbol)
   substitute(result, ")", "Y");
   return result;
 }
+
 }
+
+
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
     const irep_idt &func_id, inputst inputs)
@@ -256,4 +259,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   add_global_state_assignments(result, st, inputs);
   add_func_call_parameters(result, st, func_id, inputs);
   return add_func_call(result, st, func_id);
+}
+
+std::string func_name(const symbolt &symbol)
+{
+  return get_escaped_func_name(symbol);
 }

@@ -73,13 +73,11 @@ int generate_test_case(optionst &options, const symbol_tablet &st,
     const inputst inputs(generate_inputs(st, gf, trace));
     const irep_idt &entry_func_id=get_entry_function_id(gf);
     const std::string source(generate(st, entry_func_id, inputs));
-    const std::string file(options.get_option("test_case_file"));
-    if (file.empty()) std::cout << source;
-    else
-    {
-      std::ofstream ofs(file.c_str());
-      ofs << source;
-    }
+    const symbolt &func=st.lookup(entry_func_id);
+    const std::string file("test_"+func_name(func));
+    std::ofstream ofs(file.c_str());
+    assert(ofs.is_open());
+    ofs << source;
     return TEST_CASE_SUCCESS;
   }
   }

@@ -35,4 +35,6 @@ std::string generate_java_test_case_from_inputs(
     const irep_idt &func_id,
     inputst inputs);
 
+std::string func_name(const symbolt &symbol);
+
 #endif /* JAVA_TEST_SOURCE_FACTORY_H_ */
