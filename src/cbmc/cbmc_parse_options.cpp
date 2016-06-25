@@ -453,8 +453,9 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   if(cmdline.isset("graphml-cex"))
     options.set_option("graphml-cex", cmdline.get_value("graphml-cex"));
 
-  if(cmdline.isset("gen-java-test-case"))
+  if(cmdline.isset("gen-java-test-case")) {
     options.set_option("gen-java-test-case", true);
+  }
 }
 
 /*******************************************************************\
@@ -1142,9 +1143,10 @@ void cbmc_parse_optionst::help()
     " --cover CC                   create test-suite with coverage criterion CC\n"
     " --mm MM                      memory consistency model for concurrent programs\n"
     "\n"
-    "Java Bytecode frontend options:\n"
+    "Java Bytecode options:\n"
     " --classpath dir/jar          set the classpath\n"
     " --main-class class-name      set the name of the main class\n"
+    " --gen-java-test-case         generate test case\n" 
     "\n"
     "Semantic transformations:\n"
     " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"
