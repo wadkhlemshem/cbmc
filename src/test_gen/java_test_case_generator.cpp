@@ -56,6 +56,23 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 typedef std::function<
     std::string(const symbol_tablet &, const irep_idt &, const inputst &)> test_case_generatort;
 
+void print_to_test_case_sink(const optionst &options, const std::string &text)
+{
+  const std::string out_file_name=options.get_option("outfile");
+  if (out_file_name.empty()) std::cout << text;
+  else std::ofstream(out_file_name.c_str()) << text;
+}
+
+void generate_test_case(const optionst &options, const symbol_tablet &st,
+    const goto_functionst &gf, const goto_tracet &trace,
+    const test_case_generatort generate)
+{
+  const inputst inputs(generate_inputs(st, gf, trace));
+  const irep_idt &entry_func_id=get_entry_function_id(gf);
+  const std::string source(generate(st, entry_func_id, inputs));
+  print_to_test_case_sink(options, source);
+}
+
 int generate_test_case(optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, bmct &bmc, const test_case_generatort generate)
 {
@@ -70,30 +87,28 @@ int generate_test_case(optionst &options, const symbol_tablet &st,
   default:
   {
     const goto_tracet &trace=bmc.safety_checkert::error_trace;
-    const inputst inputs(generate_inputs(st, gf, trace));
-    const irep_idt &entry_func_id=get_entry_function_id(gf);
-    const std::string source(generate(st, entry_func_id, inputs));
-    const symbolt &func=st.lookup(entry_func_id);
-    const std::string file("test_"+func_name(func));
-    std::ofstream ofs(file.c_str());
-    assert(ofs.is_open());
-    ofs << source;
+    generate_test_case(options, st, gf, trace, generate);
     return TEST_CASE_SUCCESS;
   }
   }
 }
 }
 
+void generate_java_test_case(const optionst &options, const symbol_tablet &st,
+    const goto_functionst &gf, const goto_tracet &trace,
+    const std::string &name)
+{
+  std::string title("Test case: ");
+  title+=name;
+  title+='\n';
+  print_to_test_case_sink(options, title);
+  const test_case_generatort source_gen=generate_java_test_case_from_inputs;
+  generate_test_case(options, st, gf, trace, source_gen);
+}
+
 int generate_java_test_case(optionst &o, const symbol_tablet &st,
     const goto_functionst &gf, bmct &bmc)
 {
-  try
-  {
-    const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-    return generate_test_case(o, st, gf, bmc, source_gen);
-  } catch (const std::string &ex)
-  {
-    std::cerr << ex << std::endl;
-    throw;
-  }
+  const test_case_generatort source_gen=generate_java_test_case_from_inputs;
+  return generate_test_case(o, st, gf, bmc, source_gen);
 }

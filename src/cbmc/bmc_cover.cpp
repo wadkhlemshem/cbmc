@@ -21,6 +21,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/xml_goto_trace.h>
 #include <goto-programs/json_goto_trace.h>
 
+#include <test_gen/java_test_case_generator.h>
+
 #include "bmc.h"
 #include "bv_cbmc.h"
 
@@ -488,6 +490,17 @@ bool bmc_covert::operator()()
     for(const auto & t : tests)
       std::cout << t << '\n';
   }
+
+  const optionst &opt=bmc.options;
+  const symbol_tablet &st=bmc.ns.get_symbol_table();
+  const goto_functionst &gf=goto_functions;
+  if (opt.get_bool_option("gen-java-test-case"))
+    for (const goal_mapt::value_type &goal_entry : goal_map)
+    {
+      const goalt &goal=goal_entry.second;
+      if (goal.satisfied)
+        generate_java_test_case(opt, st, gf, goal.goto_trace, goal.description);
+    }
   
   return false;
 }

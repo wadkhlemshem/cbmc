@@ -10,6 +10,8 @@
 #ifndef JAVA_TEST_CASE_GENERATOR_H_
 #define JAVA_TEST_CASE_GENERATOR_H_
 
+#include <string>
+
 #define TEST_CASE_SUCCESS 0
 #define TEST_CASE_FAIL 1
 #define TEST_CASE_ERROR 10
@@ -23,11 +25,31 @@
  * @param st
  * @param gf
  * @param bmc
+ *
+ * @return
  */
 int generate_java_test_case(
     class optionst &options,
     const class symbol_tablet &st,
     const class goto_functionst &gf,
     class bmct &bmc);
+
+/**
+ * @brief
+ *
+ * @details
+ *
+ * @param options
+ * @param st
+ * @param gf
+ * @param trace
+ * @param name
+ */
+void generate_java_test_case(
+    const optionst &options,
+    const symbol_tablet &st,
+    const goto_functionst &gf,
+    const class goto_tracet &trace,
+    const std::string &name);
 
 #endif /* JAVA_TEST_CASE_GENERATOR_H_ */
