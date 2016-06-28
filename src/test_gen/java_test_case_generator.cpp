@@ -56,21 +56,27 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 typedef std::function<
     std::string(const symbol_tablet &, const irep_idt &, const inputst &)> test_case_generatort;
 
-void print_to_test_case_sink(const optionst &options, const std::string &text)
-{
-  const std::string out_file_name=options.get_option("outfile");
-  if (out_file_name.empty()) std::cout << text;
-  else std::ofstream(out_file_name.c_str()) << text;
-}
-
 void generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
-    const test_case_generatort generate)
+    const test_case_generatort generate, std::string test_case_name="")
 {
   const inputst inputs(generate_inputs(st, gf, trace));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   const std::string source(generate(st, entry_func_id, inputs));
-  print_to_test_case_sink(options, source);
+  std::string out_file_name=options.get_option("outfile");
+  if (out_file_name.empty())
+  {
+    if (!test_case_name.empty())
+      std::cout << "Test case: " << test_case_name << std::endl;
+    std::cout << source;
+  }
+  else
+  {
+    assert(!test_case_name.empty());
+    out_file_name+='_';
+    out_file_name+=test_case_name;
+    std::ofstream(out_file_name.c_str()) << source;
+  }
 }
 
 int generate_test_case(optionst &options, const symbol_tablet &st,
@@ -98,12 +104,8 @@ void generate_java_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     const std::string &name)
 {
-  std::string title("Test case: ");
-  title+=name;
-  title+='\n';
-  print_to_test_case_sink(options, title);
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-  generate_test_case(options, st, gf, trace, source_gen);
+  generate_test_case(options, st, gf, trace, source_gen, name);
 }
 
 int generate_java_test_case(optionst &o, const symbol_tablet &st,
