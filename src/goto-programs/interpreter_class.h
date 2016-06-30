@@ -101,9 +101,12 @@ protected:
 
   typedef std::stack<stack_framet> call_stackt;
   typedef std::map<const irep_idt,exprt> input_varst;
+  typedef std::map<const irep_idt,std::list<exprt> > list_input_varst;
   
   call_stackt call_stack;  
   input_varst input_vars;
+  std::map<const irep_idt,const irep_idt> non_bodied_vars;
+  
   goto_functionst::function_mapt::const_iterator function;
   goto_programt::const_targett PC, next_PC;
   goto_tracet steps;
@@ -134,6 +137,8 @@ protected:
   void list_inputs(bool use_non_det = false);
   void list_inputs(input_varst &inputs);
   void fill_inputs(input_varst &inputs);
+  void list_non_bodied();
+  void list_non_bodied(const goto_programt::instructionst &instructions);
   void print_inputs();
   void print_memory(bool input_flags);
 

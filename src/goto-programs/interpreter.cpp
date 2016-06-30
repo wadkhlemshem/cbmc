@@ -161,6 +161,7 @@ void interpretert::command()
     std::cout << "id: output program inputs with det values for don cares" << std::endl;
     std::cout << "in: output program inputs with non-det values for don cares" << std::endl;
     std::cout << "it: output program inputs for last trace" << std::endl;
+    std::cout << "if: output program inputs ids for non-bodied function" << std::endl;
     std::cout << "i file: output program inputs for [json] file trace" << std::endl;
     std::cout << "j: output json trace" << std::endl;
     std::cout << "m: output memory dump" << std::endl;
@@ -178,6 +179,11 @@ void interpretert::command()
     else if(ch=='n') list_inputs(true);
     else if(ch=='t') load_counter_example_inputs(steps);
     else if(ch==' ') load_counter_example_inputs(command+3);
+    else if(ch=='f') {
+      list_non_bodied();
+      show_state();
+      return;
+    }
     print_inputs();
   }
   else if(ch=='j')
@@ -188,7 +194,8 @@ void interpretert::command()
     if(ch==' ') {
       std::ofstream file;
       file.open(command+2);
-      if(file.is_open()) {
+      if(file.is_open())
+      {
         json_steps.output(file);
         file.close();
         return;
@@ -204,10 +211,12 @@ void interpretert::command()
   else if(ch=='o')
   {
     ch=tolower(command[1]);
-    if(ch==' ') {
+    if(ch==' ')
+    {
       std::ofstream file;
       file.open(command+2);
-      if(file.is_open()) {
+      if(file.is_open())
+      {
         steps.output(ns, file);
         file.close();
         return;
@@ -522,7 +531,6 @@ exprt interpretert::get_value(const typet &type, unsigned offset,bool use_non_de
     return result;
   } else if(real_type.id()==ID_array) {
     exprt result(ID_constant, type);
-    //array_exprt result(type);
     const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
     unsigned subtype_size=get_size(type.subtype());
     mp_integer mp_count;
@@ -575,7 +583,6 @@ exprt interpretert::get_value(const typet &type, std::vector<mp_integer> &rhs,un
     return result;
   } else if(real_type.id()==ID_array) {
     exprt result(ID_constant, type);
-    //array_exprt result(type);
     const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
     unsigned subtype_size=get_size(type.subtype());
     mp_integer mp_count;
@@ -593,40 +600,47 @@ exprt interpretert::get_value(const typet &type, std::vector<mp_integer> &rhs,un
     f.spec=to_floatbv_type(type);
     f.unpack(rhs[offset]);
     return f.to_expr();
-  } else if(real_type.id()==ID_fixedbv) {
+  }
+  else if(real_type.id()==ID_fixedbv)
+  {
     fixedbvt f;
     f.from_integer(rhs[offset]);
     return f.to_expr();
-  } else if(real_type.id()==ID_bool) {
+  }
+  else if(real_type.id()==ID_bool)
+  {
     if(rhs[offset]!=0)
       return true_exprt();
     else
       return false_exprt();
-  } else if((real_type.id()==ID_pointer) || (real_type.id()==ID_address_of)) {
-      if(rhs[offset]==0)
-      {
-        constant_exprt result(type);
-        result.set_value(ID_NULL);
-        return result;
-      }
-      if(rhs[offset]<memory.size()) {
-        memory_cellt &cell=memory[integer2unsigned(rhs[offset])];
-        const typet type=get_type(cell.identifier);
-        exprt symbol_expr(ID_symbol, type);
-        symbol_expr.set(ID_identifier, cell.identifier);
-        if(cell.offset==0) return address_of_exprt(symbol_expr);
+  }
+  else if((real_type.id()==ID_pointer) || (real_type.id()==ID_address_of))
+  {
+    if(rhs[offset]==0)
+    {
+      constant_exprt result(type);
+      result.set_value(ID_NULL);
+      return result;
+    }
+    if(rhs[offset]<memory.size())
+    {
+      memory_cellt &cell=memory[integer2unsigned(rhs[offset])];
+      const typet type=get_type(cell.identifier);
+      exprt symbol_expr(ID_symbol, type);
+      symbol_expr.set(ID_identifier, cell.identifier);
+      if(cell.offset==0) return address_of_exprt(symbol_expr);
 
-        if(ns.follow(type).id()==ID_struct)
-        {
-          irep_idt member_id=get_component_id(cell.identifier,cell.offset);
-          member_exprt member_expr(symbol_expr,member_id);
-          return address_of_exprt(member_expr);
-        }
-        index_exprt index_expr(symbol_expr,from_integer(cell.offset, integer_typet()));
-        return index_expr;
+      if(ns.follow(type).id()==ID_struct) {
+        irep_idt member_id=get_component_id(cell.identifier,cell.offset);
+        member_exprt member_expr(symbol_expr, member_id);
+        return address_of_exprt(member_expr);
       }
-      std::cout << "pointer out of memory " << rhs[offset] << ">" << memory.size() << std::endl;
-      throw "pointer out of memory";
+      index_exprt index_expr(symbol_expr,from_integer(cell.offset, integer_typet()));
+      return index_expr;
+    }
+    std::cout << "pointer out of memory " << rhs[offset] << ">"
+        << memory.size() << std::endl;
+    throw "pointer out of memory";
   }
   return from_integer(rhs[offset], type);
 }
@@ -1048,6 +1062,69 @@ unsigned interpretert::get_size(const typet &type) const
 
 /*******************************************************************
 
+Function: list_non_bodied
+
+ Inputs:
+
+ Outputs:
+
+ Purpose:
+
+ \*******************************************************************/
+void interpretert::list_non_bodied() {
+  int funcs=0;
+  non_bodied_vars.clear();
+  for(goto_functionst::function_mapt::const_iterator f_it =
+       goto_functions.function_map.begin();
+       f_it!=goto_functions.function_map.end(); f_it++)
+  {
+    if(f_it->second.body_available()) 
+    {
+      list_non_bodied(f_it->second.body.instructions);
+    }
+  }
+
+  std::cout << "non bodied varibles " << funcs << std::endl;
+  std::map<const irep_idt,const irep_idt>::const_iterator it;
+/*for(it=non_bodied_vars.begin(); it!=non_bodied_vars.end(); it++) 
+  {
+    std::cout << it->first << "=" << it->second << std::endl;
+  }*/
+}
+
+void interpretert::list_non_bodied(const goto_programt::instructionst &instructions) 
+{
+  for(goto_programt::instructionst::const_iterator f_it =
+    instructions.begin(); f_it!=instructions.end(); f_it++) 
+  {
+    if(f_it->type==FUNCTION_CALL) 
+    {
+      const code_function_callt &function_call=to_code_function_call(f_it->code);
+    if(function_call.lhs().is_not_nil()) 
+    {
+        irep_idt f_id=function_call.function().get(ID_identifier);
+    
+        const goto_functionst::function_mapt::const_iterator it =
+              goto_functions.function_map.find(f_id);
+
+        if(it==goto_functions.function_map.end())
+          throw "failed to find function "+id2string(f_id);
+        
+        if(it->second.body_available()) continue;
+
+        unsigned return_address=integer2unsigned(evaluate_address(function_call.lhs()));
+        if((return_address > 0) && (return_address<memory.size())) 
+        {
+          irep_idt id=memory[return_address].identifier;
+          non_bodied_vars.insert(std::pair<irep_idt,irep_idt>(id, f_id));
+        }
+      }
+    }
+  }
+}
+
+/*******************************************************************
+
 Function: fill_inputs
 
  Inputs:
@@ -1057,19 +1134,18 @@ Function: fill_inputs
  Purpose:
 
  \*******************************************************************/
-void interpretert::fill_inputs(input_varst &inputs) {
-  for(input_varst::iterator it=inputs.begin();it!=inputs.end();it++) {
-    std::vector<mp_integer> rhs;
+void interpretert::fill_inputs(input_varst &inputs) 
+{
+  for(input_varst::iterator it=inputs.begin(); it!=inputs.end(); it++)
+  {
+    std::vector<mp_integer > rhs;
     evaluate(it->second, rhs);
-    if(rhs.empty())
-      continue;
+    if(rhs.empty()) continue;
     memory_mapt::const_iterator m_it1=memory_map.find(it->first);
-    if(m_it1==memory_map.end())
-      continue;
+    if(m_it1==memory_map.end()) continue;
     mp_integer address=m_it1->second;
     unsigned size=get_size(it->second.type());
-    if(size!=rhs.size())
-      continue;
+    if(size!=rhs.size()) continue;
     assign(address, rhs);
   }
   clear_input_flags();
@@ -1153,11 +1229,11 @@ void interpretert::list_inputs(input_varst &inputs) {
     if ((it->second.type().id()==ID_pointer) && (it->second.has_operands()))
     {
       const exprt& op=it->second.op0();
-      if ((op.id()==ID_address_of) && (op.has_operands()))
+      if((op.id()==ID_address_of) && (op.has_operands()))
       {
         mp_integer address=evaluate_address(op.op0());
         irep_idt id=memory[integer2unsigned(address)].identifier;
-        if (strncmp(id.c_str(),"symex_dynamic::dynamic_object",28)==0)
+        if(strncmp(id.c_str(),"symex_dynamic::dynamic_object",28)==0)
         {
           input_vars[it->first]=inputs[it->first];
         }
@@ -1181,8 +1257,8 @@ void interpretert::print_inputs() {
     list_inputs();
   for(input_varst::iterator it=input_vars.begin();it!=input_vars.end();
       it++) {
-    std::cout << it->first << "=" << from_expr(ns, it->first, it->second) << "[" << it->second.type().id() << "]"
-        << std::endl;
+    std::cout << it->first << "=" << from_expr(ns, it->first, it->second)
+        << "[" << it->second.type().id() << "]" << std::endl;
   }
 }
 
@@ -1221,8 +1297,8 @@ void interpretert::print_memory(bool input_flags) {
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const std::string &filename) {
   jsont counter_example;
-  message_clientt messgae_client;
-  if(parse_json(filename, messgae_client.get_message_handler(),
+  message_clientt message_client;
+  if(parse_json(filename, message_client.get_message_handler(),
       counter_example)) {
     show=false;
     input_varst inputs;
@@ -1236,11 +1312,12 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       initialise(true);
       fill_inputs(inputs);
       while(!done) {
-    	command();
-        //step();
-        //show_state();
+        step();
+        show_state();
       }
-    } catch(const char *e) {
+    }
+    catch(const char *e)
+    {
       std::cout << e << std::endl;
     }
     list_inputs(inputs);
@@ -1249,10 +1326,13 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   return input_vars;
 }
 
-interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_tracet &trace,bool filtered) {
+interpretert::input_varst& interpretert::load_counter_example_inputs(
+    const goto_tracet &trace, bool filtered) {
   jsont counter_example;
   message_clientt messgae_client;
   show=false;
+
+  list_input_varst pre_inputs;
   input_varst inputs;
 
   function=goto_functions.function_map.find(goto_functionst::entry_point());
@@ -1260,24 +1340,28 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_
     throw "main not found";
 
   initialise(true);
-  for(goto_tracet::stepst::const_iterator it=trace.steps.end();it!=trace.steps.begin();)
-  {
+  for(goto_tracet::stepst::const_iterator it=trace.steps.end();
+      it!=trace.steps.begin();) {
     it--;
-    if(goto_trace_stept::ASSIGNMENT == it->type &&
-       (it->pc->is_other() || it->pc->is_assign() || it->pc->is_function_call()))
+    if(goto_trace_stept::ASSIGNMENT==it->type
+    && (it->pc->is_other() || it->pc->is_assign()
+            || it->pc->is_function_call()))
     {
       mp_integer address;
-      symbol_exprt symbol_expr=to_symbol_expr((it->full_lhs.id()==ID_member) ? to_member_expr(it->full_lhs).symbol() : it->full_lhs);
+      symbol_exprt symbol_expr=to_symbol_expr(
+          (it->full_lhs.id()==ID_member) ?
+              to_member_expr(it->full_lhs).symbol() :
+              it->full_lhs);
       irep_idt id=symbol_expr.get_identifier();
 
       address=evaluate_address(it->full_lhs);
-      if (address==0) {
+      if(address==0) {
         address=build_memory_map(id,symbol_expr.type());
       }
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
       assign(address, rhs);
-      if (it->full_lhs.id()==ID_member)
+      if(it->full_lhs.id()==ID_member)
       {
         address=evaluate_address(symbol_expr);
         inputs[id]=get_value(symbol_expr.type(),integer2unsigned(address));
@@ -1286,23 +1370,50 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(const goto_
       {
         inputs[id]=it->full_lhs_value;
       }
+      pre_inputs[id].push_front(inputs[id]);
     }
   }
-
+  list_non_bodied();
+  for(input_varst::iterator it=input_vars.begin(); it!=input_vars.end();it++) {
+    std::map<const irep_idt,const irep_idt>::const_iterator nb_it=non_bodied_vars.find(it->first);
+    if(nb_it!=non_bodied_vars.end())
+    {
+      list_input_varst::iterator p_it=pre_inputs.find(it->first);
+      const exprt size=from_integer(p_it->second.size(), integer_typet());
+      array_typet type=array_typet(it->second.type(),size);
+      array_exprt list(type);
+      list.reserve_operands(p_it->second.size());
+      for(std::list<exprt>::iterator l_it=p_it->second.begin();l_it!=p_it->second.end();l_it++)
+      {
+        list.copy_to_operands(*l_it);
+      }
+      input_vars[nb_it->first]=list;
+      input_vars[nb_it->second]=list;
+      }
+    }
   input_vars=inputs;
-  if (filtered)
+  if(filtered)
   {
-    try {
+    try 
+    {
       fill_inputs(inputs);
       while(!done) {
         show_state();
         step();
       }
-    } catch(const char *e) {
+    } 
+    catch (const char *e) 
+    {
       std::cout << e << std::endl;
     }
     list_inputs();
     list_inputs(inputs);
+  }
+  for(std::map<const irep_idt,const irep_idt>::const_iterator nb_it=non_bodied_vars.begin();
+       nb_it!=non_bodied_vars.end();nb_it++)
+  {
+    input_varst::iterator it=input_vars.find(nb_it->first);
+    if(it!=input_vars.end()) input_vars.erase(it);
   }
   print_inputs();
   show=true;
