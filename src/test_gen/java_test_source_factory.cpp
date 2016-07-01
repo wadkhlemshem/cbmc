@@ -84,7 +84,6 @@ void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
 
 void expr2java(std::string &result, const exprt &value, const namespacet &ns)
 {
-  std::cout << "Calling expr2java on " << value << "\n";
   std::string item=expr2java(value, ns);
   result+=item.substr(0, item.find('!', 0));
 }
@@ -317,8 +316,10 @@ void add_mock_objects(mock_environment_builder& builder, const symbol_tablet &st
 
       std::string return_value;
       add_value(return_value, st, ret.second);
-    
-      if(func.is_java_static_method)
+
+      bool is_static = !to_code_type(func.type).has_this();
+      
+      if(is_static)
 	builder.static_call(classname, funcname, java_arg_types, return_value);
       else
 	builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
