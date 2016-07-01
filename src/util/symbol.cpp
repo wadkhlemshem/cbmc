@@ -47,7 +47,6 @@ void symbolt::show(std::ostream &out) const
   if(is_state_var)         out << " state_var";
   if(is_exported)          out << " exported";
   if(is_volatile)          out << " volatile";
-  if(is_java_static_method) out << " java_static_method";
   if(!mode.empty())        out << " mode=" << mode;
   if(!base_name.empty())   out << " base_name=" << base_name;
   if(!module.empty())      out << " module=" << module;
@@ -116,8 +115,7 @@ void symbolt::to_irep(irept &dest) const
   if(is_thread_local) dest.set("is_thread_local", true);
   if(is_file_local) dest.set("is_file_local", true);
   if(is_extern) dest.set("is_extern", true);
-  if(is_volatile) dest.set("is_volatile", true);
-  if(is_java_static_method) dest.set("is_java_static_method", true);
+  if(is_volatile) dest.set("is_volatile", true);       
 }
 
 /*******************************************************************\
@@ -160,7 +158,6 @@ void symbolt::from_irep(const irept &src)
   is_file_local=src.get_bool("file_local");
   is_extern=src.get_bool("is_extern");
   is_volatile=src.get_bool("is_volatile");
-  is_java_static_method=src.get_bool("is_java_static_method");
 }
 
 /*******************************************************************\
@@ -206,7 +203,6 @@ void symbolt::swap(symbolt &b)
   SYM_SWAP2(is_file_local);
   SYM_SWAP2(is_extern);
   SYM_SWAP2(is_volatile);
-  SYM_SWAP2(is_java_static_method);
 }
 
 /*******************************************************************\

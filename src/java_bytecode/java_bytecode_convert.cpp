@@ -492,7 +492,6 @@ void java_bytecode_convertt::convert(
   method_symbol.type=member_type;
   current_method=method_symbol.name;
   method_has_this=code_type.has_this();
-  method_symbol.is_java_static_method = m.is_static;
 
   tmp_vars.clear();
   method_symbol.value=convert_instructions(m.instructions, code_type);
@@ -503,7 +502,6 @@ void java_bytecode_convertt::convert(
     symbol_table.symbols.erase(s_it); // erase, we stubbed it
     
   symbol_table.add(method_symbol);
-
 }
 
 /*******************************************************************\
@@ -905,7 +903,6 @@ codet java_bytecode_convertt::convert_instructions(
         symbol.type=arg0.type();
         symbol.value.make_nil();
         symbol.mode=ID_java;
-	symbol.is_java_static_method = !use_this;
         symbol_table.add(symbol);
       }
 
