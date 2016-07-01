@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <set>
+#include <iostream>
 
 #include <util/substitute.h>
 #include <util/std_types.h>
@@ -10,12 +11,17 @@
 #include <java_bytecode/expr2java.h>
 
 #include <test_gen/java_test_source_factory.h>
+#include <test_gen/mock_environment_builder.h>
 
 #define INDENT_SPACES "  "
 #define JAVA_NS_PREFIX_LEN 6u
 
 namespace
 {
+
+std::set<std::string> mock_classes;
+mock_environment_builder* global_builder = 0;
+  
 std::string &indent(std::string &result, const size_t num_indent=1u)
 {
   for (size_t i=0u; i < num_indent; ++i)
@@ -25,10 +31,10 @@ std::string &indent(std::string &result, const size_t num_indent=1u)
 
 void add_test_class_name(std::string &result, const std::string &func_name)
 {
-  result+="class ";
+  result+="public class ";
   result+=func_name;
   result+="Test {\n";
-  indent(result)+="public void test";
+  indent(result)+="@org.junit.Test public void test";
   result+=func_name;
   result+="() {\n";
 }
@@ -51,22 +57,34 @@ void add_qualified_class_name(std::string &result, const namespacet &ns,
   } else result+=id2string(to_struct_type(type).get_tag());
 }
 
-void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
-    const symbolt &symbol)
+void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive = 0)
 {
+  if(out_is_primitive)
+    *out_is_primitive = false;
+  
   const namespacet ns(st);
-  const typet &type=symbol.type;
   const typet &subt=type.subtype();
   const irep_idt &type_id=type.id();
   if (ID_symbol == type_id || ID_struct == type_id) add_qualified_class_name(
       result, ns, type);
   else if (ID_pointer == type_id) add_qualified_class_name(result, ns, subt);
-  else result+=type2java(symbol.type, ns);
+  else {
+    if(out_is_primitive)
+      *out_is_primitive = true;
+    result+=type2java(type, ns);
+  }
+}
+
+void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
+			       const symbolt &symbol)
+{
+  add_decl_from_type(result, st, symbol.type);
   result+=' ';
 }
 
 void expr2java(std::string &result, const exprt &value, const namespacet &ns)
 {
+  std::cout << "Calling expr2java on " << value << "\n";
   std::string item=expr2java(value, ns);
   result+=item.substr(0, item.find('!', 0));
 }
@@ -149,12 +167,19 @@ void add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
   const namespacet ns(st);
-  result+='(';
   const typet &type=value.type();
-  add_qualified_class_name(result, ns, type);
-  result+=") Reflector.forceInstance(\"";
-  add_qualified_class_name(result, ns, type);
-  result+="\");\n";
+
+  std::string qualified_class_name;
+  add_qualified_class_name(qualified_class_name, ns, type);  
+
+  std::string instance_expr;
+  if(mock_classes.count(qualified_class_name))
+    instance_expr = global_builder->get_fresh_instance(qualified_class_name, false);
+  else
+    instance_expr = "Reflector.forceInstance(\"" + qualified_class_name + "\")";
+      
+  result+='(' + qualified_class_name + ") " + instance_expr + ";";
+
   member_factoryt mem_fac(result, st, this_name, type);
   const struct_exprt::operandst &ops=value.operands();
   std::for_each(ops.begin(), ops.end(), mem_fac);
@@ -214,15 +239,21 @@ void add_func_call_parameters(std::string &result, const symbol_tablet &st,
   }
 }
 
+std::string symbol_to_function_name(const symbolt &s) {
+
+  const std::string func_name_with_brackets(id2string(s.pretty_name));
+  const size_t sz=func_name_with_brackets.size();
+  assert(sz >= 2u);
+  return func_name_with_brackets.substr(0, sz - 2);
+
+}
+  
 std::string &add_func_call(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id)
 {
   // XXX: Should be expr2java(...) once functional.
   const symbolt &s=st.lookup(func_id);
-  const std::string func_name_with_brackets(id2string(s.pretty_name));
-  const size_t sz=func_name_with_brackets.size();
-  assert(sz >= 2u);
-  indent(result, 2u)+=func_name_with_brackets.substr(0, sz - 2);
+  indent(result, 2u) += symbol_to_function_name(s);
   result+='(';
   const std::set<irep_idt> params(get_parameters(s));
   for (const irep_idt &param : params)
@@ -245,9 +276,60 @@ std::string get_escaped_func_name(const symbolt &symbol)
   return result;
 }
 
+void add_mock_objects(mock_environment_builder& builder, const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns)
+{
+
+  mock_classes.clear();
+  
+  for(auto fn_and_returns : opaque_function_returns) {
+
+    const symbolt &func = st.lookup(fn_and_returns.first);
+    auto class_and_function_name = symbol_to_function_name(func);
+    size_t sepidx = class_and_function_name.rfind('.');
+    assert(sepidx != std::string::npos && "Unqualified call in Java code?");
+    std::string classname = class_and_function_name.substr(0, sepidx);
+    std::string funcname = class_and_function_name.substr(sepidx + 1);
+
+    // Note that this class must be mocked whenever we try to generate a reference to it:
+    mock_classes.insert(classname);
+
+    std::vector<std::string> java_arg_types;
+    std::string java_ret_type;
+
+    const code_typet &code_type = to_code_type(func.type);
+
+    bool type_is_primitive;
+    
+    for(auto &param : code_type.parameters()) {
+      std::string thisparam;
+      // Skip implicit 'this' parameter
+      if(param.get_this())
+	continue;
+      add_decl_from_type(thisparam, st, param.type(), &type_is_primitive);
+      if(type_is_primitive)
+	thisparam = "__primitive__" + thisparam;
+      java_arg_types.push_back(thisparam);
+    }
+
+    add_decl_from_type(java_ret_type, st, code_type.return_type());
+
+    for(auto ret : fn_and_returns.second) {
+
+      std::string return_value;
+      add_value(return_value, st, ret.second);
+    
+      if(func.is_java_static_method)
+	builder.static_call(classname, funcname, java_arg_types, return_value);
+      else
+	builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
+
+    }
+
+  }
+
 }
 
-
+} // End of anonymous namespace
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
     const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
@@ -255,10 +337,23 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
   std::string result;
+
+  // Do this first since the mock object creation can require annotations on the test class.
+  mock_environment_builder builder(4);
+  global_builder = &builder;
+  add_mock_objects(builder, st, opaque_function_returns);
+
+  result += builder.get_class_annotations() + "\n";
   add_test_class_name(result, func_name);
-  add_global_state_assignments(result, st, inputs);
-  //add_mock_objects(opaque_function_returns);
-  add_func_call_parameters(result, st, func_id, inputs);
+
+  std::string post_mock_setup_result;
+  
+  add_global_state_assignments(post_mock_setup_result, st, inputs);
+  add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  // Finalise happens here because add_func_call_parameters et al
+  // may have generated mock objects.
+  builder.finalise_instance_calls();
+  result += "\n" + builder.get_mock_prelude() + "\n\n" + post_mock_setup_result;
   return add_func_call(result, st, func_id);
 }
 

@@ -76,7 +76,7 @@ class mock_environment_builder {
   mock_environment_builder(unsigned int ip);
   
   // Generate mock setup code for a fresh instance of 'tyname'; return a unique local name for it.
-  std::string get_fresh_instance(const std::string& tyname, bool is_constructor, std::vector<std::pair<std::string, std::string> > field_values);
+  std::string get_fresh_instance(const std::string& tyname, bool is_constructor);
 
   // Intercept the next instance call to targetobj.methodname(paramtype0, paramtype1, ...) and return retval.
   void instance_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& rettype, const std::string& retval);

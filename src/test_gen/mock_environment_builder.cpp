@@ -1,6 +1,7 @@
 
 #include "mock_environment_builder.h"
 
+#include <iostream>
 #include <locale>
 #include <assert.h>
 
@@ -14,7 +15,7 @@ mock_environment_builder::mock_environment_builder(unsigned int ip) {
 }
 
 // Intercept the next constructor call to tyname and return a fresh mock instance.
-std::string mock_environment_builder::get_fresh_instance(const std::string& tyname, bool is_constructor, std::vector<std::pair<std::string, std::string> > field_values) {
+std::string mock_environment_builder::get_fresh_instance(const std::string& tyname, bool is_constructor) {
 
   // Make a fresh local name for this instance:
   unsigned long count = ++(name_counter[tyname]);
@@ -32,9 +33,8 @@ std::string mock_environment_builder::get_fresh_instance(const std::string& tyna
 
   }
 
-  mock_prelude <<
-    tyname << " " << freshname << " = org.mockito.Mockito.mock(" << tyname << ".class);" << prelude_newline;
-
+  mock_prelude << tyname << " " << freshname << " = " << "org.mockito.Mockito.mock(" + tyname + ".class);" << prelude_newline;
+  
   if(is_constructor) {
 
     // Intercept the next constructor call and return this:
@@ -43,10 +43,41 @@ std::string mock_environment_builder::get_fresh_instance(const std::string& tyna
 
   }
 
-  // TODO: Call pascal's code to configure fields here.
-
   return freshname;
   
+}
+
+static std::string classname_to_symname(const std::string& classname) {
+
+  std::string ret = classname;
+  for(size_t i = 0, ilim = classname.length(); i != ilim; ++i)
+    if(ret[i] == '.')
+      ret[i] = '_';
+  return ret;
+
+}
+
+static std::string box_java_type(const std::string& unboxed) {
+
+  if(unboxed == "boolean")
+    return "Boolean";
+  else if(unboxed == "byte")
+    return "Byte";
+  else if(unboxed == "char")
+    return "Character";
+  else if(unboxed == "float")
+    return "Float";
+  else if(unboxed == "int")
+    return "Integer";
+  else if(unboxed == "long")
+    return "Long";
+  else if(unboxed == "short")
+    return "Short";
+  else if(unboxed == "double")
+    return "Double";
+  else
+    return unboxed;
+
 }
 
 // Intercept the next instance call to targetclass::methodname(paramtype0, paramtype1, ...) and return retval.
@@ -64,7 +95,7 @@ void mock_environment_builder::instance_call(const std::string& targetclass, con
     // Set up a response list and answer object:
 
     std::ostringstream answerlist;
-    answerlist << targetclass << "_" << methodname;
+    answerlist << classname_to_symname(targetclass) << "_" << methodname;
     for(auto iter : argtypes)
       answerlist << "_" << iter;
 
@@ -75,8 +106,10 @@ void mock_environment_builder::instance_call(const std::string& targetclass, con
 
     insertresult.first->second = instance_method_answer(ao, al);
 
-    mock_prelude << "final java.util.ArrayList<" << rettype << "> " << al << " = new java.util.ArrayList<" << rettype << ">();" << prelude_newline <<
-      "final IterAnswer " << ao << " = new IterAnswer<" << rettype << ">(" << al << ")" << prelude_newline;
+    std::string boxed_type = box_java_type(rettype);
+    
+    mock_prelude << "final java.util.ArrayList<" << boxed_type << "> " << al << " = new java.util.ArrayList<" << boxed_type << ">();" << prelude_newline <<
+      "final IterAnswer " << ao << " = new IterAnswer<" << boxed_type << ">(" << al << ");" << prelude_newline;
     
   }
 
@@ -92,7 +125,7 @@ static unsigned int prefixlen = std::string(prefix).length();
 
 static void generate_arg_matchers(std::ostringstream& printto, const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes) {
 
-  printto << "when(" << targetclass << "." << methodname << "(";
+  printto << "org.mockito.Mockito.when(" << targetclass << "." << methodname << "(";
   
   for(unsigned int i = 0, ilim = argtypes.size(); i < ilim; ++i) {
     
@@ -121,7 +154,9 @@ void mock_environment_builder::finalise_instance_calls() {
   for(auto iter : instance_method_answers) {
 
     unsigned long count = name_counter[iter.first.classname];
-    assert(count != 0 && "Method intercepted but no instances created?");
+    if(count == 0) {
+      std::cout << "Warning: class " << iter.first.classname << " has instance method mocks but never instantiated\n";
+    }
 
     for(unsigned long i = 1; i <= count; ++i) {
 
@@ -161,8 +196,8 @@ std::string mock_environment_builder::get_class_annotations() {
     return "";
   
   std::ostringstream out;
-  out << "@RunWith(org.powermock.modules.junit4.PowerMockRunner.class)\n";
-  out << "@PrepareForTest( { ";
+  out << "@org.junit.runner.RunWith(org.powermock.modules.junit4.PowerMockRunner.class)\n";
+  out << "@org.powermock.core.classloader.annotations.PrepareForTest( { ";
 
   for(std::set<std::string>::iterator it = powermock_classes.begin(), itend = powermock_classes.end(); it != itend; ++it) {
     if(it != powermock_classes.begin())
@@ -170,7 +205,7 @@ std::string mock_environment_builder::get_class_annotations() {
     out << *it << ".class";
   }
 
-  out << "} )";
+  out << " } )";
 
   return out.str();
   
