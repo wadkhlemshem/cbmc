@@ -7,7 +7,6 @@
 #include <java_bytecode/java_entry_point.h>
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/java_test_case_generator.h>
-#include <goto-programs/interpreter_class.h>
 
 namespace
 {
@@ -24,10 +23,10 @@ bool is_meta(const irep_idt &id)
 }
 
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
-    const goto_tracet &trace)
+    const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns)
 {
   interpretert interpreter(st, gf);
-  inputst res(interpreter.load_counter_example_inputs(trace));
+  inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);
     else ++it;
@@ -54,15 +53,18 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 }
 
 typedef std::function<
-    std::string(const symbol_tablet &, const irep_idt &, const inputst &)> test_case_generatort;
+  std::string(const symbol_tablet &, const irep_idt &, const inputst &, const interpretert::list_input_varst&)> test_case_generatort;
 
 void generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     const test_case_generatort generate, std::string test_case_name="")
 {
-  const inputst inputs(generate_inputs(st, gf, trace));
+
+  interpretert::list_input_varst opaque_function_returns;
+  
+  const inputst inputs(generate_inputs(st, gf, trace, opaque_function_returns));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st, entry_func_id, inputs));
+  const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns));
   std::string out_file_name=options.get_option("outfile");
   if (out_file_name.empty())
   {

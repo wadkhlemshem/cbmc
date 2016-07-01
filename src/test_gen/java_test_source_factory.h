@@ -11,6 +11,7 @@
 #define JAVA_TEST_SOURCE_FACTORY_H_
 
 #include <util/expr.h>
+#include <goto-programs/interpreter_class.h>
 
 /**
  * @brief
@@ -33,7 +34,8 @@ typedef std::map<const irep_idt, exprt> inputst;
 std::string generate_java_test_case_from_inputs(
     const class symbol_tablet &st,
     const irep_idt &func_id,
-    inputst inputs);
+    inputst inputs,
+    const interpretert::list_input_varst& opaque_function_returns);
 
 std::string func_name(const symbolt &symbol);
 

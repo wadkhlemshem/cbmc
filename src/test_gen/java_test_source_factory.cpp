@@ -250,13 +250,14 @@ std::string get_escaped_func_name(const symbolt &symbol)
 
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
-    const irep_idt &func_id, inputst inputs)
+    const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
   std::string result;
   add_test_class_name(result, func_name);
   add_global_state_assignments(result, st, inputs);
+  //add_mock_objects(opaque_function_returns);
   add_func_call_parameters(result, st, func_id, inputs);
   return add_func_call(result, st, func_id);
 }
