@@ -177,7 +177,10 @@ void interpretert::command()
     ch=tolower(command[1]);
     if(ch=='d')      list_inputs(false);
     else if(ch=='n') list_inputs(true);
-    else if(ch=='t') load_counter_example_inputs(steps);
+    else if(ch=='t') {
+      list_input_varst ignored;
+      load_counter_example_inputs(steps, ignored);
+    }
     else if(ch==' ') load_counter_example_inputs(command+3);
     else if(ch=='f') {
       list_non_bodied();
@@ -1084,12 +1087,13 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  std::cout << "non bodied varibles " << funcs << std::endl;
+  std::cout << "non bodied varibles " << non_bodied_vars.size() << std::endl;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
-/*for(it=non_bodied_vars.begin(); it!=non_bodied_vars.end(); it++) 
+  for(it=non_bodied_vars.begin(); it!=non_bodied_vars.end(); it++) 
   {
     std::cout << it->first << "=" << it->second << std::endl;
-  }*/
+  }
+  std::cout << "---\n";
 }
 
 void interpretert::list_non_bodied(const goto_programt::instructionst &instructions) 
@@ -1327,12 +1331,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 }
 
 interpretert::input_varst& interpretert::load_counter_example_inputs(
-    const goto_tracet &trace, bool filtered) {
+    const goto_tracet &trace, list_input_varst& pre_inputs, bool filtered) {
   jsont counter_example;
   message_clientt messgae_client;
   show=false;
 
-  list_input_varst pre_inputs;
   input_varst inputs;
 
   function=goto_functions.function_map.find(goto_functionst::entry_point());
@@ -1340,6 +1343,9 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     throw "main not found";
 
   initialise(true);
+
+  list_non_bodied();
+  
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();
       it!=trace.steps.begin();) {
     it--;
@@ -1370,28 +1376,22 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-      pre_inputs[id].push_front(inputs[id]);
+
+      auto nbit = non_bodied_vars.find(id);
+      if(nbit != non_bodied_vars.end())
+	pre_inputs[nbit->second].push_front(std::make_pair(id, inputs[id]));
     }
   }
-  list_non_bodied();
-  for(input_varst::iterator it=input_vars.begin(); it!=input_vars.end();it++) {
-    std::map<const irep_idt,const irep_idt>::const_iterator nb_it=non_bodied_vars.find(it->first);
-    if(nb_it!=non_bodied_vars.end())
-    {
-      list_input_varst::iterator p_it=pre_inputs.find(it->first);
-      const exprt size=from_integer(p_it->second.size(), integer_typet());
-      array_typet type=array_typet(it->second.type(),size);
-      array_exprt list(type);
-      list.reserve_operands(p_it->second.size());
-      for(std::list<exprt>::iterator l_it=p_it->second.begin();l_it!=p_it->second.end();l_it++)
-      {
-        list.copy_to_operands(*l_it);
-      }
-      input_vars[nb_it->first]=list;
-      input_vars[nb_it->second]=list;
-      }
-    }
+
+  for(auto outerit : pre_inputs) {
+    std::cout << outerit.first << " = [";
+    for(auto innerit : outerit.second)
+      std::cout << from_expr(ns, innerit.first, innerit.second) << ", ";
+    std::cout << "]\n";
+  }
+
   input_vars=inputs;
+
   if(filtered)
   {
     try 

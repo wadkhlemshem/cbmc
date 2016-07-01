@@ -30,6 +30,8 @@ public:
   
   friend class simplify_evaluatet;
 
+  typedef std::map<const irep_idt,std::list<std::pair<irep_idt, exprt> > > list_input_varst;  
+
 protected:
   const symbol_tablet &symbol_table;
   const namespacet ns;
@@ -101,7 +103,6 @@ protected:
 
   typedef std::stack<stack_framet> call_stackt;
   typedef std::map<const irep_idt,exprt> input_varst;
-  typedef std::map<const irep_idt,std::list<exprt> > list_input_varst;
   
   call_stackt call_stack;  
   input_varst input_vars;
@@ -144,6 +145,6 @@ protected:
 
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
-  input_varst& load_counter_example_inputs(const goto_tracet &trace,bool filtered=false);
+  input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, bool filtered=false);
 
 };
