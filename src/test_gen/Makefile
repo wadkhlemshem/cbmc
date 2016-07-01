@@ -1,4 +1,4 @@
-SRC = java_test_case_generator.cpp java_test_source_factory.cpp
+SRC = java_test_case_generator.cpp java_test_source_factory.cpp mock_environment_builder.cpp
 
 INCLUDES= -I ..
 
