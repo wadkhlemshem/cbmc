@@ -284,7 +284,7 @@ std::string expr2javat::convert_rec(
   else if(src==java_double_type())
     return q+"double"+d;
   else if(src==java_boolean_type())
-    return q+"bool"+d;
+    return q+"boolean"+d;
   else if(src==java_byte_type())
     return q+"byte"+d;
   else if(src.id()==ID_code)
@@ -456,6 +456,7 @@ std::string expr2javat::convert(
   const exprt &src,
   unsigned &precedence)
 {
+  const typet &type = ns.follow(src.type());
   if(src.id()=="java-this")
     return convert_java_this(src, precedence=15);
   if(src.id()=="java_instanceof")
@@ -477,6 +478,17 @@ std::string expr2javat::convert(
     return convert_function(src, "VIRTUAL_FUNCTION", precedence=16);
   else if(src.id()==ID_java_string_literal)
     return '"'+id2string(src.get(ID_value))+'"'; // Todo: add escaping as needed
+  else if(src.id()==ID_constant && (type.id()==ID_bool || type.id()==ID_c_bool))
+  {
+    // Override expr2ct as Java booleans must be lowercase:
+    std::string constbool = expr2ct::convert(src, precedence);
+    if(constbool == "TRUE")
+      return "true";
+    else if(constbool == "FALSE")
+      return "false";
+    else
+      return constbool;
+  }
   else
     return expr2ct::convert(src, precedence);
 }
