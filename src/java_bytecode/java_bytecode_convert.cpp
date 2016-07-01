@@ -899,6 +899,9 @@ codet java_bytecode_convertt::convert_instructions(
         symbolt symbol;
         symbol.name=id;
         symbol.base_name=arg0.get(ID_C_base_name);
+	// XXX: Are all Java class names prefixed java::?
+	symbol.pretty_name = id2string(arg0.get(ID_C_class)).substr(6) + "." +
+	  id2string(symbol.base_name) + "()";
         symbol.type=arg0.type();
         symbol.value.make_nil();
         symbol.mode=ID_java;
