@@ -70,6 +70,9 @@ public:
   bool is_lvalue, is_file_local, is_extern, is_volatile,
        is_parameter, is_auxiliary, is_weak;
 
+  // Java
+  bool is_java_static_method;
+
   symbolt()
   {
     clear();
@@ -87,7 +90,8 @@ public:
     is_input=is_output=is_state_var=is_property=
     is_static_lifetime=is_thread_local=
     is_lvalue=is_file_local=is_extern=is_volatile=
-    is_parameter=is_auxiliary=is_weak=false;
+    is_parameter=is_auxiliary=is_weak=
+    is_java_static_method=false;
   }
      
   void swap(symbolt &b);

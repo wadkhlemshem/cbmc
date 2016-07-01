@@ -344,6 +344,7 @@ void language_uit::show_symbol_table_plain(
     if(symbol.is_state_var)       out << " state_var";
     if(symbol.is_exported)        out << " exported";
     if(symbol.is_volatile)        out << " volatile";
+    if(symbol.is_java_static_method) out << " java_static_method";
 
     out << '\n';
     out << "Location....: " << symbol.location << '\n';
