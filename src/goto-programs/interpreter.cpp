@@ -177,10 +177,7 @@ void interpretert::command()
     ch=tolower(command[1]);
     if(ch=='d')      list_inputs(false);
     else if(ch=='n') list_inputs(true);
-    else if(ch=='t') {
-      list_input_varst ignored;
-      load_counter_example_inputs(steps, ignored);
-    }
+    else if(ch=='t') load_counter_example_inputs(steps);
     else if(ch==' ') load_counter_example_inputs(command+3);
     else if(ch=='f') {
       list_non_bodied();
@@ -1076,7 +1073,7 @@ Function: list_non_bodied
  \*******************************************************************/
 void interpretert::list_non_bodied() {
   int funcs=0;
-  non_bodied_vars.clear();
+  function_input_vars.clear();
   for(goto_functionst::function_mapt::const_iterator f_it =
        goto_functions.function_map.begin();
        f_it!=goto_functions.function_map.end(); f_it++)
@@ -1087,13 +1084,39 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  std::cout << "non bodied varibles " << non_bodied_vars.size() << std::endl;
+  std::cout << "non bodied varibles " << funcs << std::endl;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
-  for(it=non_bodied_vars.begin(); it!=non_bodied_vars.end(); it++) 
+/*for(it=function_input_vars.begin(); it!=function_input_vars.end(); it++)
   {
-    std::cout << it->first << "=" << it->second << std::endl;
+    std::cout << it->first << "=" << it->second.front() << std::endl;
+  }*/
+}
+
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id)
+{
+  goto_programt::instructionst::const_iterator pc=it;
+  if (pc->is_assign())
+  {
+	const code_assignt &code_assign=to_code_assign(pc->code);
+	if(code_assign.rhs().id()==ID_side_effect)
+	{
+	  side_effect_exprt side_effect=to_side_effect_expr(code_assign.rhs());
+	  if(side_effect.get_statement()==ID_nondet)
+	  {
+		pc--;//TODO: need to check if pc is not already at begin
+	    if(pc->is_return()) pc--;
+	  }
+	}
   }
-  std::cout << "---\n";
+  if(pc->type!=FUNCTION_CALL) return 0;
+  const code_function_callt &function_call=to_code_function_call(pc->code);
+  id=function_call.function().get(ID_identifier);
+  const goto_functionst::function_mapt::const_iterator f_it=goto_functions.function_map.find(id);
+  if(f_it==goto_functions.function_map.end())
+    throw "failed to find function "+id2string(id);
+  if(f_it->second.body_available()) return 0;
+  if(function_call.lhs().is_not_nil()) return 1;
+  return -1;
 }
 
 void interpretert::list_non_bodied(const goto_programt::instructionst &instructions) 
@@ -1101,27 +1124,15 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
   for(goto_programt::instructionst::const_iterator f_it =
     instructions.begin(); f_it!=instructions.end(); f_it++) 
   {
-    if(f_it->type==FUNCTION_CALL) 
+	irep_idt f_id;
+    if(is_opaque_function(f_it,f_id)>0)
     {
-      const code_function_callt &function_call=to_code_function_call(f_it->code);
-    if(function_call.lhs().is_not_nil()) 
-    {
-        irep_idt f_id=function_call.function().get(ID_identifier);
-    
-        const goto_functionst::function_mapt::const_iterator it =
-              goto_functions.function_map.find(f_id);
-
-        if(it==goto_functions.function_map.end())
-          throw "failed to find function "+id2string(f_id);
-        
-        if(it->second.body_available()) continue;
-
-        unsigned return_address=integer2unsigned(evaluate_address(function_call.lhs()));
-        if((return_address > 0) && (return_address<memory.size())) 
-        {
-          irep_idt id=memory[return_address].identifier;
-          non_bodied_vars.insert(std::pair<irep_idt,irep_idt>(id, f_id));
-        }
+      const code_assignt &code_assign=to_code_assign(f_it->code);
+      unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
+      if((return_address > 0) && (return_address<memory.size()))
+      {
+        irep_idt id=memory[return_address].identifier;
+        function_input_vars[f_id].push_back(get_value(code_assign.lhs().type(),return_address));
       }
     }
   }
@@ -1331,11 +1342,12 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 }
 
 interpretert::input_varst& interpretert::load_counter_example_inputs(
-    const goto_tracet &trace, list_input_varst& pre_inputs, bool filtered) {
+    const goto_tracet &trace, bool filtered) {
   jsont counter_example;
   message_clientt messgae_client;
   show=false;
 
+  list_input_varst function_inputs;
   input_varst inputs;
 
   function=goto_functions.function_map.find(goto_functionst::entry_point());
@@ -1343,9 +1355,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     throw "main not found";
 
   initialise(true);
-
-  list_non_bodied();
-  
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();
       it!=trace.steps.begin();) {
     it--;
@@ -1376,22 +1385,26 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-
-      auto nbit = non_bodied_vars.find(id);
-      if(nbit != non_bodied_vars.end())
-	pre_inputs[nbit->second].push_front(std::make_pair(id, inputs[id]));
+      std::cout << it->pc->type << std::endl;
+      irep_idt f_id;
+      if(is_opaque_function(it->pc,f_id)!=0)
+      {
+        function_inputs[f_id].push_front(inputs[id]);
+      }
     }
   }
-
-  for(auto outerit : pre_inputs) {
-    std::cout << outerit.first << " = [";
-    for(auto innerit : outerit.second)
-      std::cout << from_expr(ns, innerit.first, innerit.second) << ", ";
-    std::cout << "]\n";
+  for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
+    const exprt size=from_integer(it->second.size(), integer_typet());
+    array_typet type=array_typet(it->second.front().type(),size);
+    array_exprt list(type);
+    list.reserve_operands(it->second.size());
+    for(std::list<exprt>::iterator l_it=it->second.begin();l_it!=it->second.end();l_it++)
+    {
+      list.copy_to_operands(*l_it);
+    }
+    inputs[it->first]=list;
   }
-
   input_vars=inputs;
-
   if(filtered)
   {
     try 
@@ -1408,12 +1421,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     }
     list_inputs();
     list_inputs(inputs);
-  }
-  for(std::map<const irep_idt,const irep_idt>::const_iterator nb_it=non_bodied_vars.begin();
-       nb_it!=non_bodied_vars.end();nb_it++)
-  {
-    input_varst::iterator it=input_vars.find(nb_it->first);
-    if(it!=input_vars.end()) input_vars.erase(it);
   }
   print_inputs();
   show=true;

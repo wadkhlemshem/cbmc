@@ -65,6 +65,8 @@ protected:
   typet get_type(const irep_idt &id);
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
+  char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id);
+
 
   void step();
   
@@ -106,7 +108,7 @@ protected:
   
   call_stackt call_stack;  
   input_varst input_vars;
-  std::map<const irep_idt,const irep_idt> non_bodied_vars;
+  list_input_varst function_input_vars;
   
   goto_functionst::function_mapt::const_iterator function;
   goto_programt::const_targett PC, next_PC;
