@@ -19,8 +19,25 @@
 namespace
 {
 
-std::set<std::string> mock_classes;
-mock_environment_builder* global_builder = 0;
+// Class to carry mock_classes and the mock environment builder around so that any
+// attempt to generate a new object can easily find out whether it needs a real
+// object or a mock.
+class reference_factoryt {
+
+public:
+
+  std::set<std::string> mock_classes;
+  mock_environment_builder mockenv_builder;
+
+  reference_factoryt(int indent) : mockenv_builder(indent) {}
+  void add_value(std::string &result, const symbol_tablet &st, const exprt &value, const std::string var_name="");
+  void add_value(std::string &result, const symbol_tablet &st, const struct_exprt &value, const std::string &this_name);
+  void add_assign_value(std::string &result, const symbol_tablet &st, const symbolt &symbol, const exprt &value);
+  void add_global_state_assignments(std::string &result, const symbol_tablet &st, inputst &in);
+  void add_func_call_parameters(std::string &result, const symbol_tablet &st, const irep_idt &func_id, inputst &inputs);
+  void add_mock_objects(const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns);
+  
+};
   
 std::string &indent(std::string &result, const size_t num_indent=1u)
 {
@@ -88,11 +105,8 @@ void expr2java(std::string &result, const exprt &value, const namespacet &ns)
   result+=item.substr(0, item.find('!', 0));
 }
 
-void add_value(std::string &result, const symbol_tablet &st,
-    const struct_exprt &value, const std::string &this_name);
-
-void add_value(std::string &result, const symbol_tablet &st, const exprt &value,
-    const std::string var_name="")
+void reference_factoryt::add_value(std::string &result, const symbol_tablet &st, const exprt &value,
+    const std::string var_name)
 {
   const namespacet ns(st);
   const irep_idt &id=value.id();
@@ -119,13 +133,14 @@ class member_factoryt
   const struct_typet::componentst &comps;
   size_t comp_index;
   bool line_terminated;
+  reference_factoryt& ref_factory;
 
 public:
   member_factoryt(std::string &result, const symbol_tablet &st,
-      const std::string &this_name, const typet &type) :
+      const std::string &this_name, const typet &type, reference_factoryt& _ref_factory) :
       result(result), st(st), this_name(this_name), comps(
           to_struct_type(type).components()), comp_index(0u), line_terminated(
-          true)
+          true), ref_factory(_ref_factory)
   {
   }
 
@@ -139,7 +154,7 @@ public:
     assert(comp_index < comps.size());
     if (ID_struct == value.id())
     {
-      member_factoryt mem_fac(result, st, this_name, value.type());
+      member_factoryt mem_fac(result, st, this_name, value.type(), ref_factory);
       const struct_exprt::operandst &ops=value.operands();
       std::for_each(ops.begin(), ops.end(), mem_fac);
       if (result.back() != '\n') result+=";\n";
@@ -153,7 +168,7 @@ public:
         result+=",\"";
         result+=id2string(comp.get_pretty_name());
         result+="\",";
-        add_value(result, st, value);
+        ref_factory.add_value(result, st, value);
         result+=")";
         if (comp_index < comps.size() - 1) result+=";\n";
       }
@@ -162,7 +177,7 @@ public:
   }
 };
 
-void add_value(std::string &result, const symbol_tablet &st,
+void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
   const namespacet ns(st);
@@ -173,18 +188,18 @@ void add_value(std::string &result, const symbol_tablet &st,
 
   std::string instance_expr;
   if(mock_classes.count(qualified_class_name))
-    instance_expr = global_builder->get_fresh_instance(qualified_class_name, false);
+    instance_expr = mockenv_builder.get_fresh_instance(qualified_class_name, false);
   else
     instance_expr = "Reflector.forceInstance(\"" + qualified_class_name + "\")";
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";";
 
-  member_factoryt mem_fac(result, st, this_name, type);
+  member_factoryt mem_fac(result, st, this_name, type, *this);
   const struct_exprt::operandst &ops=value.operands();
   std::for_each(ops.begin(), ops.end(), mem_fac);
 }
 
-void add_assign_value(std::string &result, const symbol_tablet &st,
+void reference_factoryt::add_assign_value(std::string &result, const symbol_tablet &st,
     const symbolt &symbol, const exprt &value)
 {
   std::string symbol_name;
@@ -200,7 +215,7 @@ bool is_input_struct(const symbolt &symbol)
   return std::string::npos != id2string(symbol.name).find("tmp_struct_init");
 }
 
-void add_global_state_assignments(std::string &result, const symbol_tablet &st,
+void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
     inputst &in)
 {
   for (inputst::const_reverse_iterator it=in.rbegin(); it != in.rend(); ++it)
@@ -223,7 +238,7 @@ std::set<irep_idt> get_parameters(const symbolt &func)
   return result;
 }
 
-void add_func_call_parameters(std::string &result, const symbol_tablet &st,
+void reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id, inputst &inputs)
 {
   const symbolt &func=st.lookup(func_id);
@@ -275,7 +290,7 @@ std::string get_escaped_func_name(const symbolt &symbol)
   return result;
 }
 
-void add_mock_objects(mock_environment_builder& builder, const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns)
+void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns)
 {
 
   mock_classes.clear();
@@ -322,9 +337,9 @@ void add_mock_objects(mock_environment_builder& builder, const symbol_tablet &st
       bool is_static = !to_code_type(func.type).has_this();
       
       if(is_static)
-	builder.static_call(classname, funcname, java_arg_types, return_value);
+	mockenv_builder.static_call(classname, funcname, java_arg_types, return_value);
       else
-	builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
+	mockenv_builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
 
     }
 
@@ -342,21 +357,22 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   std::string result;
 
   // Do this first since the mock object creation can require annotations on the test class.
-  mock_environment_builder builder(4);
-  global_builder = &builder;
-  add_mock_objects(builder, st, opaque_function_returns);
+  // Parameter is the indent level on generated code.
+  reference_factoryt ref_factory(4);
+  
+  ref_factory.add_mock_objects(st, opaque_function_returns);
 
-  result += builder.get_class_annotations() + "\n";
+  result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
   add_test_class_name(result, func_name);
 
   std::string post_mock_setup_result;
   
-  add_global_state_assignments(post_mock_setup_result, st, inputs);
-  add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs);
+  ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-  builder.finalise_instance_calls();
-  result += "\n" + builder.get_mock_prelude() + "\n\n" + post_mock_setup_result;
+  ref_factory.mockenv_builder.finalise_instance_calls();
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result;
   return add_func_call(result, st, func_id);
 }
 
