@@ -897,7 +897,7 @@ bool cbmc_parse_optionst::process_goto_program(
     goto_partial_inline(goto_functions, ns, ui_message_handler);
     
     // remove returns, gcc vectors, complex
-    //remove_returns(symbol_table, goto_functions);
+    remove_returns(symbol_table, goto_functions);
     remove_vector(symbol_table, goto_functions);
     remove_complex(symbol_table, goto_functions);
     
