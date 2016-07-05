@@ -310,7 +310,9 @@ void add_mock_objects(mock_environment_builder& builder, const symbol_tablet &st
       java_arg_types.push_back(thisparam);
     }
 
-    add_decl_from_type(java_ret_type, st, code_type.return_type());
+    assert(fn_and_returns.second.size() != 0);
+    // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
+    add_decl_from_type(java_ret_type, st, fn_and_returns.second.back().type());
 
     for(auto ret : fn_and_returns.second) {
 
