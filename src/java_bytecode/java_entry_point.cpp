@@ -623,3 +623,211 @@ bool java_entry_point(
 
   return false;
 }
+
+namespace { // Anon namespace for insert-nondet support functions
+
+exprt clean_deref(const exprt ptr) {
+
+  return ptr.id() == ID_address_of ? ptr.op0() : dereference_exprt(ptr, ptr.type().subtype());
+  
+}
+
+bool find_superclass_with_type(exprt& ptr, const typet& target_type, const namespacet& ns) {
+
+  while(true) {
+  
+    const typet ptr_base = ns.follow(ptr.type().subtype());
+  
+    if(ptr_base.id() != ID_struct)
+      return false;
+
+    const struct_typet& base_struct = to_struct_type(ptr_base);
+
+    if(base_struct.components().size() == 0)
+      return false;
+
+    const typet& first_field_type = ns.follow(base_struct.components()[0].type());
+    ptr = clean_deref(ptr);
+    ptr = member_exprt(ptr, base_struct.components()[0].get_name(), first_field_type);
+    ptr = address_of_exprt(ptr);
+
+    if(first_field_type == target_type)
+      return true;
+
+  }
+
+}
+  
+exprt make_clean_pointer_cast(const exprt ptr, const typet& target_type, const namespacet& ns) {
+
+  assert(target_type.id() == ID_pointer && "Non-pointer target in make_clean_pointer_cast?");
+  
+  if(ptr.type() == target_type)
+    return ptr;
+
+  const typet& target_base = ns.follow(target_type.subtype());
+
+  exprt bare_ptr = ptr;
+  while(bare_ptr.id() == ID_typecast) {
+    assert(bare_ptr.type().id() == ID_pointer && "Non-pointer in make_clean_pointer_cast?");
+    if(bare_ptr.type().subtype() == empty_typet())
+      bare_ptr = bare_ptr.op0();
+  }
+
+  assert(bare_ptr.type().id() == ID_pointer && "Non-pointer in make_clean_pointer_cast?");
+
+  if(bare_ptr.type() == target_type)
+    return bare_ptr;
+
+  exprt superclass_ptr = bare_ptr;
+  if(find_superclass_with_type(superclass_ptr, target_base, ns))
+    return superclass_ptr;
+  
+  return typecast_exprt(bare_ptr, target_type);
+
+}
+  
+void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index) {
+
+  // At this point we know 'ptr' points to an opaque-typed object. We should nondet-initialise it
+  // and insert the instructions *after* the offending call at (*parent_block)[insert_after_index].
+
+  assert(expected_type.id() == ID_pointer && "Nondet initialiser should have pointer type");
+  assert(parent_block && "Must have an existing block to insert nondet-init code");
+
+  namespacet ns(symbol_table);
+  
+  if(ns.follow(expected_type.subtype()).id() != ID_struct)
+    return;
+  
+  const exprt cast_ptr = make_clean_pointer_cast(ptr, expected_type, ns);
+    
+  code_blockt new_instructions;
+
+  exprt derefd = clean_deref(cast_ptr);
+  
+  gen_nondet_init(derefd, new_instructions, symbol_table);
+
+  if(new_instructions.operands().size() != 0) {
+
+    auto institer = parent_block->operands().begin();
+    std::advance(institer, insert_after_index + 1);
+    parent_block->operands().insert(institer, new_instructions.operands().begin(), new_instructions.operands().end());
+    
+  }
+
+}
+bool is_opaque_type(const typet& t, const symbol_tablet& symtab) {
+
+  if(t.id() == ID_pointer)
+    return is_opaque_type(t.subtype(), symtab);
+  
+  namespacet ns(symtab);
+  const typet& resolved = ns.follow(t);
+
+  // No point trying to initalise opaque types without fields.
+  return resolved.get_bool(ID_incomplete_class) && to_class_type(resolved).components().size() != 0;
+
+}
+  
+void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_blockt* parent, unsigned parent_index) {
+
+  const irep_idt &statement=code.get_statement();
+
+  // TOCHECK: is this enough to iterate over all call instructions?
+  
+  if(statement==ID_block) {
+
+    // Use indices not iterators as instructions are added as we progress.
+    for(unsigned i = 0; i < code.operands().size(); ++i)
+      insert_nondet_opaque_fields(to_code(code.operands()[i]), symbol_table, &to_code_block(code), i);
+    
+  }
+  else if(statement == ID_ifthenelse) {
+
+    code_ifthenelset &code_ifthenelse=to_code_ifthenelse(code);
+    insert_nondet_opaque_fields(code_ifthenelse.then_case(), symbol_table, parent, parent_index);
+    if(code_ifthenelse.else_case().is_not_nil())
+      insert_nondet_opaque_fields(code_ifthenelse.else_case(), symbol_table, parent, parent_index);
+    
+  }
+  else if(statement == ID_function_call) {
+
+    code_function_callt &code_function_call=to_code_function_call(code);
+    const exprt& callee = code_function_call.function();
+    const code_typet& callee_type = to_code_type(callee.type());
+    namespacet ns(symbol_table);
+    
+    bool is_opaque_call = false;
+
+    if(callee.id() == ID_symbol) {
+
+      // Static call. Constructors should blat their this-arg with nondets;
+      // other static calls should blat any opaque objects they return.
+      
+      const symbolt& target = ns.lookup(callee);
+
+      if(!target.value.is_nil())
+	return; // Known target.
+      
+      const std::string& id = id2string(to_symbol_expr(callee).get_identifier());
+      bool is_constructor = id.find("<init>") != std::string::npos
+	|| id.find("<clinit>") != std::string::npos;
+      
+      if(is_constructor)
+	insert_nondet_opaque_fields_at(callee_type.parameters()[0].type(),
+				       code_function_call.arguments()[0],
+				       symbol_table, parent, parent_index);
+      else if(is_opaque_type(callee_type.return_type(), symbol_table))
+	insert_nondet_opaque_fields_at(callee_type.return_type(),
+				       code_function_call.lhs(),
+				       symbol_table, parent, parent_index);
+
+    }
+    else {
+
+      // Dynamic dispatch. Assume opaque if the pointer type is opaque
+      // (but in truth it could be worse, as external code could supply
+      // an override we don't know about)
+
+      assert(callee_type.has_this() && "Dynamic dispatch but not instance method?");
+      if(is_opaque_type(callee_type.parameters()[0].type(), symbol_table)
+	 && is_opaque_type(callee_type.return_type(), symbol_table)) {
+	
+	insert_nondet_opaque_fields_at(callee_type.return_type(),
+				       code_function_call.lhs(),
+				       symbol_table, parent, parent_index);
+	
+      }
+
+	
+    }
+    
+  }
+
+}
+  
+void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table) {
+
+  if(sym.is_type)
+    return;
+  if(sym.value.id() != ID_code)
+    return;
+
+  insert_nondet_opaque_fields(to_code(sym.value), symbol_table, 0, 0);
+
+}
+
+} // End anon namespace for insert-nondet support functions
+
+void java_insert_nondet_opaque_fields(symbol_tablet &symbol_table) {
+
+  std::vector<irep_idt> identifiers;
+  identifiers.reserve(symbol_table.symbols.size());
+  forall_symbols(s_it, symbol_table.symbols)
+    identifiers.push_back(s_it->first);
+
+  for(auto& id : identifiers)
+    insert_nondet_opaque_fields(symbol_table.symbols[id], symbol_table);
+
+}
