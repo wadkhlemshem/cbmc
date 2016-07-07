@@ -838,8 +838,13 @@ codet java_bytecode_convertt::convert_instructions(
       {
         if(parameters.empty() || !parameters[0].get_this())
         {
-          const empty_typet empty;
-          pointer_typet object_ref_type(empty);
+	  typet thistype = empty_typet();
+	  if(statement == "invokespecial") {
+	    // Constructor -- infer the "this" type must match the type implied by the name.
+	    irep_idt classname = arg0.get(ID_C_class);
+	    thistype = symbol_typet(classname);
+	  }
+          pointer_typet object_ref_type(thistype);
           code_typet::parametert this_p(object_ref_type);
           this_p.set_this();
           this_p.set_base_name("this");
