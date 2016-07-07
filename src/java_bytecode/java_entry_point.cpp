@@ -121,7 +121,8 @@ void gen_nondet_init(
   symbol_tablet &symbol_table,
   std::set<irep_idt> &recursion_set,
   bool is_sub,
-  irep_idt class_identifier)
+  irep_idt class_identifier,
+  bool skip_classid = false)
 {
   const namespacet ns(symbol_table);
   const typet &type=ns.follow(expr.type());
@@ -232,6 +233,10 @@ void gen_nondet_init(
 
       if(name=="@class_identifier")
       {
+
+	if(skip_classid)
+	  continue;
+	
         constant_exprt ci(class_identifier, string_typet());
 
         code_assignt code(me, ci);
@@ -280,10 +285,11 @@ namespace {
 void gen_nondet_init(
   const exprt &expr,
   code_blockt &init_code,
-  symbol_tablet &symbol_table)
+  symbol_tablet &symbol_table,
+  bool skip_classid = false)
 {
   std::set<irep_idt> recursion_set;
-  gen_nondet_init(expr, init_code, symbol_table, recursion_set, false, "");
+  gen_nondet_init(expr, init_code, symbol_table, recursion_set, false, "", skip_classid);
 }
 }
 
@@ -687,7 +693,7 @@ exprt make_clean_pointer_cast(const exprt ptr, const typet& target_type, const n
 
 }
   
-void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index) {
+void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index, bool skip_classid) {
 
   // At this point we know 'ptr' points to an opaque-typed object. We should nondet-initialise it
   // and insert the instructions *after* the offending call at (*parent_block)[insert_after_index].
@@ -706,7 +712,7 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
 
   exprt derefd = clean_deref(cast_ptr);
   
-  gen_nondet_init(derefd, new_instructions, symbol_table);
+  gen_nondet_init(derefd, new_instructions, symbol_table, skip_classid);
 
   if(new_instructions.operands().size() != 0) {
 
@@ -777,11 +783,11 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
       if(is_constructor)
 	insert_nondet_opaque_fields_at(callee_type.parameters()[0].type(),
 				       code_function_call.arguments()[0],
-				       symbol_table, parent, parent_index);
+				       symbol_table, parent, parent_index, true);
       else if(is_opaque_type(callee_type.return_type(), symbol_table))
 	insert_nondet_opaque_fields_at(callee_type.return_type(),
 				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index);
+				       symbol_table, parent, parent_index, false);
 
     }
     else {
@@ -796,7 +802,7 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
 	
 	insert_nondet_opaque_fields_at(callee_type.return_type(),
 				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index);
+				       symbol_table, parent, parent_index, false);
 	
       }
 
