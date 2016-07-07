@@ -797,7 +797,7 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
       // an override we don't know about)
 
       assert(callee_type.has_this() && "Dynamic dispatch but not instance method?");
-      if(is_opaque_type(callee_type.parameters()[0].type(), symbol_table)
+      if(is_opaque_type(code_function_call.arguments()[0].type(), symbol_table)
 	 && is_opaque_type(callee_type.return_type(), symbol_table)) {
 	
 	insert_nondet_opaque_fields_at(callee_type.return_type(),
