@@ -177,7 +177,10 @@ void interpretert::command()
     ch=tolower(command[1]);
     if(ch=='d')      list_inputs(false);
     else if(ch=='n') list_inputs(true);
-    else if(ch=='t') load_counter_example_inputs(steps);
+    else if(ch=='t') {
+      list_input_varst ignored;
+      load_counter_example_inputs(steps, ignored);
+    }
     else if(ch==' ') load_counter_example_inputs(command+3);
     else if(ch=='f') {
       list_non_bodied();
@@ -1073,14 +1076,14 @@ Function: list_non_bodied
  \*******************************************************************/
 void interpretert::list_non_bodied() {
   int funcs=0;
-  function_input_vars.clear();
+  list_input_varst function_input_vars;
   for(goto_functionst::function_mapt::const_iterator f_it =
        goto_functions.function_map.begin();
        f_it!=goto_functions.function_map.end(); f_it++)
   {
     if(f_it->second.body_available()) 
     {
-      list_non_bodied(f_it->second.body.instructions);
+      list_non_bodied(f_it->second.body.instructions, function_input_vars);
     }
   }
 
@@ -1097,16 +1100,16 @@ char interpretert::is_opaque_function(const goto_programt::instructionst::const_
   goto_programt::instructionst::const_iterator pc=it;
   if (pc->is_assign())
   {
-	const code_assignt &code_assign=to_code_assign(pc->code);
-	if(code_assign.rhs().id()==ID_side_effect)
-	{
-	  side_effect_exprt side_effect=to_side_effect_expr(code_assign.rhs());
-	  if(side_effect.get_statement()==ID_nondet)
-	  {
-		pc--;//TODO: need to check if pc is not already at begin
-	    if(pc->is_return()) pc--;
-	  }
-	}
+  const code_assignt &code_assign=to_code_assign(pc->code);
+  if(code_assign.rhs().id()==ID_side_effect)
+  {
+    side_effect_exprt side_effect=to_side_effect_expr(code_assign.rhs());
+    if(side_effect.get_statement()==ID_nondet)
+    {
+    pc--;//TODO: need to check if pc is not already at begin
+      if(pc->is_return()) pc--;
+    }
+  }
   }
   if(pc->type!=FUNCTION_CALL) return 0;
   const code_function_callt &function_call=to_code_function_call(pc->code);
@@ -1119,12 +1122,12 @@ char interpretert::is_opaque_function(const goto_programt::instructionst::const_
   return -1;
 }
 
-void interpretert::list_non_bodied(const goto_programt::instructionst &instructions) 
+void interpretert::list_non_bodied(const goto_programt::instructionst &instructions, list_input_varst& function_input_vars)
 {
   for(goto_programt::instructionst::const_iterator f_it =
     instructions.begin(); f_it!=instructions.end(); f_it++) 
   {
-	irep_idt f_id;
+  irep_idt f_id;
     if(is_opaque_function(f_it,f_id)>0)
     {
       const code_assignt &code_assign=to_code_assign(f_it->code);
@@ -1342,12 +1345,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 }
 
 interpretert::input_varst& interpretert::load_counter_example_inputs(
-    const goto_tracet &trace, bool filtered) {
+    const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
   jsont counter_example;
   message_clientt messgae_client;
   show=false;
 
-  list_input_varst function_inputs;
   input_varst inputs;
 
   function=goto_functions.function_map.find(goto_functionst::entry_point());

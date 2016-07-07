@@ -332,7 +332,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
     for(auto ret : fn_and_returns.second) {
 
       std::string return_value;
-      add_value(return_value, st, ret.second);
+      add_value(return_value, st, ret);
 
       bool is_static = !to_code_type(func.type).has_this();
       

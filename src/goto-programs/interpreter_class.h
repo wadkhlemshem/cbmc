@@ -30,7 +30,7 @@ public:
   
   friend class simplify_evaluatet;
 
-  typedef std::map<const irep_idt,std::list<std::pair<irep_idt, exprt> > > list_input_varst;  
+  typedef std::map<const irep_idt,std::list<exprt> > list_input_varst;
 
 protected:
   const symbol_tablet &symbol_table;
@@ -108,7 +108,6 @@ protected:
   
   call_stackt call_stack;  
   input_varst input_vars;
-  list_input_varst function_input_vars;
   
   goto_functionst::function_mapt::const_iterator function;
   goto_programt::const_targett PC, next_PC;
@@ -141,7 +140,7 @@ protected:
   void list_inputs(input_varst &inputs);
   void fill_inputs(input_varst &inputs);
   void list_non_bodied();
-  void list_non_bodied(const goto_programt::instructionst &instructions);
+  void list_non_bodied(const goto_programt::instructionst &instructions, list_input_varst& result);
   void print_inputs();
   void print_memory(bool input_flags);
 
