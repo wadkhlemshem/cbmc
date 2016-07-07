@@ -23,24 +23,7 @@ void mock_environment_builder::register_mock_instance(const std::string& tyname,
 // Create a fresh mock instance.
 std::string mock_environment_builder::instantiate_mock(const std::string& tyname, bool is_constructor) {
 
-  /*
-  if(is_constructor) {
-    
-
-
-
-  }
-  */
-
   return "org.mockito.Mockito.mock(" + tyname + ".class);";
-  /*
-  if(is_constructor) {
-
-    // Intercept the next constructor call and return this:
-
-
-  }
-  */
 
 }
 
