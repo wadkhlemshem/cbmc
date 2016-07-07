@@ -272,13 +272,14 @@ std::string &add_func_call(std::string &result, const symbol_tablet &st,
   indent(result, 2u) += symbol_to_function_name(s);
   result+='(';
   const std::set<irep_idt> params(get_parameters(s));
+  unsigned nparams = 0;
   for (const irep_idt &param : params)
   {
+    if(nparams++ != 0)
+      result+=", ";
     add_symbol(result, st.lookup(param));
-    result+=',';
   }
-  *result.rbegin()=')';
-  result+=";\n";
+  result+=");\n";
   indent(result)+="}\n";
   return result+="}\n";
 }
@@ -390,8 +391,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-  ref_factory.mockenv_builder.finalise_instance_calls();
-  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result;
+  std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   return add_func_call(result, st, func_id);
 }
 

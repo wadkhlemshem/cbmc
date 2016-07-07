@@ -84,7 +84,7 @@ class mock_environment_builder {
   void instance_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& rettype, const std::string& retval);
 
   // Write instance method interception code that can only be generated once all required intercepts are known.
-  void finalise_instance_calls();
+  std::string finalise_instance_calls();
   
   // Intercept the next static call to targetclass.methodname(argtypes...) and return retval.
   void static_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& retval);

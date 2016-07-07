@@ -138,11 +138,14 @@ static void generate_arg_matchers(std::ostringstream& printto, const std::string
 
 }
 
-void mock_environment_builder::finalise_instance_calls() {
+std::string mock_environment_builder::finalise_instance_calls() {
 
   // We've created a number of mock objects of various types. Hook them up to their type-global
   // list of function return values.
 
+  std::ostringstream result;
+  result << prelude_newline;
+  
   for(auto iter : instance_method_answers) {
 
     const auto& mocknames = mock_instance_names[iter.first.classname];
@@ -152,13 +155,14 @@ void mock_environment_builder::finalise_instance_calls() {
 
     for(const auto& name : mocknames) {
 
-      generate_arg_matchers(mock_prelude, name, iter.first.methodname, iter.first.argtypes);
-
-      mock_prelude << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
+      generate_arg_matchers(result, name, iter.first.methodname, iter.first.argtypes);
+      result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
 
     }
 
   }
+
+  return result.str();
 
 }
 
