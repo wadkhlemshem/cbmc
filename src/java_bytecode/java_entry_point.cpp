@@ -704,6 +704,8 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
   assert(expected_type.id() == ID_pointer && "Nondet initialiser should have pointer type");
   assert(parent_block && "Must have an existing block to insert nondet-init code");
 
+  bool assume_non_null = getenv("CBMC_OPAQUE_RETURNS_NON_NULL") != 0;  
+
   namespacet ns(symbol_table);
 
   const auto& expected_base = ns.follow(expected_type.subtype());
@@ -723,25 +725,29 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
     
     static unsigned long synthetic_constructor_count = 0;
 
-    std::ostringstream fresh_label_oss;
-    fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
-    std::string fresh_label = fresh_label_oss.str();
-    skip_label = code_labelt(fresh_label, code_skipt());
+    if(!assume_non_null) {
 
-    auto returns_null_sym = new_tmp_symbol(symbol_table, "opaque_returns_null");
-    returns_null_sym.type = c_bool_typet(1);
-    auto returns_null = returns_null_sym.symbol_expr();
-    auto assign_returns_null = code_assignt(returns_null, get_nondet_bool(returns_null_sym.type));
-    assign_returns_null.set("is_java_opaque_return_null_check", true);
-    new_instructions.move_to_operands(assign_returns_null);
+      std::ostringstream fresh_label_oss;
+      fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
+      std::string fresh_label = fresh_label_oss.str();
+      skip_label = code_labelt(fresh_label, code_skipt());
 
-    auto set_null_inst = code_assignt(cast_ptr, null_pointer_exprt(to_pointer_type(cast_ptr.type())));
-    new_instructions.move_to_operands(set_null_inst);
+      auto returns_null_sym = new_tmp_symbol(symbol_table, "opaque_returns_null");
+      returns_null_sym.type = c_bool_typet(1);
+      auto returns_null = returns_null_sym.symbol_expr();
+      auto assign_returns_null = code_assignt(returns_null, get_nondet_bool(returns_null_sym.type));
+      assign_returns_null.set("is_java_opaque_return_null_check", true);
+      new_instructions.move_to_operands(assign_returns_null);
 
-    code_ifthenelset null_check;
-    null_check.cond() = notequal_exprt(returns_null, constant_exprt("0", returns_null_sym.type));
-    null_check.then_case() = code_gotot(fresh_label);
-    new_instructions.move_to_operands(null_check);
+      auto set_null_inst = code_assignt(cast_ptr, null_pointer_exprt(to_pointer_type(cast_ptr.type())));
+      new_instructions.move_to_operands(set_null_inst);
+
+      code_ifthenelset null_check;
+      null_check.cond() = notequal_exprt(returns_null, constant_exprt("0", returns_null_sym.type));
+      null_check.then_case() = code_gotot(fresh_label);
+      new_instructions.move_to_operands(null_check);
+
+    }
 
     // Note this allocates memory but doesn't call any constructor.
     side_effect_exprt malloc_expr(ID_malloc);
@@ -757,7 +763,7 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
   
   gen_nondet_init(derefd, new_instructions, symbol_table, is_constructor);
 
-  if(!is_constructor)
+  if((!is_constructor) && !assume_non_null)
     new_instructions.move_to_operands(skip_label);
   
   if(new_instructions.operands().size() != 0) {
