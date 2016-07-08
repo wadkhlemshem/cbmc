@@ -84,7 +84,7 @@ Function: gen_nondet_init
 \*******************************************************************/
 
 namespace {
-symbolt &new_tmp_symbol(symbol_tablet &symbol_table)
+  symbolt &new_tmp_symbol(symbol_tablet &symbol_table, const std::string& prefix = "tmp_struct_init")
 {
   static int temporary_counter=0;
 
@@ -93,7 +93,7 @@ symbolt &new_tmp_symbol(symbol_tablet &symbol_table)
 
   do
   {
-    new_symbol.name="tmp_struct_init$"+i2string(++temporary_counter);
+    new_symbol.name=prefix+'$'+i2string(++temporary_counter);
     new_symbol.base_name=new_symbol.name;
     new_symbol.mode=ID_java;
   } while(symbol_table.move(new_symbol, symbol_ptr));
@@ -306,6 +306,13 @@ Function: gen_argument
 \*******************************************************************/
 
 namespace {
+
+exprt get_nondet_bool(const typet& type) {
+  // We force this to 0 and 1 and won't consider
+  // other values.
+  return typecast_exprt(side_effect_expr_nondett(bool_typet()), type);
+}
+
 exprt gen_argument(
   const typet &type,
   code_blockt &init_code,
@@ -327,11 +334,7 @@ exprt gen_argument(
     return address_of_exprt(object);
   }
   else if(type.id()==ID_c_bool)
-  {
-    // We force this to 0 and 1 and won't consider
-    // other values.
-    return typecast_exprt(side_effect_expr_nondett(bool_typet()), type);
-  }
+    return get_nondet_bool(type);
   else
     return side_effect_expr_nondett(type);
 }
@@ -692,8 +695,8 @@ exprt make_clean_pointer_cast(const exprt ptr, const typet& target_type, const n
   return typecast_exprt(bare_ptr, target_type);
 
 }
-  
-void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index, bool skip_classid) {
+
+void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index, bool is_constructor) {
 
   // At this point we know 'ptr' points to an opaque-typed object. We should nondet-initialise it
   // and insert the instructions *after* the offending call at (*parent_block)[insert_after_index].
@@ -702,18 +705,61 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
   assert(parent_block && "Must have an existing block to insert nondet-init code");
 
   namespacet ns(symbol_table);
-  
-  if(ns.follow(expected_type.subtype()).id() != ID_struct)
+
+  const auto& expected_base = ns.follow(expected_type.subtype());
+  if(expected_base.id() != ID_struct)
     return;
   
   const exprt cast_ptr = make_clean_pointer_cast(ptr, expected_type, ns);
-    
+  code_labelt skip_label;
+
   code_blockt new_instructions;
+
+  if(!is_constructor) {
+
+    // Per default CBMC would suppose this to be any conceivable pointer.
+    // For now, insist that it is either fresh or null. In future we will
+    // want to consider the possiblity that it aliases other objects.
+    
+    static unsigned long synthetic_constructor_count = 0;
+
+    std::ostringstream fresh_label_oss;
+    fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
+    std::string fresh_label = fresh_label_oss.str();
+    skip_label = code_labelt(fresh_label, code_skipt());
+
+    auto returns_null_sym = new_tmp_symbol(symbol_table, "opaque_returns_null");
+    returns_null_sym.type = c_bool_typet(1);
+    auto returns_null = returns_null_sym.symbol_expr();
+    auto assign_returns_null = code_assignt(returns_null, get_nondet_bool(returns_null_sym.type));
+    assign_returns_null.set("is_java_opaque_return_null_check", true);
+    new_instructions.move_to_operands(assign_returns_null);
+
+    auto set_null_inst = code_assignt(cast_ptr, null_pointer_exprt(to_pointer_type(cast_ptr.type())));
+    new_instructions.move_to_operands(set_null_inst);
+
+    code_ifthenelset null_check;
+    null_check.cond() = notequal_exprt(returns_null, constant_exprt("0", returns_null_sym.type));
+    null_check.then_case() = code_gotot(fresh_label);
+    new_instructions.move_to_operands(null_check);
+
+    // Note this allocates memory but doesn't call any constructor.
+    side_effect_exprt malloc_expr(ID_malloc);
+    malloc_expr.copy_to_operands(size_of_expr(expected_base, ns));
+    malloc_expr.type() = expected_type;
+    auto alloc_inst = code_assignt(cast_ptr, malloc_expr);
+    alloc_inst.set("is_java_opaque_return_object", true);
+    new_instructions.move_to_operands(alloc_inst);
+
+  }
 
   exprt derefd = clean_deref(cast_ptr);
   
-  gen_nondet_init(derefd, new_instructions, symbol_table, skip_classid);
+  gen_nondet_init(derefd, new_instructions, symbol_table, is_constructor);
 
+  if(!is_constructor)
+    new_instructions.move_to_operands(skip_label);
+  
   if(new_instructions.operands().size() != 0) {
 
     auto institer = parent_block->operands().begin();
@@ -826,7 +872,7 @@ void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table) {
 
 } // End anon namespace for insert-nondet support functions
 
-void java_insert_nondet_opaque_fields(symbol_tablet &symbol_table) {
+void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table) {
 
   std::vector<irep_idt> identifiers;
   identifiers.reserve(symbol_table.symbols.size());

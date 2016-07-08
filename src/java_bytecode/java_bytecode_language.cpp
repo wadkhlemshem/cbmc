@@ -203,7 +203,7 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_insert_nondet_opaque_fields(symbol_table);
+  java_insert_nondet_opaque_objects(symbol_table);
 
   if(java_entry_point(symbol_table, main_class, get_message_handler()))
     return true;

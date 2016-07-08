@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
 #include <util/message.h>
+#include <util/string2int.h>
 #include <ansi-c/c_types.h>
 #include <json/json_parser.h>
 
@@ -1111,6 +1112,8 @@ char interpretert::is_opaque_function(const goto_programt::instructionst::const_
     }
   }
   }
+  if(pc->is_assign() && pc->code.get_bool("is_java_opaque_return_null_check"))
+    pc--;
   if(pc->type!=FUNCTION_CALL) return 0;
   const code_function_callt &function_call=to_code_function_call(pc->code);
   id=function_call.function().get(ID_identifier);
@@ -1344,6 +1347,23 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   return input_vars;
 }
 
+static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
+
+  return to_symbol_expr(
+	  (step.full_lhs.id()==ID_member) ?
+	  to_member_expr(step.full_lhs).symbol() :
+          step.full_lhs);
+
+}
+
+static bool is_interesting_assign_step(const goto_trace_stept& step) {
+  if(goto_trace_stept::ASSIGNMENT!=step.type)
+    return false;
+  if(!(step.pc->is_other() || step.pc->is_assign() || step.pc->is_function_call()))
+    return false;
+  return true;
+}
+
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
   jsont counter_example;
@@ -1360,15 +1380,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();
       it!=trace.steps.begin();) {
     it--;
-    if(goto_trace_stept::ASSIGNMENT==it->type
-    && (it->pc->is_other() || it->pc->is_assign()
-            || it->pc->is_function_call()))
+    if(is_interesting_assign_step(*it))
     {
       mp_integer address;
-      symbol_exprt symbol_expr=to_symbol_expr(
-          (it->full_lhs.id()==ID_member) ?
-              to_member_expr(it->full_lhs).symbol() :
-              it->full_lhs);
+
+      symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
 
       address=evaluate_address(it->full_lhs);
@@ -1388,6 +1404,67 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
         inputs[id]=it->full_lhs_value;
       }
       std::cout << it->pc->type << " " << symbol_expr.get_identifier() << " " << from_expr(ns, id, inputs[id]) << std::endl;
+      if(it->pc->code.get_bool("is_java_opaque_return_object")) {
+
+	// This is a return object from an opaque static or instance method.
+	// There will be more assignments between the call and this, but they
+	// don't directly concern the return value.
+
+	// Get the object we just finished assigning:
+	goto_tracet::stepst::const_iterator oneback = it;
+	++oneback;
+	while(oneback != trace.steps.end() && !is_interesting_assign_step(*oneback))
+	  ++oneback;
+
+	assert(oneback != trace.steps.end() && "Couldn't find previous assignment step in opaque-return-object routine?");	
+	  
+	irep_idt prev_identifier = get_assigned_symbol(*oneback).get_identifier();
+	std::cout << "Found opaque-return-object in " << prev_identifier << "\n";
+	exprt built_object = inputs[prev_identifier];
+
+	// Skip forwards (backwards in trace order) to the relevant call:
+	irep_idt f_id;
+	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id)) {
+	  assert(it != trace.steps.begin() && "Walking backwards from a java-opaque-return didn't find an opaque call?");
+	  --it;
+	}
+
+	// Associate the two:
+	function_inputs[f_id].push_front(built_object);
+	continue;
+	
+      }
+      else if(it->pc->code.get_bool("is_java_opaque_return_null_check")) {
+
+	// This is a nondet-boolean that determines whether an opaque returned object
+	// should be null or not. It occurs in a pattern like:
+	// some_retval = NONDET(Obj*); some_retval = null; use_null = NONDET(bool) ...
+	// If CBMC chose to make the pointer non-null then we would subsequently
+	// hit a malloc instruction and skip over the use_null assignment in the
+	// is_java_opaque_return_object path above. Therefore the fact that we're
+	// here means we *did* assign a null. But just to check...
+
+	assert(safe_string2int(id2string(to_constant_expr(inputs[id]).get_value())) != 0 && "Found a null check returning false in load-counter-example-inputs?");
+
+	// There will be a meaningless nondet-pointer assignment between the call and this:
+	irep_idt f_id;
+	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id)) {
+	  --it;
+	  assert(it != trace.steps.begin() && "Walking backwards from a java-return-null-check didn't find an opaque call?");	  
+	}
+
+	// Get a null of the right type:
+	auto direct_return_var = to_code_assign(it->pc->code).lhs();
+
+	std::cout << "Found null return for " << f_id << "\n";
+	
+	function_inputs[f_id].push_front(null_pointer_exprt(to_pointer_type(direct_return_var.type())));
+	continue;
+	
+      }
+      
+      // Otherwise use the standard approach that the first assignment after an opaque call
+      // constitutes its return value.
       
       irep_idt f_id;
       if(is_opaque_function(it->pc,f_id)!=0)
