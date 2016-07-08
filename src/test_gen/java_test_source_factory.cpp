@@ -187,12 +187,14 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   add_qualified_class_name(qualified_class_name, ns, type);  
 
   std::string instance_expr;
-  if(mock_classes.count(qualified_class_name))
-    instance_expr = mockenv_builder.get_fresh_instance(qualified_class_name, false);
+  if(mock_classes.count(qualified_class_name)) {
+    instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
+    mockenv_builder.register_mock_instance(qualified_class_name, this_name);
+  }
   else
     instance_expr = "Reflector.forceInstance(\"" + qualified_class_name + "\")";
       
-  result+='(' + qualified_class_name + ") " + instance_expr + ";";
+  result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
 
   member_factoryt mem_fac(result, st, this_name, type, *this);
   const struct_exprt::operandst &ops=value.operands();
@@ -270,13 +272,14 @@ std::string &add_func_call(std::string &result, const symbol_tablet &st,
   indent(result, 2u) += symbol_to_function_name(s);
   result+='(';
   const std::set<irep_idt> params(get_parameters(s));
+  unsigned nparams = 0;
   for (const irep_idt &param : params)
   {
+    if(nparams++ != 0)
+      result+=", ";
     add_symbol(result, st.lookup(param));
-    result+=',';
   }
-  *result.rbegin()=')';
-  result+=";\n";
+  result+=");\n";
   indent(result)+="}\n";
   return result+="}\n";
 }
@@ -294,6 +297,8 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 {
 
   mock_classes.clear();
+
+  unsigned mocknumber = 0;
   
   for(auto fn_and_returns : opaque_function_returns) {
 
@@ -327,17 +332,32 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
     assert(fn_and_returns.second.size() != 0);
     // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
-    add_decl_from_type(java_ret_type, st, fn_and_returns.second.back().type());
+    add_decl_from_type(java_ret_type, st, fn_and_returns.second.back().type(), &type_is_primitive);
 
     for(auto ret : fn_and_returns.second) {
 
       std::string return_value;
-      add_value(return_value, st, ret);
+
+      if(type_is_primitive)
+	add_value(return_value, st, ret);
+      else {
+	std::string init_statements;
+	std::ostringstream mocknameoss;
+	mocknameoss << "mock_instance_" << (++mocknumber);
+	std::string mockname = mocknameoss.str();
+	init_statements = (java_ret_type + " " + mockname + " = ");
+	add_value(init_statements, st, ret, mockname);
+	return_value = mockname;
+	mockenv_builder.add_to_prelude(init_statements + ";");
+      }
 
       bool is_static = !to_code_type(func.type).has_this();
+      bool is_constructor = code_type.get_bool(ID_constructor);
       
       if(is_static)
 	mockenv_builder.static_call(classname, funcname, java_arg_types, return_value);
+      else if(is_constructor)
+	mockenv_builder.constructor_call(classname, java_arg_types, return_value);
       else
 	mockenv_builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
 
@@ -371,8 +391,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-  ref_factory.mockenv_builder.finalise_instance_calls();
-  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result;
+  std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   return add_func_call(result, st, func_id);
 }
 

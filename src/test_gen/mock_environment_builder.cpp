@@ -14,38 +14,30 @@ mock_environment_builder::mock_environment_builder(unsigned int ip) {
 
 }
 
-// Intercept the next constructor call to tyname and return a fresh mock instance.
-std::string mock_environment_builder::get_fresh_instance(const std::string& tyname, bool is_constructor) {
+void mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
 
-  // Make a fresh local name for this instance:
-  unsigned long count = ++(name_counter[tyname]);
-  std::string freshname;
-  {
-    std::ostringstream freshname_oss;
-    freshname_oss << "mock_" << tyname << "_" << count;
-    freshname = freshname_oss.str();
-  }
+  mock_instance_names[tyname].push_back(instancename);
 
-  if(is_constructor) {
-    
-    // Note that constructor interception needs setting up:
-    powermock_classes.insert(tyname);
-
-  }
-
-  mock_prelude << tyname << " " << freshname << " = " << "org.mockito.Mockito.mock(" + tyname + ".class);" << prelude_newline;
-  
-  if(is_constructor) {
-
-    // Intercept the next constructor call and return this:
-    mock_prelude <<
-      "org.powermock.api.mockito.PowerMockito.whenNew(" << tyname << ".class).withAnyArguments().thenReturn(" << freshname << ");" << prelude_newline;
-
-  }
-
-  return freshname;
-  
 }
+
+// Create a fresh mock instance.
+std::string mock_environment_builder::instantiate_mock(const std::string& tyname, bool is_constructor) {
+
+  return "org.mockito.Mockito.mock(" + tyname + ".class);";
+
+}
+
+// Return retval the next time a targetclass is constructed.
+// We don't use argtypes at the moment.
+void mock_environment_builder::constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
+
+  // Note that constructor interception needs setting up:
+  powermock_classes.insert(targetclass);
+  mock_prelude <<
+    "org.powermock.api.mockito.PowerMockito.whenNew(" << targetclass << ".class).withAnyArguments().thenReturn(" << retval << ");" << prelude_newline;
+
+}
+
 
 static std::string classname_to_symname(const std::string& classname) {
 
@@ -146,31 +138,31 @@ static void generate_arg_matchers(std::ostringstream& printto, const std::string
 
 }
 
-void mock_environment_builder::finalise_instance_calls() {
+std::string mock_environment_builder::finalise_instance_calls() {
 
   // We've created a number of mock objects of various types. Hook them up to their type-global
   // list of function return values.
 
+  std::ostringstream result;
+  result << prelude_newline;
+  
   for(auto iter : instance_method_answers) {
 
-    unsigned long count = name_counter[iter.first.classname];
-    if(count == 0) {
+    const auto& mocknames = mock_instance_names[iter.first.classname];
+    if(mocknames.size() == 0) {
       std::cout << "Warning: class " << iter.first.classname << " has instance method mocks but never instantiated\n";
     }
 
-    for(unsigned long i = 1; i <= count; ++i) {
+    for(const auto& name : mocknames) {
 
-      std::ostringstream namestr;
-      namestr << "mock_" << iter.first.classname << "_" << i;
-      std::string name = namestr.str();
-
-      generate_arg_matchers(mock_prelude, name, iter.first.methodname, iter.first.argtypes);
-
-      mock_prelude << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
+      generate_arg_matchers(result, name, iter.first.methodname, iter.first.argtypes);
+      result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
 
     }
 
   }
+
+  return result.str();
 
 }
 

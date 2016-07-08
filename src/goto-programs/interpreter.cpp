@@ -1387,7 +1387,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-      std::cout << it->pc->type << std::endl;
+      std::cout << it->pc->type << " " << symbol_expr.get_identifier() << " " << from_expr(ns, id, inputs[id]) << std::endl;
+      
       irep_idt f_id;
       if(is_opaque_function(it->pc,f_id)!=0)
       {
