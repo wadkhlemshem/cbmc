@@ -1096,31 +1096,17 @@ void interpretert::list_non_bodied() {
   }*/
 }
 
-char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id)
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &function_id, irep_idt &return_symbol, bool &is_constructor)
 {
-  goto_programt::instructionst::const_iterator pc=it;
-  if (pc->is_assign())
-  {
-  const code_assignt &code_assign=to_code_assign(pc->code);
-  if(code_assign.rhs().id()==ID_side_effect)
-  {
-    side_effect_exprt side_effect=to_side_effect_expr(code_assign.rhs());
-    if(side_effect.get_statement()==ID_nondet)
-    {
-    pc--;//TODO: need to check if pc is not already at begin
-      if(pc->is_return()) pc--;
-    }
-  }
-  }
-  if(pc->is_assign() && pc->code.get_bool("is_java_opaque_return_null_check"))
-    pc--;
-  if(pc->type!=FUNCTION_CALL) return 0;
-  const code_function_callt &function_call=to_code_function_call(pc->code);
-  id=function_call.function().get(ID_identifier);
-  const goto_functionst::function_mapt::const_iterator f_it=goto_functions.function_map.find(id);
+  if(it->type!=FUNCTION_CALL) return 0;
+  const code_function_callt &function_call=to_code_function_call(it->code);
+  function_id=function_call.function().get(ID_identifier);
+  const goto_functionst::function_mapt::const_iterator f_it=goto_functions.function_map.find(function_id);
   if(f_it==goto_functions.function_map.end())
-    throw "failed to find function "+id2string(id);
+    throw "failed to find function "+id2string(function_id);
   if(f_it->second.body_available()) return 0;
+  is_constructor=f_it->second.type.get_bool(ID_constructor);
+  return_symbol=function_call.get("return_value_symbol");
   if(function_call.lhs().is_not_nil()) return 1;
   return -1;
 }
@@ -1131,7 +1117,9 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
     instructions.begin(); f_it!=instructions.end(); f_it++) 
   {
   irep_idt f_id;
-    if(is_opaque_function(f_it,f_id)>0)
+  irep_idt TODO_FIXME;
+  bool is_constructor;
+  if(is_opaque_function(f_it,f_id,TODO_FIXME,is_constructor)>0)
     {
       const code_assignt &code_assign=to_code_assign(f_it->code);
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
@@ -1376,12 +1364,29 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   if(function==goto_functions.function_map.end())
     throw "main not found";
 
+  irep_idt pending_opaque_return;
+
   initialise(true);
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();
       it!=trace.steps.begin();) {
     it--;
-    if(is_interesting_assign_step(*it))
+    if(it->is_function_return())
     {
+
+      irep_idt f_id, return_id;
+      bool is_constructor;
+      if(is_opaque_function(it->pc,f_id,return_id,is_constructor)!=0)
+      {
+	assert(pending_opaque_return == irep_idt());
+	if(return_id == irep_idt() && is_constructor)
+	  pending_opaque_return = f_id;
+	else if(return_id != irep_idt())
+	  function_inputs[f_id].push_front(inputs[return_id]);
+      }      
+
+    } else if(it->pc->is_assign())
+    {
+   
       mp_integer address;
 
       symbol_exprt symbol_expr=get_assigned_symbol(*it);
@@ -1394,6 +1399,26 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
       assign(address, rhs);
+
+      const std::string symex_prefix = "symex_dynamic::dynamic_object";
+      if(pending_opaque_return != irep_idt() && id.size() >= symex_prefix.length() && as_string(id).substr(0, symex_prefix.length()) == symex_prefix)
+      {
+	// This case gets hit when an opaque function's return value wasn't
+	// defined yet as it returned. This currently happens only if we're walking
+	// backwards from a constructor into the malloc and assignment that actually
+	// allocated the memory.
+	// This should be us about to zero-initialise the object; save its value as of exiting
+	// the constructor.
+	auto findit = inputs.find(id);
+	if(findit == inputs.end()) {
+	  // No fields -- use the zero-initialised struct.
+	  function_inputs[pending_opaque_return].push_front(it->full_lhs_value);
+	}
+	else
+	  function_inputs[pending_opaque_return].push_front(inputs[id]);
+	pending_opaque_return = irep_idt();
+      }
+
       if(it->full_lhs.id()==ID_member)
       {
         address=evaluate_address(symbol_expr);
@@ -1404,33 +1429,23 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
         inputs[id]=it->full_lhs_value;
       }
       std::cout << it->pc->type << " " << symbol_expr.get_identifier() << " " << from_expr(ns, id, inputs[id]) << std::endl;
+
       if(it->pc->code.get_bool("is_java_opaque_return_object")) {
 
 	// This is a return object from an opaque static or instance method.
 	// There will be more assignments between the call and this, but they
 	// don't directly concern the return value.
 
-	// Get the object we just finished assigning:
-	goto_tracet::stepst::const_iterator oneback = it;
-	++oneback;
-	while(oneback != trace.steps.end() && !is_interesting_assign_step(*oneback))
-	  ++oneback;
-
-	assert(oneback != trace.steps.end() && "Couldn't find previous assignment step in opaque-return-object routine?");	
-	  
-	irep_idt prev_identifier = get_assigned_symbol(*oneback).get_identifier();
-	std::cout << "Found opaque-return-object in " << prev_identifier << "\n";
-	exprt built_object = inputs[prev_identifier];
-
 	// Skip forwards (backwards in trace order) to the relevant call:
-	irep_idt f_id;
-	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id)) {
+	irep_idt f_id, return_id;
+	bool ignored;
+	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id, return_id,ignored)) {
 	  assert(it != trace.steps.begin() && "Walking backwards from a java-opaque-return didn't find an opaque call?");
 	  --it;
 	}
 
 	// Associate the two:
-	function_inputs[f_id].push_front(built_object);
+	function_inputs[f_id].push_front(inputs[return_id]);
 	continue;
 	
       }
@@ -1447,30 +1462,22 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	assert(safe_string2int(id2string(to_constant_expr(inputs[id]).get_value())) != 0 && "Found a null check returning false in load-counter-example-inputs?");
 
 	// There will be a meaningless nondet-pointer assignment between the call and this:
-	irep_idt f_id;
-	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id)) {
+	irep_idt f_id, return_id;
+	bool ignored;
+	while((!is_interesting_assign_step(*it)) || !is_opaque_function(it->pc, f_id, return_id, ignored)) {
 	  --it;
 	  assert(it != trace.steps.begin() && "Walking backwards from a java-return-null-check didn't find an opaque call?");	  
 	}
 
 	// Get a null of the right type:
-	auto direct_return_var = to_code_assign(it->pc->code).lhs();
-
 	std::cout << "Found null return for " << f_id << "\n";
 	
-	function_inputs[f_id].push_front(null_pointer_exprt(to_pointer_type(direct_return_var.type())));
+	function_inputs[f_id].push_front(inputs[return_id]);
 	continue;
 	
       }
       
-      // Otherwise use the standard approach that the first assignment after an opaque call
-      // constitutes its return value.
-      
-      irep_idt f_id;
-      if(is_opaque_function(it->pc,f_id)!=0)
-      {
-        function_inputs[f_id].push_front(inputs[id]);
-      }
+
     }
   }
   for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
