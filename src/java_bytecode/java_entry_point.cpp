@@ -713,7 +713,8 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
     return;
   
   const exprt cast_ptr = make_clean_pointer_cast(ptr, expected_type, ns);
-  code_labelt skip_label;
+  code_labelt set_null_label;
+  code_labelt init_done_label;
 
   code_blockt new_instructions;
 
@@ -727,20 +728,21 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
 
     if(!assume_non_null) {
 
-      std::ostringstream fresh_label_oss;
-      fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
-      std::string fresh_label = fresh_label_oss.str();
-      skip_label = code_labelt(fresh_label, code_skipt());
-
       auto returns_null_sym = new_tmp_symbol(symbol_table, "opaque_returns_null");
       returns_null_sym.type = c_bool_typet(1);
       auto returns_null = returns_null_sym.symbol_expr();
       auto assign_returns_null = code_assignt(returns_null, get_nondet_bool(returns_null_sym.type));
-      assign_returns_null.set("is_java_opaque_return_null_check", true);
       new_instructions.move_to_operands(assign_returns_null);
 
       auto set_null_inst = code_assignt(cast_ptr, null_pointer_exprt(to_pointer_type(cast_ptr.type())));
-      new_instructions.move_to_operands(set_null_inst);
+      set_null_inst.set("overwrites_return_value", true);
+
+      std::ostringstream fresh_label_oss;
+      fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
+      std::string fresh_label = fresh_label_oss.str();
+      set_null_label = code_labelt(fresh_label, set_null_inst);
+
+      init_done_label = code_labelt(fresh_label + "_init_done", code_skipt());
 
       code_ifthenelset null_check;
       null_check.cond() = notequal_exprt(returns_null, constant_exprt("0", returns_null_sym.type));
@@ -754,7 +756,7 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
     malloc_expr.copy_to_operands(size_of_expr(expected_base, ns));
     malloc_expr.type() = expected_type;
     auto alloc_inst = code_assignt(cast_ptr, malloc_expr);
-    alloc_inst.set("is_java_opaque_return_object", true);
+    alloc_inst.set("overwrites_return_value", true);
     new_instructions.move_to_operands(alloc_inst);
 
   }
@@ -763,8 +765,11 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
   
   gen_nondet_init(derefd, new_instructions, symbol_table, is_constructor);
 
-  if((!is_constructor) && !assume_non_null)
-    new_instructions.move_to_operands(skip_label);
+  if((!is_constructor) && !assume_non_null) {
+    new_instructions.copy_to_operands(code_gotot(init_done_label.get_label()));    
+    new_instructions.move_to_operands(set_null_label);
+    new_instructions.move_to_operands(init_done_label);
+  }
   
   if(new_instructions.operands().size() != 0) {
 
