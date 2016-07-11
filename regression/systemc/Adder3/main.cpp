@@ -30,15 +30,15 @@ tuple<uint1,uint32> bigadd (uint32 a, uint32 b)
   return tuple<uint1,uint32> ((uint1)result[32], result.range(31,0));
 }
 
-extern uint32 nondet();
+//extern uint32 nondet();
 
 int main (int argc, char *argv[]) {
 
-  uint32 a, b;
+  uint32 a, b; //correctly constrained nondet now default behaviour
   uint32 spec_r, impl_r;
   uint1 spec_c, impl_c;
-  a = nondet(); __CPROVER_assume(a.val<2147483648u);
-  b = nondet(); __CPROVER_assume(b.val<2147483648u);
+  //a = nondet(); //__CPROVER_assume(a.val<2147483648u);
+  //b = nondet(); //__CPROVER_assume(b.val<2147483648u);
 
   tie(spec_c,spec_r) = bigadd(a,b);
   tie(impl_c,impl_r) = add256_impl(a,b);
