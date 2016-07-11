@@ -26,7 +26,7 @@ typedef sc_uint<K*W+1> uint257_t;
 tuple<uint1_t, uint256_t> add256_impl(uint256_t a, uint256_t b)
 {
   uint33_t p_sum = 0;
-  uint256_t result;
+  uint256_t result = 0;
 
   uint i;
   for(i=0; i<K; i++)

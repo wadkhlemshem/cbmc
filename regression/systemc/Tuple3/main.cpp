@@ -9,12 +9,14 @@ typedef sc_uint<4> uint256_t;
 typedef sc_uint<5> uint257_t;
 
 tuple<uint1_t,uint256_t> impl (uint256_t c, uint256_t d) {
-  uint257_t result = c+d+uint256_t(1);
+  uint257_t result = c;
+  result += d+uint256_t(1);
   return tuple<uint1_t,uint256_t> ((uint1_t)result[4], result.range(3,0));
 }
 
 tuple<uint1_t,uint256_t> spec (uint256_t c, uint256_t d) {
-  uint257_t result = c+d;
+  uint257_t result = c;
+  result += d;
   return tuple<uint1_t,uint256_t> ((uint1_t)result[4], result.range(3,0));
 }
 
