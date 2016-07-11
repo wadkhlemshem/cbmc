@@ -13,9 +13,9 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 
 //#define DEBUG
 
-#ifdef DEBUG
+//#ifdef DEBUG
 #include <iostream>
-#endif
+//#endif
 
 #include <util/source_location.h>
 #include <util/std_types.h>
@@ -101,7 +101,7 @@ symbolt &cpp_declarator_convertert::convert(
 
   get_final_identifier();
 
-#if 0
+#if 1
     if(declaration_type.id()=="cpp-cast-operator")
     {
       std::cout << "convert: " << final_identifier << std::endl

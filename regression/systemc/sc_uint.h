@@ -12,7 +12,17 @@ template <int W>
 class sc_uint : public sc_uint_base
 {
  public:
+#ifndef __CPROVER__
   sc_uint() : sc_uint_base(0, W) {}
+#else
+  sc_uint() : sc_uint_base(0, W)
+  {
+    bv_type v;
+    bv_type max = (((bv_type)1)<<W)-1; //relies on underflow
+    __CPROVER_assume(v<=max);
+    val = v;
+  }
+#endif
 
   sc_uint(unsigned long v)
     : sc_uint_base(v, W)
@@ -20,8 +30,9 @@ class sc_uint : public sc_uint_base
   }
 
   sc_uint(const sc_uint_base &b)
-    : sc_uint_base(b.val, W)
+    : sc_uint_base(0, W)
   {
+    val = b.val;
   }
 
   sc_uint(const sc_uint_subref &b)

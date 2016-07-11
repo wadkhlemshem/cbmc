@@ -2267,6 +2267,10 @@ void cpp_typecheckt::typecheck_side_effect_function_call(
           symbol_tablet::symbolst::iterator s_it=
             symbol_table.symbols.find(it->get(ID_name));
           assert(s_it!=symbol_table.symbols.end());
+#if 1
+          std::cout << "DESTRUCTOR: " << it->get(ID_name) << std::endl;
+          std::cout << "  " << s_it->second << std::endl;
+#endif      
           add_method_body(&(s_it->second));
           break;
         }
