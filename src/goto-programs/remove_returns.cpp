@@ -8,6 +8,8 @@ Date:   September 2009
 
 \*******************************************************************/
 
+#include <iostream>
+
 #include <util/std_expr.h>
 #include <util/symbol_table.h>
 
@@ -185,6 +187,12 @@ void remove_returnst::do_function_calls(
           t_a->code=code_assignt(function_call.lhs(), rhs);
           t_a->function=i_it->function;
 
+	  if(function_call.lhs().id()==ID_symbol) {
+	    function_call.set("return_value_symbol", to_symbol_expr(function_call.lhs()).get_identifier());
+	  } else {
+	    std::cout << "Warning: function->return symbol mapping lost in remove-return-values because function LHS is a " << function_call.lhs().id() << "\n";
+	  }
+	  
           // fry the previous assignment
           function_call.lhs().make_nil();
 
