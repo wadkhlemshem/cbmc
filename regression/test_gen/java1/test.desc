@@ -1,6 +1,6 @@
 CORE
 TestGenTest.class
---gen-java-test-case --function TestGenTest.f
+--gen-java-test-case --stop-on-fail --function TestGenTest.f
 ^EXIT=0$
 ^SIGNAL=0$
 ^ *B tmp_struct_init[$]3=[(]B[)] Reflector.forceInstance[(]"B"[)];$
@@ -17,6 +17,6 @@ TestGenTest.class
 ^ *B arg0a=tmp_struct_init[$]1;$
 ^ *C arg1a=tmp_struct_init[$]2;$
 ^ *int arg2i=492;$
-^ *TestGenTest.f[(]arg0a,arg1a,arg2i[)];$
+^ *TestGenTest.f[(]arg0a, arg1a, arg2i[)];$
 --
 ^warning: ignoring
