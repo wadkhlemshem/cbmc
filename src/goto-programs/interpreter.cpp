@@ -1384,7 +1384,9 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
 	assert(pending_opaque_return == irep_idt());
 	if(return_id == irep_idt() && is_constructor)
+	{
 	  pending_opaque_return = f_id;
+	}
 	else if(return_id != irep_idt()) {
 
 	  auto findit = overridden_return_values.find(return_id);
@@ -1424,7 +1426,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	
       }      
 
-    } else if(it->pc->is_assign())
+    } else if(is_interesting_assign_step(*it))
     {
    
       mp_integer address;
