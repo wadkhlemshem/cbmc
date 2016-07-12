@@ -16,6 +16,7 @@ bool java_entry_point(
   const irep_idt &main_class,
   class message_handlert &message_handler);
 
-void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table);
+void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table,
+				       bool assume_opaque_objects_non_null);
 
 #endif

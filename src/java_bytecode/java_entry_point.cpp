@@ -696,15 +696,14 @@ exprt make_clean_pointer_cast(const exprt ptr, const typet& target_type, const n
 
 }
 
-void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table, code_blockt* parent_block, unsigned insert_after_index, bool is_constructor) {
+void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table,
+				    code_blockt* parent_block, unsigned insert_after_index, bool is_constructor, bool assume_non_null) {
 
   // At this point we know 'ptr' points to an opaque-typed object. We should nondet-initialise it
   // and insert the instructions *after* the offending call at (*parent_block)[insert_after_index].
 
   assert(expected_type.id() == ID_pointer && "Nondet initialiser should have pointer type");
   assert(parent_block && "Must have an existing block to insert nondet-init code");
-
-  bool assume_non_null = getenv("CBMC_OPAQUE_RETURNS_NON_NULL") != 0;  
 
   namespacet ns(symbol_table);
 
@@ -793,7 +792,7 @@ bool is_opaque_type(const typet& t, const symbol_tablet& symtab) {
 
 }
   
-void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_blockt* parent, unsigned parent_index) {
+void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_blockt* parent, unsigned parent_index, bool assume_non_null) {
 
   const irep_idt &statement=code.get_statement();
 
@@ -803,15 +802,15 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
 
     // Use indices not iterators as instructions are added as we progress.
     for(unsigned i = 0; i < code.operands().size(); ++i)
-      insert_nondet_opaque_fields(to_code(code.operands()[i]), symbol_table, &to_code_block(code), i);
+      insert_nondet_opaque_fields(to_code(code.operands()[i]), symbol_table, &to_code_block(code), i, assume_non_null);
     
   }
   else if(statement == ID_ifthenelse) {
 
     code_ifthenelset &code_ifthenelse=to_code_ifthenelse(code);
-    insert_nondet_opaque_fields(code_ifthenelse.then_case(), symbol_table, parent, parent_index);
+    insert_nondet_opaque_fields(code_ifthenelse.then_case(), symbol_table, parent, parent_index, assume_non_null);
     if(code_ifthenelse.else_case().is_not_nil())
-      insert_nondet_opaque_fields(code_ifthenelse.else_case(), symbol_table, parent, parent_index);
+      insert_nondet_opaque_fields(code_ifthenelse.else_case(), symbol_table, parent, parent_index, assume_non_null);
     
   }
   else if(statement == ID_function_call) {
@@ -840,11 +839,11 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
       if(is_constructor)
 	insert_nondet_opaque_fields_at(callee_type.parameters()[0].type(),
 				       code_function_call.arguments()[0],
-				       symbol_table, parent, parent_index, true);
+				       symbol_table, parent, parent_index, true, assume_non_null);
       else if(is_opaque_type(callee_type.return_type(), symbol_table))
 	insert_nondet_opaque_fields_at(callee_type.return_type(),
 				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index, false);
+				       symbol_table, parent, parent_index, false, assume_non_null);
 
     }
     else {
@@ -859,7 +858,7 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
 	
 	insert_nondet_opaque_fields_at(callee_type.return_type(),
 				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index, false);
+				       symbol_table, parent, parent_index, false, assume_non_null);
 	
       }
 
@@ -870,20 +869,20 @@ void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_
 
 }
   
-void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table) {
+void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table, bool assume_non_null) {
 
   if(sym.is_type)
     return;
   if(sym.value.id() != ID_code)
     return;
 
-  insert_nondet_opaque_fields(to_code(sym.value), symbol_table, 0, 0);
+  insert_nondet_opaque_fields(to_code(sym.value), symbol_table, 0, 0, assume_non_null);
 
 }
 
 } // End anon namespace for insert-nondet support functions
 
-void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table) {
+void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table, bool assume_non_null) {
 
   std::vector<irep_idt> identifiers;
   identifiers.reserve(symbol_table.symbols.size());
@@ -891,6 +890,6 @@ void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table) {
     identifiers.push_back(s_it->first);
 
   for(auto& id : identifiers)
-    insert_nondet_opaque_fields(symbol_table.symbols[id], symbol_table);
+    insert_nondet_opaque_fields(symbol_table.symbols[id], symbol_table, assume_non_null);
 
 }
