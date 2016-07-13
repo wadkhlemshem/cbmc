@@ -65,7 +65,7 @@ protected:
   typet get_type(const irep_idt &id);
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
-  char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id,irep_idt &return_id,bool &is_constructor);
+  char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id);
 
 
   void step();

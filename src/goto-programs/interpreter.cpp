@@ -1096,7 +1096,7 @@ void interpretert::list_non_bodied() {
   }*/
 }
 
-char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &function_id, irep_idt &return_symbol, bool &is_constructor)
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &function_id)
 {
   if(it->type!=FUNCTION_CALL) return 0;
   const code_function_callt &function_call=to_code_function_call(it->code);
@@ -1105,8 +1105,6 @@ char interpretert::is_opaque_function(const goto_programt::instructionst::const_
   if(f_it==goto_functions.function_map.end())
     throw "failed to find function "+id2string(function_id);
   if(f_it->second.body_available()) return 0;
-  is_constructor=f_it->second.type.get_bool(ID_constructor);
-  return_symbol=function_call.get("return_value_symbol");
   if(function_call.lhs().is_not_nil()) return 1;
   return -1;
 }
@@ -1117,9 +1115,7 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
     instructions.begin(); f_it!=instructions.end(); f_it++) 
   {
   irep_idt f_id;
-  irep_idt TODO_FIXME;
-  bool is_constructor;
-  if(is_opaque_function(f_it,f_id,TODO_FIXME,is_constructor)>0)
+  if(is_opaque_function(f_it,f_id)>0)
     {
       const code_assignt &code_assign=to_code_assign(f_it->code);
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
@@ -1352,6 +1348,21 @@ static bool is_interesting_assign_step(const goto_trace_stept& step) {
   return true;
 }
 
+enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
+
+calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
+{
+  f_id = callinst.function().get(ID_identifier);
+  const symbolt& called_func = symbol_table.lookup(f_id);
+  capture_symbol = called_func.type.get("opaque_method_capture_symbol");
+  if(capture_symbol != irep_idt())
+    return COMPLEX_OPAQUE_STUB;
+  else if(called_func.value.id() == ID_nil)
+    return SIMPLE_OPAQUE_STUB;
+  else
+    return NOT_OPAQUE_STUB;
+}
+
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
   jsont counter_example;
@@ -1364,69 +1375,67 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   if(function==goto_functions.function_map.end())
     throw "main not found";
 
-  // Keep track of whether a constructor function has been seen and is
-  // waiting to see the malloc instruction preceding.
-  irep_idt pending_opaque_return;
-  // Keep track of whether an assignment with overwrites_return_value has been seen.
-  std::map<irep_idt, exprt> overridden_return_values;
-
+  irep_idt previous_assigned_symbol;
+  
   initialise(true);
   for(goto_tracet::stepst::const_iterator it=trace.steps.end();
       it!=trace.steps.begin();) {
     it--;
-    if(it->is_function_return())
+
+    if(it->is_function_call())
     {
-
-      irep_idt f_id, return_id;
-      bool is_constructor;
-      if(is_opaque_function(it->pc,f_id,return_id,is_constructor)!=0)
+      irep_idt called, capture_symbol;
+      switch(calls_opaque_stub(to_code_function_call(it->pc->code), symbol_table, called, capture_symbol))
       {
-
-	assert(pending_opaque_return == irep_idt());
-	if(return_id == irep_idt() && is_constructor)
+	
+      case NOT_OPAQUE_STUB:
+	continue;
+      case SIMPLE_OPAQUE_STUB:
 	{
-	  pending_opaque_return = f_id;
+	  // Simple opaque function that returns a primitive. The assignment after
+	  // this (before it in trace order) will have given the value assigned to its return nondet.
+	  if(previous_assigned_symbol != irep_idt())
+	    function_inputs[called].push_front(inputs[previous_assigned_symbol]);
+	  break;
 	}
-	else if(return_id != irep_idt()) {
+      case COMPLEX_OPAQUE_STUB:
+	{
+	  // Complex stub: capture the value of capture_symbol instead of whatever happened
+	  // to have been defined most recently.
+	  // It will receive a pointer, so deref it to capture the object state.
+	  exprt defined = inputs[capture_symbol];
+	  if(defined == exprt())
+	  {
+	    std::cout << "Stub method " << called << " returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
+	    continue;
+	  }
+	  assert(defined.type().id() == ID_pointer);
 
-	  auto findit = overridden_return_values.find(return_id);
-	  exprt returnval;
-	  if(findit != overridden_return_values.end())
-	    returnval = findit->second;
-	  else
-	    returnval = inputs[return_id];
+	  auto struct_ty = defined.type().subtype();
+	  assert(struct_ty.id() == ID_struct);
 
-	  if(returnval.type().id() == ID_pointer) {
+	  std::vector<mp_integer> pointer_as_bytes;
+	  evaluate(defined, pointer_as_bytes);
+	  bool isnull = true;
+	  for(auto b : pointer_as_bytes)
+	    if(!b.is_zero())
+	      isnull = false;
 
-	    // Dereference to get the actual struct fields when the
-	    // pointer in question is returned.
-	    auto struct_ty = returnval.type().subtype();
-	    assert(struct_ty.id() == ID_struct);
-
-	    std::vector<mp_integer> pointer_as_bytes;
-	    evaluate(returnval, pointer_as_bytes);
-	    bool isnull = true;
-	    for(auto b : pointer_as_bytes)
-	      if(!b.is_zero())
-		isnull = false;
-
-	    if(!isnull) {
-
-	      std::vector<mp_integer> struct_as_bytes;
-	      evaluate(dereference_exprt(returnval, struct_ty), struct_as_bytes);
-	      returnval = get_value(struct_ty, struct_as_bytes);
-
-	    }
-	    	    
+	  if(!isnull)
+	  {
+	    std::vector<mp_integer> struct_as_bytes;
+	    evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
+	    defined = get_value(struct_ty, struct_as_bytes);
 	  }
 
-	  function_inputs[f_id].push_front(returnval);
-	  
+	  function_inputs[called].push_front(defined);
+	  break;
 	}
 	
-      }      
+      } // End switch on stub type
 
-    } else if(is_interesting_assign_step(*it))
+    } // End if-is-function-call
+    else if(is_interesting_assign_step(*it))
     {
    
       mp_integer address;
@@ -1442,25 +1451,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       evaluate(it->full_lhs_value,rhs);
       assign(address, rhs);
 
-      const std::string symex_prefix = "symex_dynamic::dynamic_object";
-      if(pending_opaque_return != irep_idt() && id.size() >= symex_prefix.length() && as_string(id).substr(0, symex_prefix.length()) == symex_prefix)
-      {
-	// This case gets hit when an opaque function's return value wasn't
-	// defined yet as it returned. This currently happens only if we're walking
-	// backwards from a constructor into the malloc and assignment that actually
-	// allocated the memory.
-	// This should be us about to zero-initialise the object; save its value as of exiting
-	// the constructor.
-	auto findit = inputs.find(id);
-	if(findit == inputs.end()) {
-	  // No fields -- use the zero-initialised struct.
-	  function_inputs[pending_opaque_return].push_front(it->full_lhs_value);
-	}
-	else
-	  function_inputs[pending_opaque_return].push_front(inputs[id]);
-	pending_opaque_return = irep_idt();
-      }
-
       if(it->full_lhs.id()==ID_member)
       {
         address=evaluate_address(symbol_expr);
@@ -1472,11 +1462,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       }
       std::cout << it->pc->type << " " << symbol_expr.get_identifier() << " " << from_expr(ns, id, inputs[id]) << std::endl;
 
-      // Used when synthetic code for opaque function returns overwrites a nondet pointer
-      // with some symbolic object. We should use the symbolic object instead of the
-      // arbitrary pointer value that will be generated by CBMC.
-      if(it->pc->code.get_bool("overwrites_return_value"))
-	overridden_return_values[id]=inputs[id];
+      previous_assigned_symbol=id;
       
     }
   }

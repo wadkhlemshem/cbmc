@@ -696,11 +696,17 @@ exprt make_clean_pointer_cast(const exprt ptr, const typet& target_type, const n
 
 }
 
-void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr, symbol_tablet& symbol_table,
-				    code_blockt* parent_block, unsigned insert_after_index, bool is_constructor, bool assume_non_null) {
+void insert_nondet_opaque_fields_at(const typet& expected_type,
+				    const exprt &ptr,
+				    symbol_tablet& symbol_table,
+				    code_blockt* parent_block,
+				    unsigned insert_before_index,
+				    bool is_constructor,
+				    bool assume_non_null)
+{
 
   // At this point we know 'ptr' points to an opaque-typed object. We should nondet-initialise it
-  // and insert the instructions *after* the offending call at (*parent_block)[insert_after_index].
+  // and insert the instructions *after* the offending call at (*parent_block)[insert_before_index].
 
   assert(expected_type.id() == ID_pointer && "Nondet initialiser should have pointer type");
   assert(parent_block && "Must have an existing block to insert nondet-init code");
@@ -734,7 +740,6 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
       new_instructions.move_to_operands(assign_returns_null);
 
       auto set_null_inst = code_assignt(cast_ptr, null_pointer_exprt(to_pointer_type(cast_ptr.type())));
-      set_null_inst.set("overwrites_return_value", true);
 
       std::ostringstream fresh_label_oss;
       fresh_label_oss << "post_synthetic_malloc_" << (++synthetic_constructor_count);
@@ -755,7 +760,6 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
     malloc_expr.copy_to_operands(size_of_expr(expected_base, ns));
     malloc_expr.type() = expected_type;
     auto alloc_inst = code_assignt(cast_ptr, malloc_expr);
-    alloc_inst.set("overwrites_return_value", true);
     new_instructions.move_to_operands(alloc_inst);
 
   }
@@ -773,99 +777,88 @@ void insert_nondet_opaque_fields_at(const typet& expected_type, const exprt &ptr
   if(new_instructions.operands().size() != 0) {
 
     auto institer = parent_block->operands().begin();
-    std::advance(institer, insert_after_index + 1);
+    std::advance(institer, insert_before_index);
     parent_block->operands().insert(institer, new_instructions.operands().begin(), new_instructions.operands().end());
     
   }
 
 }
-bool is_opaque_type(const typet& t, const symbol_tablet& symtab) {
 
-  if(t.id() == ID_pointer)
-    return is_opaque_type(t.subtype(), symtab);
+void assign_parameter_names(code_typet& ftype, const irep_idt& name_prefix, symbol_tablet& symbol_table) {
+
+  code_typet::parameterst &parameters=ftype.parameters();
+
+  // Mostly borrowed from java_bytecode_convert.cpp; maybe factor this out.
+  // assign names to parameters
+  for(std::size_t i=0, param_index=0;
+      i < parameters.size(); ++i)
+  {
+    irep_idt base_name, identifier;
+
+    if(i==0 && parameters[i].get_this())
+      base_name="this";
+    else
+      base_name="stub_ignored_arg"+i2string(param_index);
+
+    identifier=id2string(name_prefix)+"::"+id2string(base_name);
+    parameters[i].set_base_name(base_name);
+    parameters[i].set_identifier(identifier);
+
+    // add to symbol table
+    parameter_symbolt parameter_symbol;
+    parameter_symbol.base_name=base_name;
+    parameter_symbol.mode=ID_java;
+    parameter_symbol.name=identifier;
+    parameter_symbol.type=parameters[i].type();
+    symbol_table.add(parameter_symbol);
+  }
   
-  namespacet ns(symtab);
-  const typet& resolved = ns.follow(t);
-
-  // No point trying to initalise opaque types without fields.
-  return resolved.get_bool(ID_incomplete_class) && to_class_type(resolved).components().size() != 0;
-
 }
-  
-void insert_nondet_opaque_fields(codet &code, symbol_tablet& symbol_table, code_blockt* parent, unsigned parent_index, bool assume_non_null) {
+			    
+void insert_nondet_opaque_fields(symbolt& sym, symbol_tablet& symbol_table, code_blockt* parent, unsigned parent_index, bool assume_non_null) {
 
-  const irep_idt &statement=code.get_statement();
+  code_blockt new_instructions;
+  code_typet& required_type = to_code_type(sym.type);
+  namespacet ns(symbol_table);
 
-  // TOCHECK: is this enough to iterate over all call instructions?
-  
-  if(statement==ID_block) {
+  bool is_constructor = sym.type.get_bool(ID_constructor);
 
-    // Use indices not iterators as instructions are added as we progress.
-    for(unsigned i = 0; i < code.operands().size(); ++i)
-      insert_nondet_opaque_fields(to_code(code.operands()[i]), symbol_table, &to_code_block(code), i, assume_non_null);
-    
-  }
-  else if(statement == ID_ifthenelse) {
-
-    code_ifthenelset &code_ifthenelse=to_code_ifthenelse(code);
-    insert_nondet_opaque_fields(code_ifthenelse.then_case(), symbol_table, parent, parent_index, assume_non_null);
-    if(code_ifthenelse.else_case().is_not_nil())
-      insert_nondet_opaque_fields(code_ifthenelse.else_case(), symbol_table, parent, parent_index, assume_non_null);
-    
-  }
-  else if(statement == ID_function_call) {
-
-    code_function_callt &code_function_call=to_code_function_call(code);
-    const exprt& callee = code_function_call.function();
-    const code_typet& callee_type = to_code_type(callee.type());
-    namespacet ns(symbol_table);
-    
-    bool is_opaque_call = false;
-
-    if(callee.id() == ID_symbol) {
-
-      // Static call. Constructors should blat their this-arg with nondets;
-      // other static calls should blat any opaque objects they return.
-      
-      const symbolt& target = ns.lookup(callee);
-
-      if(!target.value.is_nil())
-	return; // Known target.
-      
-      const std::string& id = id2string(to_symbol_expr(callee).get_identifier());
-      bool is_constructor = id.find("<init>") != std::string::npos
-	|| id.find("<clinit>") != std::string::npos;
-      
-      if(is_constructor)
-	insert_nondet_opaque_fields_at(callee_type.parameters()[0].type(),
-				       code_function_call.arguments()[0],
-				       symbol_table, parent, parent_index, true, assume_non_null);
-      else if(is_opaque_type(callee_type.return_type(), symbol_table))
-	insert_nondet_opaque_fields_at(callee_type.return_type(),
-				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index, false, assume_non_null);
-
+  if(!is_constructor) {
+    const auto& needed = required_type.return_type();
+    if(needed.id() != ID_pointer) {
+      // Returning a primitive -- no point generating a stub.
+      return;
     }
-    else {
-
-      // Dynamic dispatch. Assume opaque if the pointer type is opaque
-      // (but in truth it could be worse, as external code could supply
-      // an override we don't know about)
-
-      assert(callee_type.has_this() && "Dynamic dispatch but not instance method?");
-      if(is_opaque_type(code_function_call.arguments()[0].type(), symbol_table)
-	 && is_opaque_type(callee_type.return_type(), symbol_table)) {
-	
-	insert_nondet_opaque_fields_at(callee_type.return_type(),
-				       code_function_call.lhs(),
-				       symbol_table, parent, parent_index, false, assume_non_null);
-	
-      }
-
-	
-    }
-    
   }
+
+  assign_parameter_names(required_type, sym.name, symbol_table);
+      
+  if(is_constructor)
+  {
+    const auto& thisarg = required_type.parameters()[0];
+    const auto& thistype = thisarg.type();
+    auto init_symbol = new_tmp_symbol(symbol_table, "to_construct");
+    init_symbol.type = thistype;
+    const auto init_symexpr = init_symbol.symbol_expr();
+    auto getarg = code_assignt(init_symexpr, symbol_exprt(thisarg.get_identifier()));
+    new_instructions.copy_to_operands(getarg);
+    insert_nondet_opaque_fields_at(thistype, init_symexpr, symbol_table, &new_instructions,
+				   1, true, assume_non_null);
+    sym.type.set("opaque_method_capture_symbol", init_symbol.name);    
+  }
+  else
+  {
+    auto toreturn_symbol = new_tmp_symbol(symbol_table, "to_return");
+    toreturn_symbol.type = required_type.return_type();
+    auto toreturn_symexpr = toreturn_symbol.symbol_expr();
+    insert_nondet_opaque_fields_at(required_type.return_type(),
+				   toreturn_symexpr,
+				   symbol_table, &new_instructions, 0, false, assume_non_null);
+    new_instructions.copy_to_operands(code_returnt(toreturn_symexpr));
+    sym.type.set("opaque_method_capture_symbol", toreturn_symbol.name);        
+  }
+
+  sym.value = new_instructions;
 
 }
   
@@ -873,10 +866,12 @@ void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table, bool
 
   if(sym.is_type)
     return;
-  if(sym.value.id() != ID_code)
+  if(sym.value.id() != ID_nil)
+    return;
+  if(sym.type.id() != ID_code)
     return;
 
-  insert_nondet_opaque_fields(to_code(sym.value), symbol_table, 0, 0, assume_non_null);
+  insert_nondet_opaque_fields(sym, symbol_table, 0, 0, assume_non_null);
 
 }
 
