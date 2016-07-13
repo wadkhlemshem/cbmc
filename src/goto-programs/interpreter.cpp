@@ -323,9 +323,6 @@ void interpretert::step()
   
   case DECL:
     trace_step.type=goto_trace_stept::DECL;
-    /*trace_step.full_lhs=step.full_lhs;
-    trace_step.lhs_object=to_symbol_expr(trace_step.full_lhs);
-    trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);*/
     execute_decl();
     break;
   
@@ -430,12 +427,15 @@ Function: interpretert::execute_other
 void interpretert::execute_other()
 {
   const irep_idt &statement=PC->code.get_statement();
-  
   if(statement==ID_expression)
   {
     assert(PC->code.operands().size()==1);
     std::vector<mp_integer> rhs;
     evaluate(PC->code.op0(), rhs);
+  }
+  else if(statement==ID_array_set)
+  {
+    //TODO: need to fill the array with value
   }
   else
     throw "unexpected OTHER statement: "+id2string(statement);
@@ -684,10 +684,12 @@ void interpretert::execute_assign()
       assign(address, rhs);
       trace_step.full_lhs=code_assign.lhs();
 
-      // TODO: need to look at other cases on ssa_exprt
+      // TODO: need to look at other cases on ssa_exprt (derference should be handled on ssa
       const exprt &expr=trace_step.full_lhs;
-      if((expr.id()==ID_member) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      if((expr.id()==ID_member && to_member_expr(expr).struct_op().id()!=ID_dereference) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      {
         trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
+      }
       trace_step.full_lhs_value=get_value(trace_step.full_lhs.type(),rhs);
       trace_step.lhs_object_value=trace_step.full_lhs_value;
     }
@@ -771,7 +773,12 @@ Function: interpretert::execute_assert
 void interpretert::execute_assert()
 {
   if(!evaluate_boolean(PC->guard))
-    throw "assertion failed";
+  {
+    if ((targetAssert==PC) || stop_on_assertion)
+      throw "assertion failed";
+    else if (show)
+      std::cout << "assertion failed" << std::endl;
+  }
 }
 
 /*******************************************************************\
@@ -828,7 +835,7 @@ void interpretert::execute_function_call()
     evaluate(function_call.arguments()[i], argument_values[i]);
 
   // do the call
-      
+
   if(f_it->second.body_available())
   {
     call_stack.push(stack_framet());
@@ -875,7 +882,25 @@ void interpretert::execute_function_call()
     next_PC=f_it->second.body.instructions.begin();   
   }
   else
-    std::cout << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
+  {
+    list_input_varst::iterator it=function_input_vars.find(function_call.function().get(ID_identifier));
+    if (it!=function_input_vars.end())
+    {
+      std::vector<mp_integer> value;
+      evaluate(it->second.front(),value);
+      if (return_value_address>0)
+      {
+        assign(return_value_address,value);
+      }
+      if(function_call.lhs().is_not_nil())
+      {
+      }
+      it->second.pop_front();
+      return;
+    }
+    if (show)
+      std::cout << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
+  }
 }
 
 /*******************************************************************\
@@ -1077,14 +1102,14 @@ Function: list_non_bodied
  \*******************************************************************/
 void interpretert::list_non_bodied() {
   int funcs=0;
-  list_input_varst function_input_vars;
+  function_input_vars.clear();
   for(goto_functionst::function_mapt::const_iterator f_it =
        goto_functions.function_map.begin();
        f_it!=goto_functions.function_map.end(); f_it++)
   {
     if(f_it->second.body_available()) 
     {
-      list_non_bodied(f_it->second.body.instructions, function_input_vars);
+      list_non_bodied(f_it->second.body.instructions);
     }
   }
 
@@ -1096,26 +1121,40 @@ void interpretert::list_non_bodied() {
   }*/
 }
 
-char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &function_id)
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &id)
 {
-  if(it->type!=FUNCTION_CALL) return 0;
-  const code_function_callt &function_call=to_code_function_call(it->code);
-  function_id=function_call.function().get(ID_identifier);
-  const goto_functionst::function_mapt::const_iterator f_it=goto_functions.function_map.find(function_id);
+  goto_programt::instructionst::const_iterator pc=it;
+  if (pc->is_assign())
+  {
+    const code_assignt &code_assign=to_code_assign(pc->code);
+    if(code_assign.rhs().id()==ID_side_effect)
+    {
+      side_effect_exprt side_effect=to_side_effect_expr(code_assign.rhs());
+      if(side_effect.get_statement()==ID_nondet)
+      {
+        pc--;//TODO: need to check if pc is not already at begin
+        if(pc->is_return()) pc--;
+      }
+    }
+  }
+  if(pc->type!=FUNCTION_CALL) return 0;
+  const code_function_callt &function_call=to_code_function_call(pc->code);
+  id=function_call.function().get(ID_identifier);
+  const goto_functionst::function_mapt::const_iterator f_it=goto_functions.function_map.find(id);
   if(f_it==goto_functions.function_map.end())
-    throw "failed to find function "+id2string(function_id);
+    throw "failed to find function "+id2string(id);
   if(f_it->second.body_available()) return 0;
   if(function_call.lhs().is_not_nil()) return 1;
   return -1;
 }
 
-void interpretert::list_non_bodied(const goto_programt::instructionst &instructions, list_input_varst& function_input_vars)
+void interpretert::list_non_bodied(const goto_programt::instructionst &instructions) 
 {
   for(goto_programt::instructionst::const_iterator f_it =
     instructions.begin(); f_it!=instructions.end(); f_it++) 
   {
-  irep_idt f_id;
-  if(is_opaque_function(f_it,f_id)>0)
+    irep_idt f_id;
+    if(is_opaque_function(f_it,f_id)>0)
     {
       const code_assignt &code_assign=to_code_assign(f_it->code);
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
@@ -1340,14 +1379,6 @@ static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
 
 }
 
-static bool is_interesting_assign_step(const goto_trace_stept& step) {
-  if(goto_trace_stept::ASSIGNMENT!=step.type)
-    return false;
-  if(!(step.pc->is_other() || step.pc->is_assign() || step.pc->is_function_call()))
-    return false;
-  return true;
-}
-
 enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
 
 calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
@@ -1366,8 +1397,9 @@ calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, con
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
   jsont counter_example;
-  message_clientt messgae_client;
+  //message_clientt messgae_client;
   show=false;
+  stop_on_assertion=false;
 
   input_varst inputs;
 
@@ -1378,11 +1410,10 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   irep_idt previous_assigned_symbol;
   
   initialise(true);
-  for(goto_tracet::stepst::const_iterator it=trace.steps.end();
-      it!=trace.steps.begin();) {
-    it--;
-
-    if(it->is_function_call())
+  goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
+  if(it!=trace.steps.rend()) targetAssert=it->pc;
+  for(;it!=trace.steps.rend();++it) {
+    if(it->is_function_call())      
     {
       irep_idt called, capture_symbol;
       switch(calls_opaque_stub(to_code_function_call(it->pc->code), symbol_table, called, capture_symbol))
@@ -1435,7 +1466,9 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       } // End switch on stub type
 
     } // End if-is-function-call
-    else if(is_interesting_assign_step(*it))
+    else if(goto_trace_stept::ASSIGNMENT==it->type
+	    && (it->pc->is_other() || it->pc->is_assign()
+		|| it->pc->is_function_call()))
     {
    
       mp_integer address;
@@ -1460,7 +1493,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-      std::cout << it->pc->type << " " << symbol_expr.get_identifier() << " " << from_expr(ns, id, inputs[id]) << std::endl;
 
       previous_assigned_symbol=id;
       
@@ -1478,6 +1510,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     inputs[it->first]=list;
   }
   input_vars=inputs;
+  function_input_vars=function_inputs;
   if(filtered)
   {
     try 
@@ -1497,6 +1530,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   }
   print_inputs();
   show=true;
+  stop_on_assertion=true;
   return input_vars;
 }
 
