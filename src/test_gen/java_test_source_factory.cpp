@@ -405,7 +405,6 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   indent(result)+="}\n";
   return result+="}\n";
 
-   return result;
 }
 
 std::string func_name(const symbolt &symbol)
