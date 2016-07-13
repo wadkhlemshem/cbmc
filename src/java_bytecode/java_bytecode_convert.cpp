@@ -384,7 +384,7 @@ void java_bytecode_convertt::convert(
     const empty_typet empty;
     const pointer_typet object_ref_type(empty);
 #endif
-    const pointer_typet object_ref_type(class_type);
+    const pointer_typet object_ref_type(symbol_typet(class_symbol.name));
     this_p.type()=object_ref_type;
     this_p.set_this();
     parameters.insert(parameters.begin(), this_p);
