@@ -157,10 +157,7 @@ class sc_uint_base
     return m_len;
   } 
 
-  unsigned int to_uint() const
-  {
-    return val;
-  }
+  unsigned int to_uint() const;
 
   bv_type val;
  protected:
