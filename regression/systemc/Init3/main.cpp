@@ -12,7 +12,10 @@ int main(int argc, char *argv[])
 {
   uint2_t x(1);
   uint2_t y(3);
-  uint3_t z = x+y; //TODO: fails non-deterministically!!!
+  uint3_t z; // = x+y; //TODO: fails non-deterministically!!!
+//  z = x+y;
+//  z = uint3_t(x+y);
+  z = (uint3_t)x+y;
   uint3_t w(4);
   
   assert(z == w);
