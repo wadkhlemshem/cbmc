@@ -1386,7 +1386,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
   while(it!=trace.steps.rend()) {
-    //it--;
     if(goto_trace_stept::ASSIGNMENT==it->type
     && (it->pc->is_other() || it->pc->is_assign()
             || it->pc->is_function_call()))
