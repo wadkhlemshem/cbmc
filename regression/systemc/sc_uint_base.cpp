@@ -28,6 +28,13 @@ sc_uint_bitref sc_uint_base::operator[](int index)
   return sc_uint_bitref(this, index);
 }
 
+unsigned int sc_uint_base::to_uint() const
+{
+  bv_type tmp;
+  bitvector_assign_from(val,0,length(),tmp);
+  return tmp;
+}
+
 bool sc_uint_bitref::operator=(bool b)
 { 
   bitvector_assign_bit(ptr->val, index, b);
