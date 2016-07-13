@@ -322,9 +322,6 @@ void interpretert::step()
   
   case DECL:
     trace_step.type=goto_trace_stept::DECL;
-    /*trace_step.full_lhs=step.full_lhs;
-    trace_step.lhs_object=to_symbol_expr(trace_step.full_lhs);
-    trace_step.full_lhs_value=decision_procedure.get(step.ssa_lhs);*/
     execute_decl();
     break;
   
@@ -429,12 +426,15 @@ Function: interpretert::execute_other
 void interpretert::execute_other()
 {
   const irep_idt &statement=PC->code.get_statement();
-  
   if(statement==ID_expression)
   {
     assert(PC->code.operands().size()==1);
     std::vector<mp_integer> rhs;
     evaluate(PC->code.op0(), rhs);
+  }
+  else if(statement==ID_array_set)
+  {
+    //TODO: need to fill the array with value
   }
   else
     throw "unexpected OTHER statement: "+id2string(statement);
@@ -683,10 +683,12 @@ void interpretert::execute_assign()
       assign(address, rhs);
       trace_step.full_lhs=code_assign.lhs();
 
-      // TODO: need to look at other cases on ssa_exprt
+      // TODO: need to look at other cases on ssa_exprt (derference should be handled on ssa
       const exprt &expr=trace_step.full_lhs;
-      if((expr.id()==ID_member) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      if((expr.id()==ID_member && to_member_expr(expr).struct_op().id()!=ID_dereference) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      {
         trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
+      }
       trace_step.full_lhs_value=get_value(trace_step.full_lhs.type(),rhs);
       trace_step.lhs_object_value=trace_step.full_lhs_value;
     }
@@ -769,9 +771,13 @@ Function: interpretert::execute_assert
 
 void interpretert::execute_assert()
 {
-  if((!evaluate_boolean(PC->guard))
-  &&((targetAssert==PC) || stop_on_assertion))
-    throw "assertion failed";
+  if(!evaluate_boolean(PC->guard))
+  {
+    if ((targetAssert==PC) || stop_on_assertion)
+      throw "assertion failed";
+    else if (show)
+      std::cout << "assertion failed" << std::endl;
+  }
 }
 
 /*******************************************************************\
@@ -879,7 +885,6 @@ void interpretert::execute_function_call()
     list_input_varst::iterator it=function_input_vars.find(function_call.function().get(ID_identifier));
     if (it!=function_input_vars.end())
     {
-      //std::cout << "available returns: " << it->second.size() << std::endl;
       std::vector<mp_integer> value;
       evaluate(it->second.front(),value);
       if (return_value_address>0)
@@ -890,8 +895,10 @@ void interpretert::execute_function_call()
       {
       }
       it->second.pop_front();
+      return;
     }
-    std::cout << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
+    if (show)
+      std::cout << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
   }
 }
 
