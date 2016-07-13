@@ -65,6 +65,7 @@ class sc_uint_base
   explicit sc_uint_base(unsigned long v, int _len)
     : val(v), m_len(_len)
   {
+    truncate();
   }
 
   sc_uint_base(const sc_uint_base &other)
@@ -78,6 +79,7 @@ class sc_uint_base
   sc_uint_base &operator=(const sc_uint_base &other)
   {
     val = other.val;
+    truncate();
     return *this;
   }
 
@@ -93,18 +95,21 @@ class sc_uint_base
   sc_uint_base operator+=(const sc_uint_base &other)
   {
     val += other.val; 
+    truncate();
     return *this;
   }
 
   sc_uint_base operator-=(const sc_uint_base &other)
   {
     val -= other.val; 
+    truncate();
     return *this;
   }
 
   sc_uint_base operator*=(const sc_uint_base &other)
   {
     val *= other.val; 
+    truncate();
     return *this;
   }
 
@@ -117,12 +122,13 @@ class sc_uint_base
   sc_uint_base operator<<=(int v) //uint_type v
   {
     val <<= v; 
+    truncate();
     return *this;
   }
 
   sc_uint_base operator+(const sc_uint_base &other)
   {
-    return sc_uint_base(val+other.val, m_len);
+    return sc_uint_base(val+other.val, m_len+1);
   }
 
   sc_uint_base operator~()
@@ -147,7 +153,7 @@ class sc_uint_base
 
   sc_uint_base operator*(const sc_uint_base &other)
   {
-    return sc_uint_base(val*other.val, m_len);
+    return sc_uint_base(val*other.val, 2*m_len);
   }
 
   sc_uint_subref range(int left, int right);
@@ -157,11 +163,16 @@ class sc_uint_base
     return m_len;
   } 
 
-  unsigned int to_uint() const;
+  unsigned int to_uint() const
+  {
+    return val;
+  }
 
   bv_type val;
  protected:
   const int m_len;
+
+  void truncate();
 };
 
 #endif
