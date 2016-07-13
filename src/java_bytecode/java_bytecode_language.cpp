@@ -221,7 +221,7 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_insert_nondet_opaque_objects(symbol_table,assume_opaque_returns_non_null);
+  java_generate_opaque_method_stubs(symbol_table,assume_opaque_returns_non_null);
 
   if(java_entry_point(symbol_table, main_class, get_message_handler()))
     return true;

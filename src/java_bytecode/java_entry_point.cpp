@@ -877,7 +877,7 @@ void insert_nondet_opaque_fields(symbolt &sym, symbol_tablet &symbol_table, bool
 
 } // End anon namespace for insert-nondet support functions
 
-void java_insert_nondet_opaque_objects(symbol_tablet &symbol_table, bool assume_non_null) {
+void java_generate_opaque_method_stubs(symbol_tablet &symbol_table, bool assume_non_null) {
 
   std::vector<irep_idt> identifiers;
   identifiers.reserve(symbol_table.symbols.size());
