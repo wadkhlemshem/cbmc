@@ -77,6 +77,9 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
     assert(!test_case_name.empty());
     out_file_name+='_';
     out_file_name+=test_case_name;
+    out_file_name+='_';
+    out_file_name+=std::to_string(out_file_no);
+    out_file_no++;
     std::ofstream(out_file_name.c_str()) << source;
   }
 }
