@@ -53,7 +53,7 @@ void add_test_class_name(std::string &result, const std::string &func_name)
   result+="Test {\n";
   indent(result)+="@org.junit.Test public void test";
   result+=func_name;
-  result+="() {\n";
+  result+="() throws Exception {\n";
 }
 
 void add_symbol(std::string &result, const symbolt &s)
