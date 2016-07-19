@@ -1159,7 +1159,6 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
       if((return_address > 0) && (return_address<memory.size()))
       {
-        irep_idt id=memory[return_address].identifier;
         function_input_vars[f_id].push_back(get_value(code_assign.lhs().type(),return_address));
       }
     }
@@ -1327,6 +1326,85 @@ void interpretert::print_memory(bool input_flags) {
 }
 
 /*******************************************************************
+ Function: getPC
+
+ Inputs:
+
+ Outputs:
+
+ Purpose: retrieves the PC pointer for the given location
+
+ \*******************************************************************/
+goto_programt::const_targett interpretert::getPC(const unsigned location,bool &ok)
+{
+  goto_programt::const_targett no_location;
+  for(goto_functionst::function_mapt::const_iterator f_it =
+      goto_functions.function_map.begin();
+      f_it!=goto_functions.function_map.end(); f_it++)
+  {
+    if(f_it->second.body_available())
+    {
+      for(goto_programt::instructionst::const_iterator it =
+    	  f_it->second.body.instructions.begin();
+          it!=f_it->second.body.instructions.end(); it++)
+      {
+        if (it->location_number==location)
+        {
+          ok=true;
+          return it;
+        }
+      }
+    }
+  }
+  ok=false;
+  return no_location;
+}
+
+/*******************************************************************
+ Function: prune_inputs
+
+ Inputs:
+
+ Outputs:
+
+ Purpose: cleans the list of inputs organising std vectors into arrays and filtering non-inputs if requested
+
+ \*******************************************************************/
+void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_inputs, const bool filter)
+{
+  for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
+    const exprt size=from_integer(it->second.size(), integer_typet());
+    array_typet type=array_typet(it->second.front().type(),size);
+    array_exprt list(type);
+    list.reserve_operands(it->second.size());
+    for(std::list<exprt>::iterator l_it=it->second.begin();l_it!=it->second.end();l_it++)
+    {
+      list.copy_to_operands(*l_it);
+    }
+    inputs[it->first]=list;
+  }
+  input_vars=inputs;
+  function_input_vars=function_inputs;
+  if(filter)
+  {
+    try
+    {
+      fill_inputs(inputs);
+      while(!done) {
+        show_state();
+        step();
+      }
+    }
+    catch (const char *e)
+    {
+      std::cout << e << std::endl;
+    }
+    list_inputs();
+    list_inputs(inputs);
+  }
+}
+
+/*******************************************************************
  Function: load_counter_example_inputs
 
  Inputs:
@@ -1341,38 +1419,83 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     const std::string &filename) {
   jsont counter_example;
   message_clientt message_client;
-  if(parse_json(filename, message_client.get_message_handler(),
-      counter_example)) {
+
+  if(parse_json(filename,message_client.get_message_handler(),counter_example))
+  {
+	bool ok;
     show=false;
+    stop_on_assertion=false;
+
     input_varst inputs;
-    for(jsont::objectt::const_iterator it=counter_example.object.end();
-        it!=counter_example.object.begin();) {
-      it--;
-      irep_idt id=it->second["lhs"].value;
-      inputs[id]=to_expr(ns, id, it->second["value"].value);
-    }
-    try {
-      initialise(true);
-      fill_inputs(inputs);
-      while(!done) {
-        step();
-        show_state();
-      }
-    }
-    catch(const char *e)
+    list_input_varst function_inputs;
+
+    function=goto_functions.function_map.find(goto_functionst::entry_point());
+    if(function==goto_functions.function_map.end())
+      throw "main not found";
+
+    initialise(true);
+    jsont::objectt::const_reverse_iterator it=counter_example.object.rbegin();
+    if(it!=counter_example.object.rend())
     {
-      std::cout << e << std::endl;
+      unsigned location=integer2unsigned(string2integer(it->second["location"].value));
+      targetAssert=getPC(location,ok);
     }
-    list_inputs(inputs);
+
+    while(it!=counter_example.object.rend())
+    {
+      const jsont &pc_object=it->second["location"];
+      if (pc_object.kind==jsont::J_NULL) continue;
+      unsigned location=integer2unsigned(string2integer(pc_object.value));
+      goto_programt::const_targett pc=getPC(location,ok);
+      if (!ok) continue;
+      const jsont &lhs_object=it->second["lhs"];
+      if (lhs_object.kind==jsont::J_NULL) continue;
+      irep_idt id=lhs_object.value;
+      const jsont &val_object=it->second["value"];
+      if (val_object.kind==jsont::J_NULL) continue;
+      if(pc->is_other() || pc->is_assign() || pc->is_function_call())
+      {
+    	const code_assignt &code_assign=to_code_assign(PC->code);//TODO: the other and function_call may be different
+        mp_integer address;
+        const exprt &lhs=code_assign.lhs();
+        exprt value=to_expr(ns, id, val_object.value);
+        symbol_exprt symbol_expr=to_symbol_expr(
+            (lhs.id()==ID_member) ? to_member_expr(lhs).symbol() : lhs);
+        irep_idt id=symbol_expr.get_identifier();
+        address=evaluate_address(lhs);
+        if(address==0) {
+          address=build_memory_map(id,symbol_expr.type());
+        }
+        std::vector<mp_integer> rhs;
+        evaluate(value,rhs);
+        assign(address, rhs);
+        if(lhs.id()==ID_member)
+        {
+          address=evaluate_address(symbol_expr);
+          inputs[id]=get_value(symbol_expr.type(),integer2unsigned(address));
+        }
+        else
+        {
+          inputs[id]=value;
+        }
+        irep_idt f_id;
+        if(is_opaque_function(pc,f_id)!=0)
+        {
+          function_inputs[f_id].push_front(inputs[id]);
+        }
+      }
+      it++;
+    }
+    prune_inputs(inputs,function_inputs,true);
+    print_inputs();
     show=true;
+    stop_on_assertion=true;
   }
   return input_vars;
 }
 
 interpretert::input_varst& interpretert::load_counter_example_inputs(
-    const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
-  jsont counter_example;
-  //message_clientt messgae_client;
+    const goto_tracet &trace, list_input_varst& function_inputs, const bool filtered) {
   show=false;
   stop_on_assertion=false;
 
@@ -1421,36 +1544,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     }
     it++;
   }
-  for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
-    const exprt size=from_integer(it->second.size(), integer_typet());
-    array_typet type=array_typet(it->second.front().type(),size);
-    array_exprt list(type);
-    list.reserve_operands(it->second.size());
-    for(std::list<exprt>::iterator l_it=it->second.begin();l_it!=it->second.end();l_it++)
-    {
-      list.copy_to_operands(*l_it);
-    }
-    inputs[it->first]=list;
-  }
-  input_vars=inputs;
-  function_input_vars=function_inputs;
-  if(filtered)
-  {
-    try 
-    {
-      fill_inputs(inputs);
-      while(!done) {
-        show_state();
-        step();
-      }
-    } 
-    catch (const char *e) 
-    {
-      std::cout << e << std::endl;
-    }
-    list_inputs();
-    list_inputs(inputs);
-  }
+  prune_inputs(inputs,function_inputs,filtered);
   print_inputs();
   show=true;
   stop_on_assertion=true;

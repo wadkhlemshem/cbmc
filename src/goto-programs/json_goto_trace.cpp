@@ -17,6 +17,8 @@ Author: Daniel Kroening
 
 #include "json_goto_trace.h"
 
+#include <iostream>
+
 /*******************************************************************\
 
 Function: convert
@@ -51,7 +53,7 @@ void convert(
       json_location=json(source_location);
     else
       json_location=json_nullt();
-    
+
     switch(it->type)
     {
     case goto_trace_stept::ASSERT:
@@ -75,6 +77,8 @@ void convert(
         json_failure["thread"]=json_numbert(i2string(it->thread_nr));
         json_failure["reason"]=json_stringt(id2string(it->comment));
         json_failure["property"]=json_stringt(id2string(property_id));
+
+        json_failure["location"]=json_numbert(i2string(it->pc->location_number));
 
         if(!json_location.is_null())
           json_failure["sourceLocation"]=json_location;
@@ -124,6 +128,7 @@ void convert(
         json_assignment["lhs"]=json_stringt(full_lhs_string);
         json_assignment["hidden"]=jsont::json_boolean(it->hidden);
         json_assignment["thread"]=json_numbert(i2string(it->thread_nr));
+        json_assignment["location"]=json_numbert(i2string(it->pc->location_number));
 
         json_assignment["assignmentType"]=
           json_stringt(it->assignment_type==goto_trace_stept::ACTUAL_PARAMETER?
@@ -150,14 +155,19 @@ void convert(
         json_call_return["stepType"]=json_stringt(tag);
         json_call_return["hidden"]=jsont::json_boolean(it->hidden);
         json_call_return["thread"]=json_numbert(i2string(it->thread_nr));
+        json_call_return["location"]=json_numbert(i2string(it->pc->location_number));
 
-        const symbolt &symbol=ns.lookup(it->identifier);
         json_objectt &json_function=json_call_return["function"].make_object();
-        json_function["displayName"]=
-          json_stringt(id2string(symbol.display_name()));
-        json_function["identifier"]=json_stringt(id2string(it->identifier));
-        json_function["sourceLocation"]=json(symbol.location);
-
+        const symbolt *symbol;
+        if (ns.lookup(it->identifier, symbol))
+          json_function["displayName"]=json_stringt("?");//TODO: should this really happen?
+        else
+        {
+          json_function["displayName"]=
+            json_stringt(id2string(symbol->display_name()));
+          json_function["identifier"]=json_stringt(id2string(it->identifier));
+          json_function["sourceLocation"]=json(symbol->location);
+        }
         if(!json_location.is_null())
           json_call_return["sourceLocation"]=json_location;
       }
@@ -173,6 +183,7 @@ void convert(
           json_location_only["stepType"]=json_stringt("location-only");
           json_location_only["hidden"]=jsont::json_boolean(it->hidden);
           json_location_only["thread"]=json_numbert(i2string(it->thread_nr));
+          json_location_only["location"]=json_numbert(i2string(it->pc->location_number));
           json_location_only["sourceLocation"]=json_location;
         }
       }
