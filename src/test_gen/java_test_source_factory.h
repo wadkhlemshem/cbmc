@@ -35,7 +35,8 @@ std::string generate_java_test_case_from_inputs(
     const class symbol_tablet &st,
     const irep_idt &func_id,
     inputst inputs,
-    const interpretert::list_input_varst& opaque_function_returns);
+    const interpretert::list_input_varst& opaque_function_returns,
+    bool disable_mocks);
 
 std::string func_name(const symbolt &symbol);
 

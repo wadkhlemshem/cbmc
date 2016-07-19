@@ -53,7 +53,7 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 }
 
 typedef std::function<
-  std::string(const symbol_tablet &, const irep_idt &, const inputst &, const interpretert::list_input_varst&)> test_case_generatort;
+  std::string(const symbol_tablet &, const irep_idt &, const inputst &, const interpretert::list_input_varst&, bool)> test_case_generatort;
 
 void generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
@@ -64,7 +64,7 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
   
   const inputst inputs(generate_inputs(st, gf, trace, opaque_function_returns));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns));
+  const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns, options.get_bool_option("java-disable-mocks")));
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
   {

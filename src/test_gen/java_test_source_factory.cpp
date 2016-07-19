@@ -429,7 +429,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
 } // End of anonymous namespace
 
-std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
+std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns, bool disable_mocks)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -438,8 +438,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   // Do this first since the mock object creation can require annotations on the test class.
   // Parameter is the indent level on generated code.
   reference_factoryt ref_factory(4);
-  
-  ref_factory.add_mock_objects(st, opaque_function_returns);
+
+  if(!disable_mocks)
+    ref_factory.add_mock_objects(st, opaque_function_returns);
 
   result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
   add_test_class_name(result, func_name);
