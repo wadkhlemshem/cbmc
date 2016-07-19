@@ -888,8 +888,8 @@ void interpretert::execute_function_call()
     {
       std::vector<mp_integer> value;
       assert(it->second.size() != 0);
-      assert(it->second.front().size() != 0);
-      evaluate(it->second.front().back().second,value);
+      assert(it->second.front().assignments.size() != 0);
+      evaluate(it->second.front().assignments.back().value,value);
       if (return_value_address>0)
       {
         assign(return_value_address,value);
@@ -1163,10 +1163,10 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       if((return_address > 0) && (return_address<memory.size()))
       {
         irep_idt id=memory[return_address].identifier;
-	auto retval = std::make_pair(id,get_value(code_assign.lhs().type(),return_address));
-	function_defnt defnlist;
-	defnlist.push_back(retval);
-        function_input_vars[f_id].push_back(defnlist);
+	function_assignmentt retval = {id, get_value(code_assign.lhs().type(),return_address)};
+	function_assignmentst defnlist = { retval };
+	// Add an actual calling context instead of a blank irep if our caller needs it.
+        function_input_vars[f_id].push_back({irep_idt(), defnlist});
       }
     }
   }
@@ -1401,12 +1401,12 @@ calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, con
 
 // Get the current value of capture_symbol plus the values of any symbols referenced in its fields.
 // Store them in 'captured' in bottom-up order.
-void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_defnt& captured)
+void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured)
 {
 
   // Circular reference?
   for(auto already_captured : captured)
-    if(already_captured.first == capture_symbol)
+    if(already_captured.id == capture_symbol)
       return;
 
   exprt defined = inputs.at(capture_symbol);
@@ -1461,7 +1461,7 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_va
 
   }
 
-  captured.push_back(std::make_pair(capture_symbol, defined));
+  captured.push_back({capture_symbol, defined});
 
 }
 
@@ -1471,6 +1471,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   //message_clientt messgae_client;
   show=false;
   stop_on_assertion=false;
+  std::vector<irep_idt> stack;
 
   input_varst inputs;
 
@@ -1479,7 +1480,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     throw "main not found";
 
   irep_idt previous_assigned_symbol;
-  
+ 
   initialise(true);
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
@@ -1498,8 +1499,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  // this (before it in trace order) will have given the value assigned to its return nondet.
 	  if(previous_assigned_symbol != irep_idt())
 	  {
-	    function_defnt single_defn(1, std::make_pair(previous_assigned_symbol, inputs[previous_assigned_symbol]));
-	    function_inputs[called].push_front(single_defn);
+	    function_assignmentst single_defn = { { previous_assigned_symbol, inputs[previous_assigned_symbol] } };
+	    function_inputs[called].push_front({ irep_idt(), single_defn });
 	  }
 	  break;
 	}
@@ -1507,10 +1508,10 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	{
 	  // Complex stub: capture the value of capture_symbol instead of whatever happened
 	  // to have been defined most recently. Also capture any other referenced objects.
-	  function_defnt defined;
+	  function_assignmentst defined;
 	  get_value_tree(capture_symbol, inputs, defined);
 	  if(defined.size() != 0) // Definition found?
-	    function_inputs[called].push_front(defined);
+	    function_inputs[called].push_front({irep_idt(), defined});
 	  break;
 	}
 	
@@ -1551,15 +1552,15 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   }
   for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
     const exprt size=from_integer(it->second.size(), integer_typet());
-    assert(it->second.front().size() != 0);
-    const auto& first_function_val = it->second.front();
-    const auto& toplevel_definition = first_function_val.back().second;
+    assert(it->second.front().assignments.size() != 0);
+    const auto& first_function_assigns = it->second.front().assignments;
+    const auto& toplevel_definition = first_function_assigns.back().value;
     array_typet type=array_typet(toplevel_definition.type(),size);
     array_exprt list(type);
     list.reserve_operands(it->second.size());
     for(auto l_it : it->second)
     {
-      list.copy_to_operands(l_it.back().second);
+      list.copy_to_operands(l_it.assignments.back().value);
     }
     inputs[it->first]=list;
   }

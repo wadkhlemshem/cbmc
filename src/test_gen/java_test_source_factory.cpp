@@ -337,12 +337,13 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
     assert(fn_and_returns.second.size() != 0);
     // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
-    const auto& last_definition_list = fn_and_returns.second.back();
-    const auto& last_toplevel_assignment = last_definition_list.back().second;
+    const auto& last_definition_list = fn_and_returns.second.back().assignments;
+    const auto& last_toplevel_assignment = last_definition_list.back().value;
     add_decl_from_type(java_ret_type, st, last_toplevel_assignment.type(), &type_is_primitive);
 
-    for(auto defined_symbols : fn_and_returns.second) {
+    for(auto defined_symbols_context : fn_and_returns.second) {
 
+      const auto& defined_symbols = defined_symbols_context.assignments;
       std::string return_value;
       assert(defined_symbols.size() != 0);
       
@@ -350,7 +351,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
       {
 	// defined_symbols should be simply [ some_identifier = some_primitive ]
 	assert(defined_symbols.size() == 1);
-	add_value(return_value, st, defined_symbols.back().second);
+	add_value(return_value, st, defined_symbols.back().value);
       }
       else {
 	// defined_symbols may be something like [ id1 = { x = 1, y = "Hello" },
@@ -358,15 +359,15 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	std::string init_statements;
 	for(auto defined : defined_symbols)
 	{
-	  auto findit = st.symbols.find(defined.first);
+	  auto findit = st.symbols.find(defined.id);
 	  symbolt fake_symbol;
 	  const symbolt* use_symbol;
 	  if(findit == st.symbols.end())
 	  {
 	    // Dynamic object names are not in the symtab at the moment.
-	    fake_symbol.type = defined.second.type();
-	    fake_symbol.name = defined.first;
-	    std::string namestr = as_string(defined.first);
+	    fake_symbol.type = defined.value.type();
+	    fake_symbol.name = defined.id;
+	    std::string namestr = as_string(defined.id);
 	    size_t findidx = namestr.find("::");
 	    if(findidx == std::string::npos)
 	      fake_symbol.base_name = fake_symbol.name;
@@ -380,15 +381,15 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	  else
 	    use_symbol = &findit->second;
 	  add_decl_with_init_prefix(init_statements, st, *use_symbol);
-	  add_assign_value(init_statements, st, *use_symbol, defined.second);
+	  add_assign_value(init_statements, st, *use_symbol, defined.value);
 	}
 	std::ostringstream mocknameoss;
 	mocknameoss << "mock_instance_" << (++mocknumber);
 	std::string mockname = mocknameoss.str();
-	const irep_idt& last_sym_name = defined_symbols.back().first;
+	const irep_idt& last_sym_name = defined_symbols.back().id;
 	init_statements += (java_ret_type + " " + mockname + " = " + as_string(last_sym_name) + ";");
 
-	return_value = as_string(last_sym_name);
+	return_value = as_string(mockname);
 	  
 	mockenv_builder.add_to_prelude(init_statements + ";");
       }

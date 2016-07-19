@@ -31,8 +31,6 @@ std::string mock_environment_builder::instantiate_mock(const std::string& tyname
 // We don't use argtypes at the moment.
 void mock_environment_builder::constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
 
-  // Note that constructor interception needs setting up:
-  powermock_classes.insert(targetclass);
   mock_prelude <<
     "org.powermock.api.mockito.PowerMockito.whenNew(" << targetclass << ".class).withAnyArguments().thenReturn(" << retval << ");" << prelude_newline;
 
