@@ -16,6 +16,8 @@
 #define TEST_CASE_FAIL 1
 #define TEST_CASE_ERROR 10
 
+static int out_file_no = 0;
+
 /**
  * @brief
  *

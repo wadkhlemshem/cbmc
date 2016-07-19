@@ -9,6 +9,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/symbol_table.h>
 #include <util/suffix.h>
 #include <util/config.h>
+#include <util/cmdline.h>
 
 #include "java_bytecode_language.h"
 #include "java_bytecode_convert.h"
@@ -19,6 +20,23 @@ Author: Daniel Kroening, kroening@kroening.com
 #include "java_class_loader.h"
 
 #include "expr2java.h"
+
+/*******************************************************************\
+
+Function: java_bytecode_languaget::get_language_options
+
+  Inputs: Command-line options
+
+ Outputs: None
+
+ Purpose: Consume options that are java bytecode specific.
+
+\*******************************************************************/
+
+void java_bytecode_languaget::get_language_options(const cmdlinet& cmd)
+{
+  assume_opaque_returns_non_null=cmd.isset("java-assume-opaque-returns-non-null");
+}
 
 /*******************************************************************\
 
@@ -203,7 +221,7 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_insert_nondet_opaque_fields(symbol_table);
+  java_generate_opaque_method_stubs(symbol_table,assume_opaque_returns_non_null);
 
   if(java_entry_point(symbol_table, main_class, get_message_handler()))
     return true;

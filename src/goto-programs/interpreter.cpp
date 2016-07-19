@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
 #include <util/message.h>
+#include <util/string2int.h>
 #include <ansi-c/c_types.h>
 #include <json/json_parser.h>
 
@@ -1120,7 +1121,7 @@ void interpretert::list_non_bodied() {
   }*/
 }
 
-char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id)
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &id)
 {
   goto_programt::instructionst::const_iterator pc=it;
   if (pc->is_assign())
@@ -1494,6 +1495,30 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   return input_vars;
 }
 
+static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
+
+  return to_symbol_expr(
+	  (step.full_lhs.id()==ID_member) ?
+	  to_member_expr(step.full_lhs).symbol() :
+          step.full_lhs);
+
+}
+
+enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
+
+calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
+{
+  f_id = callinst.function().get(ID_identifier);
+  const symbolt& called_func = symbol_table.lookup(f_id);
+  capture_symbol = called_func.type.get("opaque_method_capture_symbol");
+  if(capture_symbol != irep_idt())
+    return COMPLEX_OPAQUE_STUB;
+  else if(called_func.value.id() == ID_nil)
+    return SIMPLE_OPAQUE_STUB;
+  else
+    return NOT_OPAQUE_STUB;
+}
+
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, const bool filtered) {
   show=false;
@@ -1505,19 +1530,73 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   if(function==goto_functions.function_map.end())
     throw "main not found";
 
+  irep_idt previous_assigned_symbol;
+  
   initialise(true);
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
-  while(it!=trace.steps.rend()) {
-    if(goto_trace_stept::ASSIGNMENT==it->type
-    && (it->pc->is_other() || it->pc->is_assign()
-            || it->pc->is_function_call()))
+  for(;it!=trace.steps.rend();++it) {
+    if(it->is_function_call())      
     {
+      irep_idt called, capture_symbol;
+      switch(calls_opaque_stub(to_code_function_call(it->pc->code), symbol_table, called, capture_symbol))
+      {
+	
+      case NOT_OPAQUE_STUB:
+	continue;
+      case SIMPLE_OPAQUE_STUB:
+	{
+	  // Simple opaque function that returns a primitive. The assignment after
+	  // this (before it in trace order) will have given the value assigned to its return nondet.
+	  if(previous_assigned_symbol != irep_idt())
+	    function_inputs[called].push_front(inputs[previous_assigned_symbol]);
+	  break;
+	}
+      case COMPLEX_OPAQUE_STUB:
+	{
+	  // Complex stub: capture the value of capture_symbol instead of whatever happened
+	  // to have been defined most recently.
+	  // It will receive a pointer, so deref it to capture the object state.
+	  exprt defined = inputs[capture_symbol];
+	  if(defined == exprt())
+	  {
+	    std::cout << "Stub method " << called << " returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
+	    continue;
+	  }
+	  assert(defined.type().id() == ID_pointer);
+
+	  auto struct_ty = defined.type().subtype();
+	  assert(struct_ty.id() == ID_struct);
+
+	  std::vector<mp_integer> pointer_as_bytes;
+	  evaluate(defined, pointer_as_bytes);
+	  bool isnull = true;
+	  for(auto b : pointer_as_bytes)
+	    if(!b.is_zero())
+	      isnull = false;
+
+	  if(!isnull)
+	  {
+	    std::vector<mp_integer> struct_as_bytes;
+	    evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
+	    defined = get_value(struct_ty, struct_as_bytes);
+	  }
+
+	  function_inputs[called].push_front(defined);
+	  break;
+	}
+	
+      } // End switch on stub type
+
+    } // End if-is-function-call
+    else if(goto_trace_stept::ASSIGNMENT==it->type
+	    && (it->pc->is_other() || it->pc->is_assign()
+		|| it->pc->is_function_call()))
+    {
+   
       mp_integer address;
-      symbol_exprt symbol_expr=to_symbol_expr(
-          (it->full_lhs.id()==ID_member) ?
-              to_member_expr(it->full_lhs).symbol() :
-              it->full_lhs);
+
+      symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
 
       address=evaluate_address(it->full_lhs);
@@ -1527,6 +1606,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
       assign(address, rhs);
+
       if(it->full_lhs.id()==ID_member)
       {
         address=evaluate_address(symbol_expr);
@@ -1536,13 +1616,10 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-      irep_idt f_id;
-      if(is_opaque_function(it->pc,f_id)!=0)
-      {
-        function_inputs[f_id].push_front(inputs[id]);
-      }
+
+      previous_assigned_symbol=id;
+      
     }
-    it++;
   }
   prune_inputs(inputs,function_inputs,filtered);
   print_inputs();
