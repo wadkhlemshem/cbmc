@@ -90,7 +90,7 @@ class mock_environment_builder {
   void static_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& retval);
 
   // Return retval the next time a targetclass is constructed.
-  void constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval);
+  void constructor_call(const std::string& callingclass, const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval);
   
   // Return annotations needed for the main class to run under JUnit:
   std::string get_class_annotations();

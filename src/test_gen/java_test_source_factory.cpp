@@ -400,7 +400,14 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
       if(is_static)
 	mockenv_builder.static_call(classname, funcname, java_arg_types, return_value);
       else if(is_constructor)
-	mockenv_builder.constructor_call(classname, java_arg_types, return_value);
+      {
+	std::string caller = as_string(defined_symbols_context.calling_function);
+	size_t namespace_idx = caller.find("java::");
+	size_t classname_idx = namespace_idx + 6;
+	size_t method_idx = caller.rfind('.');
+	assert(namespace_idx == 0 && method_idx != std::string::npos);
+	mockenv_builder.constructor_call(caller.substr(classname_idx, method_idx - classname_idx), classname, java_arg_types, return_value);
+      }
       else
 	mockenv_builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
 

@@ -29,8 +29,11 @@ std::string mock_environment_builder::instantiate_mock(const std::string& tyname
 
 // Return retval the next time a targetclass is constructed.
 // We don't use argtypes at the moment.
-void mock_environment_builder::constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
+void mock_environment_builder::constructor_call(const std::string& callingclass, const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
 
+  // Note that the *caller* (not the callee) needs PrepareForTest.
+  powermock_classes.insert(callingclass);
+  
   mock_prelude <<
     "org.powermock.api.mockito.PowerMockito.whenNew(" << targetclass << ".class).withAnyArguments().thenReturn(" << retval << ");" << prelude_newline;
 

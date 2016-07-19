@@ -1500,7 +1500,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  if(previous_assigned_symbol != irep_idt())
 	  {
 	    function_assignmentst single_defn = { { previous_assigned_symbol, inputs[previous_assigned_symbol] } };
-	    function_inputs[called].push_front({ irep_idt(), single_defn });
+	    function_inputs[called].push_front({ function->first, single_defn });
 	  }
 	  break;
 	}
@@ -1511,7 +1511,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  function_assignmentst defined;
 	  get_value_tree(capture_symbol, inputs, defined);
 	  if(defined.size() != 0) // Definition found?
-	    function_inputs[called].push_front({irep_idt(), defined});
+	    function_inputs[called].push_front({ function->first, defined });
 	  break;
 	}
 	
