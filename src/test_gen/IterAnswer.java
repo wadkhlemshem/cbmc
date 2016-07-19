@@ -1,3 +1,5 @@
+package com.diffblue.java_testcase;
+
 import org.mockito.stubbing.Answer;
 import org.mockito.invocation.InvocationOnMock;
 import java.util.ArrayList;

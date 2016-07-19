@@ -101,7 +101,7 @@ void mock_environment_builder::instance_call(const std::string& targetclass, con
     std::string boxed_type = box_java_type(rettype);
     
     mock_prelude << "final java.util.ArrayList<" << boxed_type << "> " << al << " = new java.util.ArrayList<" << boxed_type << ">();" << prelude_newline <<
-      "final IterAnswer " << ao << " = new IterAnswer<" << boxed_type << ">(" << al << ");" << prelude_newline;
+      "final com.diffblue.java_testcase.IterAnswer " << ao << " = new com.diffblue.java_testcase.IterAnswer<" << boxed_type << ">(" << al << ");" << prelude_newline;
     
   }
 
