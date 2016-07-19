@@ -163,7 +163,7 @@ public:
       const struct_typet::componentt &comp=comps[comp_index];
       if (!is_class_name_comp(comp, comp_index))
       {
-        indent(result, 2u)+="Reflector.setInstanceField(";
+        indent(result, 2u)+="com.diffblue.java_testcase.Reflector.setInstanceField(";
         result+=this_name;
         result+=",\"";
         result+=id2string(comp.get_pretty_name());
@@ -192,7 +192,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     mockenv_builder.register_mock_instance(qualified_class_name, this_name);
   }
   else
-    instance_expr = "Reflector.forceInstance(\"" + qualified_class_name + "\")";
+    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_name + "\")";
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
 
