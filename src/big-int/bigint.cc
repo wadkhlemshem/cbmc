@@ -51,7 +51,6 @@ adjust_size (unsigned size)
   return size;
 }
 
-
 // Compare unsigned digit strings, returns -1/0/+1.
 
 inline int
@@ -788,12 +787,39 @@ BigInt::compare (BigInt const &b) const
   return positive ? result : -result;
 }
 
+void BigInt::bitwiseor (onedig_t const *dig, unsigned len,bool pos)
+{
+  // Make sure the result fits into this.
+  if (len>length) len=length;
+  for (int i=0;i<len;i++) digit[i]|=dig[i];
+  positive&=pos;//positive is the inverse of the sign bit
+}
+void BigInt::bitwiseand (onedig_t const *dig, unsigned len,bool pos)
+{
+  // Make sure the result fits into this.
+  if (len>length) len=length;
+  for (int i=0;i<len;i++) digit[i]&=dig[i];
+  positive|=pos;//positive is the inverse of the sign bit
+}
+void BigInt::bitwisexor (onedig_t const *dig, unsigned len,bool pos)
+{
+  // Make sure the result fits into this.
+  if (len>length) len=length;
+  for (int i=0;i<len;i++) digit[i]^=dig[i];
+  positive^=pos;
+}
+void BigInt::bitwiseneg ()
+{
+  for (int i=0;i<length;i++) digit[i]=~digit[i];
+}
+
 
 // Auxiliary method for all adding and subtracting.
 
 void
 BigInt::add (onedig_t const *dig, unsigned len, bool pos)
 {
+
   // Make sure the result fits into this, even with carry.
   resize ((length > len ? length : len) + 1);
 
@@ -915,7 +941,6 @@ BigInt::mul (onedig_t const *dig, unsigned len, bool pos)
   }
 }
 
-
 BigInt &
 BigInt::operator+= (llong_t y)
 {
@@ -1023,6 +1048,19 @@ BigInt::operator%= (ullong_t uy)
   return *this %= BigInt (yb, yl, true);
 }
 
+BigInt &
+BigInt::operator|= (BigInt const &y)
+{
+  bitwiseor (y.digit, y.length, y.positive);
+  return *this;
+}
+
+BigInt &
+BigInt::operator&= (BigInt const &y)
+{
+  bitwiseand (y.digit, y.length, y.positive);
+  return *this;
+}
 
 BigInt &
 BigInt::operator+= (BigInt const &y)

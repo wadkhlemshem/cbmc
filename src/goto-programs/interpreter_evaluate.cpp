@@ -144,18 +144,19 @@ void interpretert::evaluate(
 
       dest.clear();
     }
-     else if((expr.type().id()==ID_pointer) || (expr.type().id()==ID_address_of))
+    else if((expr.type().id()==ID_pointer) || (expr.type().id()==ID_address_of))
     {
-      mp_integer i;
-      if(!to_integer(expr, i))
-      {
-    	dest.push_back(i);
-    	return;
-      }
+      mp_integer i=0;
+      const irep_idt &value=to_constant_expr(expr).get_value();
       if (expr.has_operands() && expr.op0().id()==ID_address_of)
       {
         evaluate(expr.op0(),dest);
         return;
+      }
+      if(!to_integer(expr, i))
+      {
+    	dest.push_back(i);
+    	return;
       }
     }
     else if(expr.type().id()==ID_floatbv)
@@ -246,6 +247,36 @@ void interpretert::evaluate(
       return;
     }
     if (show) std::cout << "side effect not implemented " << side_effect.get_statement() << std::endl;
+  }
+  else if(expr.id()==ID_bitor)
+  {
+    if(expr.operands().size()<2)
+      throw id2string(expr.id())+" expects at least two operands";
+
+    mp_integer final=0;
+    forall_operands(it, expr)
+    {
+      std::vector<mp_integer> tmp;
+      evaluate(*it, tmp);
+      if(tmp.size()==1) final|=tmp.front();
+    }
+    dest.push_back(final);
+    return;
+  }
+  else if(expr.id()==ID_bitand)
+  {
+    if(expr.operands().size()<2)
+      throw id2string(expr.id())+" expects at least two operands";
+
+    mp_integer final=-1;
+    forall_operands(it, expr)
+    {
+      std::vector<mp_integer> tmp;
+      evaluate(*it, tmp);
+      if(tmp.size()==1) final&=tmp.front();
+    }
+    dest.push_back(final);
+    return;
   }
   else if(expr.id()==ID_equal ||
           expr.id()==ID_notequal ||
@@ -552,6 +583,7 @@ void interpretert::evaluate(
     dest.push_back(0);
     return;
   }
+//  if (!show) return;
   std::cout << "!! failed to evaluate expression: "
             << from_expr(ns, function->first, expr)
             << std::endl;

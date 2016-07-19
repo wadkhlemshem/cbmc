@@ -66,9 +66,9 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns));
   std::string out_file_name=options.get_option("outfile");
-  if (out_file_name.empty())
+  if(out_file_name.empty())
   {
-    if (!test_case_name.empty())
+    if(!test_case_name.empty())
       std::cout << "Test case: " << test_case_name << std::endl;
     std::cout << source;
   }
@@ -77,6 +77,9 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
     assert(!test_case_name.empty());
     out_file_name+='_';
     out_file_name+=test_case_name;
+    out_file_name+='_';
+    out_file_name+=std::to_string(out_file_no);
+    out_file_no++;
     std::ofstream(out_file_name.c_str()) << source;
   }
 }

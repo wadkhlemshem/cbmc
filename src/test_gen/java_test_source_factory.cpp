@@ -34,7 +34,7 @@ public:
   void add_value(std::string &result, const symbol_tablet &st, const struct_exprt &value, const std::string &this_name);
   void add_assign_value(std::string &result, const symbol_tablet &st, const symbolt &symbol, const exprt &value);
   void add_global_state_assignments(std::string &result, const symbol_tablet &st, inputst &in);
-  void add_func_call_parameters(std::string &result, const symbol_tablet &st, const irep_idt &func_id, inputst &inputs);
+  bool add_func_call_parameters(std::string &result, const symbol_tablet &st, const irep_idt &func_id, inputst &inputs);
   void add_mock_objects(const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns);
   
 };
@@ -240,7 +240,7 @@ std::set<irep_idt> get_parameters(const symbolt &func)
   return result;
 }
 
-void reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
+  bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id, inputst &inputs)
 {
   const symbolt &func=st.lookup(func_id);
@@ -249,10 +249,17 @@ void reference_factoryt::add_func_call_parameters(std::string &result, const sym
   {
     const symbolt &symbol=st.lookup(param);
     const inputst::iterator value=inputs.find(param);
-    assert(inputs.end() != value);
-    add_decl_with_init_prefix(indent(result, 2u), st, symbol);
-    add_assign_value(result, st, symbol, value->second);
+    if(inputs.end()==value) 
+    {
+      return false;
+    }
+    else
+    {
+      add_decl_with_init_prefix(indent(result, 2u), st, symbol);
+      add_assign_value(result, st, symbol, value->second);
+    }
   }
+  return true;
 }
 
 std::string symbol_to_function_name(const symbolt &s) {
@@ -264,7 +271,7 @@ std::string symbol_to_function_name(const symbolt &s) {
 
 }
   
-std::string &add_func_call(std::string &result, const symbol_tablet &st,
+void add_func_call(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id)
 {
   // XXX: Should be expr2java(...) once functional.
@@ -280,8 +287,6 @@ std::string &add_func_call(std::string &result, const symbol_tablet &st,
     add_symbol(result, st.lookup(param));
   }
   result+=");\n";
-  indent(result)+="}\n";
-  return result+="}\n";
 }
 
 std::string get_escaped_func_name(const symbolt &symbol)
@@ -369,8 +374,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
 } // End of anonymous namespace
 
-std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
-    const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
+std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -388,12 +392,19 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st,
   std::string post_mock_setup_result;
   
   ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs);
-  ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-  std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
-  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
-  return add_func_call(result, st, func_id);
+    std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
+    result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
+  if(exists_func_call)
+  {
+    add_func_call(result,st,func_id);
+  }
+
+  indent(result)+="}\n";
+  return result+="}\n";
+
 }
 
 std::string func_name(const symbolt &symbol)
