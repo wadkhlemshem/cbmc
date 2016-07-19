@@ -298,6 +298,13 @@ std::string get_escaped_func_name(const symbolt &symbol)
   return result;
 }
 
+bool shouldnt_mock_class(const std::string& classname)
+{
+  // Should make a proper black/whitelist in due time; for now just avoid
+  // mocking things like Exceptions.
+  return classname.find("java.") == 0;
+}
+  
 void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns)
 {
 
@@ -314,6 +321,9 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
     std::string classname = class_and_function_name.substr(0, sepidx);
     std::string funcname = class_and_function_name.substr(sepidx + 1);
 
+    if(shouldnt_mock_class(classname))
+      continue;
+    
     // Note that this class must be mocked whenever we try to generate a reference to it:
     mock_classes.insert(classname);
 
