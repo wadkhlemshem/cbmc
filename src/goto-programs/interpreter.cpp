@@ -887,7 +887,9 @@ void interpretert::execute_function_call()
     if (it!=function_input_vars.end())
     {
       std::vector<mp_integer> value;
-      evaluate(it->second.front(),value);
+      assert(it->second.size() != 0);
+      assert(it->second.front().size() != 0);
+      evaluate(it->second.front().back().second,value);
       if (return_value_address>0)
       {
         assign(return_value_address,value);
@@ -1161,7 +1163,10 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       if((return_address > 0) && (return_address<memory.size()))
       {
         irep_idt id=memory[return_address].identifier;
-        function_input_vars[f_id].push_back(get_value(code_assign.lhs().type(),return_address));
+	auto retval = std::make_pair(id,get_value(code_assign.lhs().type(),return_address));
+	function_defnt defnlist;
+	defnlist.push_back(retval);
+        function_input_vars[f_id].push_back(defnlist);
       }
     }
   }
@@ -1394,6 +1399,72 @@ calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, con
     return NOT_OPAQUE_STUB;
 }
 
+// Get the current value of capture_symbol plus the values of any symbols referenced in its fields.
+// Store them in 'captured' in bottom-up order.
+void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_defnt& captured)
+{
+
+  // Circular reference?
+  for(auto already_captured : captured)
+    if(already_captured.first == capture_symbol)
+      return;
+
+  exprt defined = inputs.at(capture_symbol);
+  if(defined == exprt())
+  {
+    std::cout << "Stub method returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
+    return;
+  }
+
+  bool isnull = false;
+  
+  if(defined.type().id() == ID_pointer)
+  {
+  
+    auto struct_ty = defined.type().subtype();
+    assert(struct_ty.id() == ID_struct);
+
+    std::vector<mp_integer> pointer_as_bytes;
+    evaluate(defined, pointer_as_bytes);
+    isnull = true;
+    for(auto b : pointer_as_bytes)
+      if(!b.is_zero())
+	isnull = false;
+
+    if(!isnull)
+    {
+	std::vector<mp_integer> struct_as_bytes;
+	evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
+	defined = get_value(struct_ty, struct_as_bytes);
+    }
+
+  }
+
+  if(!isnull)
+  {
+  
+    const auto& defined_struct = to_struct_expr(defined);
+    const auto& struct_type = to_struct_type(defined.type());
+    const auto& members = struct_type.components();
+    unsigned idx = 0;
+    assert(defined_struct.operands().size() == members.size());
+    // Assumption: all object trees captured this way refer directly to particular
+    // symex::dynamic_object expressions, which are always address-of-symbol constructions.
+    forall_operands(opit, defined_struct) {
+      if(members[idx].type().id() == ID_pointer)
+	{
+	  const auto& referee = to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
+	  get_value_tree(referee, inputs, captured);
+	}
+      ++idx;
+    }
+
+  }
+
+  captured.push_back(std::make_pair(capture_symbol, defined));
+
+}
+
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
   jsont counter_example;
@@ -1420,46 +1491,26 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
 	
       case NOT_OPAQUE_STUB:
-	continue;
+	break;
       case SIMPLE_OPAQUE_STUB:
 	{
 	  // Simple opaque function that returns a primitive. The assignment after
 	  // this (before it in trace order) will have given the value assigned to its return nondet.
 	  if(previous_assigned_symbol != irep_idt())
-	    function_inputs[called].push_front(inputs[previous_assigned_symbol]);
+	  {
+	    function_defnt single_defn(1, std::make_pair(previous_assigned_symbol, inputs[previous_assigned_symbol]));
+	    function_inputs[called].push_front(single_defn);
+	  }
 	  break;
 	}
       case COMPLEX_OPAQUE_STUB:
 	{
 	  // Complex stub: capture the value of capture_symbol instead of whatever happened
-	  // to have been defined most recently.
-	  // It will receive a pointer, so deref it to capture the object state.
-	  exprt defined = inputs[capture_symbol];
-	  if(defined == exprt())
-	  {
-	    std::cout << "Stub method " << called << " returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
-	    continue;
-	  }
-	  assert(defined.type().id() == ID_pointer);
-
-	  auto struct_ty = defined.type().subtype();
-	  assert(struct_ty.id() == ID_struct);
-
-	  std::vector<mp_integer> pointer_as_bytes;
-	  evaluate(defined, pointer_as_bytes);
-	  bool isnull = true;
-	  for(auto b : pointer_as_bytes)
-	    if(!b.is_zero())
-	      isnull = false;
-
-	  if(!isnull)
-	  {
-	    std::vector<mp_integer> struct_as_bytes;
-	    evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
-	    defined = get_value(struct_ty, struct_as_bytes);
-	  }
-
-	  function_inputs[called].push_front(defined);
+	  // to have been defined most recently. Also capture any other referenced objects.
+	  function_defnt defined;
+	  get_value_tree(capture_symbol, inputs, defined);
+	  if(defined.size() != 0) // Definition found?
+	    function_inputs[called].push_front(defined);
 	  break;
 	}
 	
@@ -1500,12 +1551,15 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   }
   for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
     const exprt size=from_integer(it->second.size(), integer_typet());
-    array_typet type=array_typet(it->second.front().type(),size);
+    assert(it->second.front().size() != 0);
+    const auto& first_function_val = it->second.front();
+    const auto& toplevel_definition = first_function_val.back().second;
+    array_typet type=array_typet(toplevel_definition.type(),size);
     array_exprt list(type);
     list.reserve_operands(it->second.size());
-    for(std::list<exprt>::iterator l_it=it->second.begin();l_it!=it->second.end();l_it++)
+    for(auto l_it : it->second)
     {
-      list.copy_to_operands(*l_it);
+      list.copy_to_operands(l_it.back().second);
     }
     inputs[it->first]=list;
   }

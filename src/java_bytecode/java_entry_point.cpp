@@ -122,7 +122,8 @@ void gen_nondet_init(
   std::set<irep_idt> &recursion_set,
   bool is_sub,
   irep_idt class_identifier,
-  bool skip_classid = false)
+  bool skip_classid = false,
+  bool create_dynamic_objects = false)
 {
   const namespacet ns(symbol_table);
   const typet &type=ns.follow(expr.type());
@@ -149,65 +150,51 @@ void gen_nondet_init(
       }
     }
 
-    symbolt &aux_symbol=new_tmp_symbol(symbol_table);
-    aux_symbol.type=subtype;
-    aux_symbol.is_static_lifetime=true;
-
-    exprt object=aux_symbol.symbol_expr();
-    gen_nondet_init(object, init_code, symbol_table, recursion_set, false, "");
-
-    address_of_exprt aoe(object);
-
-    code_assignt code(expr, aoe);
-    init_code.copy_to_operands(code);
-
-    #if 0
-    // dereferenced type
-    const pointer_typet &pointer_type=to_pointer_type(type);
-    const typet &subtype=ns.follow(pointer_type.subtype());
-
-    if(subtype.id()==ID_struct)
+    if(!create_dynamic_objects)
     {
-      const struct_typet &struct_type=to_struct_type(subtype);
-      const irep_idt struct_tag=struct_type.get_tag();
+    
+      symbolt &aux_symbol=new_tmp_symbol(symbol_table);
+      aux_symbol.type=subtype;
+      aux_symbol.is_static_lifetime=true;
 
-      if(recursion_set.find(struct_tag)!=recursion_set.end())
-      {
-        // make null
-        null_pointer_exprt null_pointer_expr(pointer_type);
-        code_assignt code(expr, null_pointer_expr);
-        init_code.copy_to_operands(code);
+      exprt object=aux_symbol.symbol_expr();
+      gen_nondet_init(object, init_code, symbol_table, recursion_set, false, "", false, create_dynamic_objects);
 
-        return;
-      }
-    }
+      address_of_exprt aoe(object);
 
-    // build size expression
-    exprt object_size=size_of_expr(subtype, ns);
-
-    if(subtype.id()!=ID_empty && !object_size.is_nil())
-    {
-      // malloc expression
-      side_effect_exprt malloc_expr(ID_malloc);
-      malloc_expr.copy_to_operands(object_size);
-      malloc_expr.type()=pointer_type;
-
-      code_assignt code(expr, malloc_expr);
+      code_assignt code(expr, aoe);
       init_code.copy_to_operands(code);
 
-      // dereference expression
-      dereference_exprt deref_expr(expr, subtype);
-
-      gen_nondet_init(deref_expr, init_code, ns, recursion_set, false, "");
     }
     else
     {
-      // make null
-      null_pointer_exprt null_pointer_expr(pointer_type);
-      code_assignt code(expr, null_pointer_expr);
-      init_code.copy_to_operands(code);
+
+      // build size expression
+      exprt object_size=size_of_expr(subtype, ns);
+
+      if(subtype.id()!=ID_empty && !object_size.is_nil())
+	{
+	  // malloc expression
+	  side_effect_exprt malloc_expr(ID_malloc);
+	  malloc_expr.copy_to_operands(object_size);
+	  malloc_expr.type()=pointer_type;
+
+	  code_assignt code(expr, malloc_expr);
+	  init_code.copy_to_operands(code);
+
+	  // dereference expression
+	  dereference_exprt deref_expr(expr, subtype);
+
+	  gen_nondet_init(deref_expr, init_code, symbol_table, recursion_set, false, "", false, create_dynamic_objects);
+	}
+      else
+	{
+	  // make null
+	  null_pointer_exprt null_pointer_expr(pointer_type);
+	  code_assignt code(expr, null_pointer_expr);
+	  init_code.copy_to_operands(code);
+	}
     }
-    #endif
   }
   else if(type.id()==ID_struct)
   {
@@ -253,7 +240,7 @@ void gen_nondet_init(
 #endif
 
         gen_nondet_init(me, init_code, symbol_table, recursion_set, _is_sub,
-          class_identifier);
+			class_identifier, false, create_dynamic_objects);
       }
     }
 
@@ -286,10 +273,11 @@ void gen_nondet_init(
   const exprt &expr,
   code_blockt &init_code,
   symbol_tablet &symbol_table,
-  bool skip_classid = false)
+  bool skip_classid = false,
+  bool create_dynamic_objects = false)
 {
   std::set<irep_idt> recursion_set;
-  gen_nondet_init(expr, init_code, symbol_table, recursion_set, false, "", skip_classid);
+  gen_nondet_init(expr, init_code, symbol_table, recursion_set, false, "", skip_classid, create_dynamic_objects);
 }
 }
 
@@ -766,7 +754,7 @@ void insert_nondet_opaque_fields_at(const typet& expected_type,
 
   exprt derefd = clean_deref(cast_ptr);
   
-  gen_nondet_init(derefd, new_instructions, symbol_table, is_constructor);
+  gen_nondet_init(derefd, new_instructions, symbol_table, is_constructor, /*create_dynamic=*/true);
 
   if((!is_constructor) && !assume_non_null) {
     new_instructions.copy_to_operands(code_gotot(init_done_label.get_label()));    
@@ -837,7 +825,7 @@ void insert_nondet_opaque_fields(symbolt& sym, symbol_tablet& symbol_table, code
   {
     const auto& thisarg = required_type.parameters()[0];
     const auto& thistype = thisarg.type();
-    auto init_symbol = new_tmp_symbol(symbol_table, "to_construct");
+    auto& init_symbol = new_tmp_symbol(symbol_table, "to_construct");
     init_symbol.type = thistype;
     const auto init_symexpr = init_symbol.symbol_expr();
     auto getarg = code_assignt(init_symexpr, symbol_exprt(thisarg.get_identifier()));

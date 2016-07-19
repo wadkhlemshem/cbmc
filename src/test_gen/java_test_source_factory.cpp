@@ -337,22 +337,59 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
     assert(fn_and_returns.second.size() != 0);
     // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
-    add_decl_from_type(java_ret_type, st, fn_and_returns.second.back().type(), &type_is_primitive);
+    const auto& last_definition_list = fn_and_returns.second.back();
+    const auto& last_toplevel_assignment = last_definition_list.back().second;
+    add_decl_from_type(java_ret_type, st, last_toplevel_assignment.type(), &type_is_primitive);
 
-    for(auto ret : fn_and_returns.second) {
+    for(auto defined_symbols : fn_and_returns.second) {
 
       std::string return_value;
-
+      assert(defined_symbols.size() != 0);
+      
       if(type_is_primitive)
-	add_value(return_value, st, ret);
+      {
+	// defined_symbols should be simply [ some_identifier = some_primitive ]
+	assert(defined_symbols.size() == 1);
+	add_value(return_value, st, defined_symbols.back().second);
+      }
       else {
+	// defined_symbols may be something like [ id1 = { x = 1, y = "Hello" },
+	//                                         id2 = { a = id1, b = "World" } ]
 	std::string init_statements;
+	for(auto defined : defined_symbols)
+	{
+	  auto findit = st.symbols.find(defined.first);
+	  symbolt fake_symbol;
+	  const symbolt* use_symbol;
+	  if(findit == st.symbols.end())
+	  {
+	    // Dynamic object names are not in the symtab at the moment.
+	    fake_symbol.type = defined.second.type();
+	    fake_symbol.name = defined.first;
+	    std::string namestr = as_string(defined.first);
+	    size_t findidx = namestr.find("::");
+	    if(findidx == std::string::npos)
+	      fake_symbol.base_name = fake_symbol.name;
+	    else
+	    {
+	      assert(namestr.size() >= findidx + 3);
+	      fake_symbol.base_name = namestr.substr(findidx + 2);
+	    }
+	    use_symbol = &fake_symbol;
+	  }
+	  else
+	    use_symbol = &findit->second;
+	  add_decl_with_init_prefix(init_statements, st, *use_symbol);
+	  add_assign_value(init_statements, st, *use_symbol, defined.second);
+	}
 	std::ostringstream mocknameoss;
 	mocknameoss << "mock_instance_" << (++mocknumber);
 	std::string mockname = mocknameoss.str();
-	init_statements = (java_ret_type + " " + mockname + " = ");
-	add_value(init_statements, st, ret, mockname);
-	return_value = mockname;
+	const irep_idt& last_sym_name = defined_symbols.back().first;
+	init_statements += (java_ret_type + " " + mockname + " = " + as_string(last_sym_name) + ";");
+
+	return_value = as_string(last_sym_name);
+	  
 	mockenv_builder.add_to_prelude(init_statements + ";");
       }
 
@@ -395,8 +432,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-    std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
-    result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
+  std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
     add_func_call(result,st,func_id);

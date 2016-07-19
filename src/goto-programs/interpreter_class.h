@@ -31,7 +31,10 @@ public:
   friend class simplify_evaluatet;
 
   typedef std::map<const irep_idt,exprt> input_varst;
-  typedef std::map<const irep_idt,std::list<exprt> > list_input_varst;
+  typedef std::vector<std::pair<irep_idt, exprt> > function_defnt;
+  // list_input_varst maps function identifiers onto a vector of [name = value] assignments
+  // per call to that function.
+  typedef std::map<const irep_idt,std::list<function_defnt> > list_input_varst;
   typedef hash_map_cont<irep_idt, unsigned, irep_id_hash> memory_mapt;
 
 protected:
@@ -66,6 +69,7 @@ protected:
   typet get_type(const irep_idt &id);
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
+  void get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_defnt& captured);
   char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id);
 
 
