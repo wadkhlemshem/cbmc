@@ -1,3 +1,6 @@
+
+#include <ctype.h>
+
 #include <algorithm>
 #include <set>
 #include <iostream>
@@ -366,16 +369,16 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
       else {
 	// defined_symbols may be something like [ id1 = { x = 1, y = "Hello" },
 	//                                         id2 = { a = id1, b = "World" } ]
-	std::string init_statements;
+	std::vector<init_statement> init_statements;
 
 	std::ostringstream mocknameoss;
 	mocknameoss << "mock_instance_" << (++mocknumber);
 	std::string mockname = mocknameoss.str();
-	init_statements += (java_ret_type + " " + mockname + ";\n");
+	init_statements.push_back(init_statement::statement(java_ret_type + " " + mockname));
 
 	// Start an anonymous scope, as the symbol names defined below may not be unique
 	// if the same method stub was used more than once.
-	init_statements += "{\n";
+	init_statements.push_back(init_statement::scopeOpen());
 	
 	for(auto defined : defined_symbols)
 	{
@@ -400,15 +403,38 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	  }
 	  else
 	    use_symbol = &findit->second;
-	  add_decl_with_init_prefix(init_statements, st, *use_symbol);
-	  add_assign_value(init_statements, st, *use_symbol, defined.value);
+
+	  // Initial empty statement makes the loop below easier.
+	  std::string this_object_init = ";"; 
+	  add_decl_with_init_prefix(this_object_init, st, *use_symbol);
+	  add_assign_value(this_object_init, st, *use_symbol, defined.value);
+
+	  // Break the declaration into lines, for formatting purposes.
+	  // (Todo: gather the init code this way everywhere, instead of as a long string)
+	  for(size_t last_semi = 0, this_semi = this_object_init.find(';', 1);
+	      last_semi != std::string::npos;
+	      last_semi = this_semi, this_semi = this_object_init.find(';', last_semi+1))
+	  {
+
+	    size_t takefrom = last_semi + 1;
+	    while(takefrom < this_semi &&
+		  takefrom < this_object_init.length() &&
+		  isspace(this_object_init[takefrom]))
+	      ++takefrom;
+	    
+	    if(takefrom < this_semi && takefrom < this_object_init.length()) {
+	      std::string thisline = this_object_init.substr(takefrom, this_semi == std::string::npos ? std::string::npos : this_semi - takefrom);
+	      init_statements.push_back(init_statement::statement(thisline));
+	    }
+	    
+	  }
 	}
 
 	const irep_idt& last_sym_name = defined_symbols.back().id;
-	init_statements += (mockname + " = " + as_string(last_sym_name) + ";");
+	init_statements.push_back(init_statement::statement(mockname + " = " + as_string(last_sym_name)));
 
 	// End anonymous scope.
-	init_statements += "}\n";
+	init_statements.push_back(init_statement::scopeClose());
 	
 	return_value = as_string(mockname);
 	  

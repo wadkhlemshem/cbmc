@@ -54,6 +54,17 @@ instance_method_answer(const std::string& ao, const std::string& al) :
   
 };
 
+struct init_statement {
+  enum statement_type { SCOPE_OPEN, SCOPE_CLOSE, STATEMENT };
+  statement_type type;
+  std::string statementText;
+
+  static init_statement scopeOpen() { return { SCOPE_OPEN, "" }; };
+  static init_statement scopeClose() { return { SCOPE_CLOSE, "" }; };
+  static init_statement statement(const std::string& s) { return { STATEMENT, s }; };    
+  
+};
+
 class mock_environment_builder {
 
   // Track mock instance names, so we can connect up the answer-list objects
@@ -95,9 +106,7 @@ class mock_environment_builder {
   // Return annotations needed for the main class to run under JUnit:
   std::string get_class_annotations();
 
-  void add_to_prelude(const std::string& toadd) {
-    mock_prelude << toadd << prelude_newline;
-  }
+  void add_to_prelude(const std::vector<init_statement>&);
   
   // Return the mock setup code that should directly precede the test entry point.
   std::string get_mock_prelude() { return mock_prelude.str(); }

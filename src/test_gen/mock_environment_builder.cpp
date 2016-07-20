@@ -203,3 +203,27 @@ std::string mock_environment_builder::get_class_annotations() {
   return out.str();
   
 }
+
+void mock_environment_builder::add_to_prelude(const std::vector<init_statement>& statements) {
+
+  for(const auto& s : statements)
+  {
+    switch(s.type)
+    {
+    case init_statement::SCOPE_OPEN:
+      mock_prelude << '{';
+      prelude_newline += "  ";
+      mock_prelude << prelude_newline;      
+      break;
+    case init_statement::SCOPE_CLOSE:
+      mock_prelude << "\b\b";
+      if(prelude_newline.length() >= 3)
+	prelude_newline.erase(prelude_newline.length() - 2, 2);
+      mock_prelude << '}' << prelude_newline;
+      break;
+    case init_statement::STATEMENT:
+      mock_prelude << s.statementText << ';' << prelude_newline;
+    }
+  }
+    
+}
