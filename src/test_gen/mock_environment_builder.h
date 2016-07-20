@@ -1,4 +1,7 @@
 
+#ifndef CPROVER_MOCK_ENVRIONMENT_H
+#define CPROVER_MOCK_ENVRIONMENT_H
+
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -16,8 +19,8 @@ struct method_signature {
 
   method_signature() = default;
   
-method_signature(const std::string& cn, const std::string& mn, const std::vector<std::string> ats) :
-  classname(cn), methodname(mn), argtypes(ats) {}
+method_signature(const std::string& cn,const std::string& mn,const std::vector<std::string> ats) :
+  classname(cn),methodname(mn),argtypes(ats) {}
 
   bool operator==(const method_signature& other) const {
     return other.classname == classname && other.methodname == methodname && other.argtypes == argtypes;
@@ -50,19 +53,19 @@ struct instance_method_answer {
 
   instance_method_answer() = default;
   
-instance_method_answer(const std::string& ao, const std::string& al) :
-  answer_object(ao), answer_list(al) {}
+instance_method_answer(const std::string& ao,const std::string& al) :
+  answer_object(ao),answer_list(al) {}
   
 };
 
 struct init_statement {
-  enum statement_type { SCOPE_OPEN, SCOPE_CLOSE, STATEMENT };
+  enum statement_type { SCOPE_OPEN,SCOPE_CLOSE,STATEMENT };
   statement_type type;
   std::string statementText;
 
-  static init_statement scopeOpen() { return { SCOPE_OPEN, "" }; };
-  static init_statement scopeClose() { return { SCOPE_CLOSE, "" }; };
-  static init_statement statement(const std::string& s) { return { STATEMENT, s }; };    
+  static init_statement scopeOpen() { return { SCOPE_OPEN,"" }; };
+  static init_statement scopeClose() { return { SCOPE_CLOSE,"" }; };
+  static init_statement statement(const std::string& s) { return { STATEMENT,s }; };    
   
 };
 
@@ -73,7 +76,7 @@ class mock_environment_builder {
   std::unordered_set<std::string> mock_instances_exist;
 
   // Track class instance methods that have an answer object set up.
-  std::unordered_map<method_signature, instance_method_answer> instance_method_answers;
+  std::unordered_map<method_signature,instance_method_answer> instance_method_answers;
 
   // Build up a set of classes that need PowerMock setup (those whose constructors and/or static methods we need to intercept)
   std::set<std::string> powermock_classes;  // Accumulate mock object setup statements that will precede the test case entry point
@@ -88,22 +91,22 @@ class mock_environment_builder {
   
   // Add a mock to mock_instance_names. Returns a statement to execute while instancename
   // is still in scope.
-  std::string register_mock_instance(const std::string& tyname, const std::string& instancename);
+  std::string register_mock_instance(const std::string& tyname,const std::string& instancename);
 
   // Intercept the next constructor call to tyname and return a fresh mock instance.
-  std::string instantiate_mock(const std::string& tyname, bool is_constructor);
+  std::string instantiate_mock(const std::string& tyname,bool is_constructor);
   
-  // Intercept the next instance call to targetobj.methodname(paramtype0, paramtype1, ...) and return retval.
-  void instance_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& rettype, const std::string& retval);
+  // Intercept the next instance call to targetobj.methodname(paramtype0,paramtype1,...) and return retval.
+  void instance_call(const std::string& targetclass,const std::string& methodname,const std::vector<std::string>& argtypes,const std::string& rettype,const std::string& retval);
 
   // Write instance method interception code that can only be generated once all required intercepts are known.
   std::string finalise_instance_calls();
   
   // Intercept the next static call to targetclass.methodname(argtypes...) and return retval.
-  void static_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& retval);
+  void static_call(const std::string& targetclass,const std::string& methodname,const std::vector<std::string>& argtypes,const std::string& retval);
 
   // Return retval the next time a targetclass is constructed.
-  void constructor_call(const std::string& callingclass, const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval);
+  void constructor_call(const std::string& callingclass,const std::string& targetclass,const std::vector<std::string>& argtypes,const std::string& retval);
   
   // Return annotations needed for the main class to run under JUnit:
   std::string get_class_annotations();
@@ -114,3 +117,5 @@ class mock_environment_builder {
   std::string get_mock_prelude() { return mock_prelude.str(); }
   
 };
+
+#endif

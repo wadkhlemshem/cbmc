@@ -5,6 +5,18 @@
 #include <locale>
 #include <assert.h>
 
+/*******************************************************************\
+
+Function: mock_envrionment_builder
+
+  Inputs: Indent level (spaces)
+
+ Outputs: (constructor)
+
+ Purpose:
+
+\*******************************************************************/
+
 mock_environment_builder::mock_environment_builder(unsigned int ip) {
 
   prelude_newline = '\n';
@@ -13,6 +25,19 @@ mock_environment_builder::mock_environment_builder(unsigned int ip) {
   mock_prelude << prelude_newline;
 
 }
+
+/*******************************************************************\
+
+Function: register_mock_instance
+
+  Inputs: Class and instance name
+
+ Outputs: Statements to include in the mock setup prelude
+
+ Purpose: Add instancename to the list of mock classname objects,
+          for later use setting up Answer objects.
+
+\*******************************************************************/
 
 std::string mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
 
@@ -23,7 +48,18 @@ std::string mock_environment_builder::register_mock_instance(const std::string& 
 
 }
 
-// Create a fresh mock instance.
+/*******************************************************************\
+
+Function: instantiate_mock
+
+  Inputs: Desired class name
+
+ Outputs: Expression to create a fresh mock instance.
+
+ Purpose: Create a new mock
+
+\*******************************************************************/
+
 std::string mock_environment_builder::instantiate_mock(const std::string& tyname, bool is_constructor) {
 
   return "org.mockito.Mockito.mock(" + tyname + ".class);";
@@ -42,6 +78,17 @@ void mock_environment_builder::constructor_call(const std::string& callingclass,
 
 }
 
+/*******************************************************************\
+
+Function: classname_to_symname
+
+  Inputs: Class name
+
+ Outputs: Symbol name
+
+ Purpose: Escape dots to underscores in java class names
+
+\*******************************************************************/
 
 static std::string classname_to_symname(const std::string& classname) {
 
@@ -52,6 +99,18 @@ static std::string classname_to_symname(const std::string& classname) {
   return ret;
 
 }
+
+/*******************************************************************\
+
+Function: box_java_type
+
+  Inputs: Primitive type name
+
+ Outputs: Boxed type name
+
+ Purpose: Convert e.g. int to Integer.
+
+\*******************************************************************/
 
 static std::string box_java_type(const std::string& unboxed) {
 
@@ -75,6 +134,21 @@ static std::string box_java_type(const std::string& unboxed) {
     return unboxed;
 
 }
+
+/*******************************************************************\
+
+Function: instance_call
+
+  Inputs: Description of a call to (targetclass)somevar.methodname(argtypes[0] ... argtypes[i])
+          which returns retval, of type rettype. All values and types have already been converted
+          to Java expressions.
+
+ Outputs: None (stores a mock script entry in mock_prelude)
+
+ Purpose: Requests that the next call to an instance method with this description
+          should return 'retval'.
+
+\*******************************************************************/
 
 // Intercept the next instance call to targetclass::methodname(paramtype0, paramtype1, ...) and return retval.
 // At the moment we don't care which instance of targetclass was called against.
@@ -115,6 +189,18 @@ void mock_environment_builder::instance_call(const std::string& targetclass, con
   
 }
 
+/*******************************************************************\
+
+Function: generate_arg_matchers
+
+  Inputs: Description of a call to targetclass.methodname(argtypes)
+
+ Outputs: Mockito argument matching spec
+
+ Purpose: Generates a mockito statement like when(A.f(anyInt()))
+
+\*******************************************************************/
+
 static std::locale loc;
 static const char* prefix = "__primitive__";
 static unsigned int prefixlen = std::string(prefix).length();
@@ -141,6 +227,20 @@ static void generate_arg_matchers(std::ostringstream& printto, const std::string
   printto << "))";
 
 }
+
+/*******************************************************************\
+
+Function: finalise_instance_calls
+
+  Inputs: None
+
+ Outputs: Final mock object setup statements, to be included in a test case
+          before user code is called but after all needed objects have been created.
+
+ Purpose: Links Mockito Answer objects with every instance of a mocked class
+          that has been created.
+
+\*******************************************************************/
 
 std::string mock_environment_builder::finalise_instance_calls() {
 
@@ -170,7 +270,15 @@ std::string mock_environment_builder::finalise_instance_calls() {
 
 }
 
-// Intercept the next static call to targetclass.methodname(argtypes...) and return retval.
+/*******************************************************************\
+
+Function: finalise_instance_calls
+
+As instance_call above, but for Java static methods.
+
+\*******************************************************************/
+
+
 void mock_environment_builder::static_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& retval) {
 
   // Intercepting static calls needs PowerMockito setup:
@@ -185,7 +293,19 @@ void mock_environment_builder::static_call(const std::string& targetclass, const
   
 }
 
-// Return annotations needed for the main class to run under JUnit:
+/*******************************************************************\
+
+Function: get_class_annotations
+
+  Inputs: None
+
+ Outputs: Class annotations needed given the mock objects that were created
+
+ Purpose: Forces the test to run under PowerMock if necessary, and gives
+          PrepareForTest annotations where required.
+
+\*******************************************************************/
+
 std::string mock_environment_builder::get_class_annotations() {
 
   if(powermock_classes.size() == 0)
@@ -206,6 +326,18 @@ std::string mock_environment_builder::get_class_annotations() {
   return out.str();
   
 }
+
+/*******************************************************************\
+
+Function: add_to_prelude
+
+  Inputs: Raw statements to be inserted into the mock object setup commands.
+
+ Outputs: None
+
+ Purpose: The source factory uses this to include setup that uses Reflector to set field values.
+
+\*******************************************************************/
 
 void mock_environment_builder::add_to_prelude(const std::vector<init_statement>& statements) {
 
