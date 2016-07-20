@@ -836,7 +836,7 @@ void insert_nondet_opaque_fields(symbolt& sym, symbol_tablet& symbol_table, code
   }
   else
   {
-    auto toreturn_symbol = new_tmp_symbol(symbol_table, "to_return");
+    auto& toreturn_symbol = new_tmp_symbol(symbol_table, "to_return");
     toreturn_symbol.type = required_type.return_type();
     auto toreturn_symexpr = toreturn_symbol.symbol_expr();
     insert_nondet_opaque_fields_at(required_type.return_type(),
