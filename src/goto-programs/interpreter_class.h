@@ -165,8 +165,11 @@ protected:
   void print_inputs();
   void print_memory(bool input_flags);
 
+  goto_programt::const_targett getPC(const unsigned location,bool &ok);
+  void prune_inputs(input_varst &inputs,list_input_varst& function_inputs, const bool filter);
+
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
-  input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, bool filtered=false);
+  input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, const bool filtered=false);
 
 };
