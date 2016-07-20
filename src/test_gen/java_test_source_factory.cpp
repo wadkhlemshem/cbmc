@@ -190,14 +190,16 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   add_qualified_class_name(qualified_class_name, ns, type);  
 
   std::string instance_expr;
-  if(mock_classes.count(qualified_class_name)) {
+  bool should_mock = mock_classes.count(qualified_class_name);
+  if(should_mock)
     instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
-    mockenv_builder.register_mock_instance(qualified_class_name, this_name);
-  }
   else
     instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_name + "\")";
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
+
+  if(should_mock)
+    result+=mockenv_builder.register_mock_instance(qualified_class_name, this_name);
 
   member_factoryt mem_fac(result, st, this_name, type, *this);
   const struct_exprt::operandst &ops=value.operands();

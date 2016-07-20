@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <sstream>
 #include <functional> // for std::hash
@@ -67,9 +68,9 @@ struct init_statement {
 
 class mock_environment_builder {
 
-  // Track mock instance names, so we can connect up the answer-list objects
-  // during finalisation.
-  std::unordered_map<std::string, std::vector<std::string> > mock_instance_names;
+  // Track mock classes that have been instantiated and so need an instance-list
+  // and answer object connections.
+  std::unordered_set<std::string> mock_instances_exist;
 
   // Track class instance methods that have an answer object set up.
   std::unordered_map<method_signature, instance_method_answer> instance_method_answers;
@@ -85,8 +86,9 @@ class mock_environment_builder {
 
   mock_environment_builder(unsigned int ip);
   
-  // Add a mock to mock_instance_names
-  void register_mock_instance(const std::string& tyname, const std::string& instancename);
+  // Add a mock to mock_instance_names. Returns a statement to execute while instancename
+  // is still in scope.
+  std::string register_mock_instance(const std::string& tyname, const std::string& instancename);
 
   // Intercept the next constructor call to tyname and return a fresh mock instance.
   std::string instantiate_mock(const std::string& tyname, bool is_constructor);

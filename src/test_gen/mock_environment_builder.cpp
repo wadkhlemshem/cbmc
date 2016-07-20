@@ -14,9 +14,12 @@ mock_environment_builder::mock_environment_builder(unsigned int ip) {
 
 }
 
-void mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
+std::string mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
 
-  mock_instance_names[tyname].push_back(instancename);
+  std::string instanceList = tyname + "_instances";
+  if(mock_instances_exist.insert(tyname).second)
+    mock_prelude << "java.util.ArrayList<" << tyname << "> " << instanceList << " = new java.util.ArrayList<" << tyname << ">();" << prelude_newline;
+  return prelude_newline + instanceList + ".add(" + instancename + ");";
 
 }
 
@@ -148,18 +151,18 @@ std::string mock_environment_builder::finalise_instance_calls() {
   result << prelude_newline;
   
   for(auto iter : instance_method_answers) {
-
-    const auto& mocknames = mock_instance_names[iter.first.classname];
-    if(mocknames.size() == 0) {
-      std::cout << "Warning: class " << iter.first.classname << " has instance method mocks but never instantiated\n";
+    
+    const auto& cname = iter.first.classname;
+    if(!mock_instances_exist.count(cname)) {
+      std::cout << "Warning: class " << cname << " has instance method mocks but never instantiated\n";
     }
 
-    for(const auto& name : mocknames) {
-
-      generate_arg_matchers(result, name, iter.first.methodname, iter.first.argtypes);
-      result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
-
-    }
+    std::string instanceList = cname + "_instances";
+    std::string instanceIter = cname + "_iter";
+    
+    result << "for(" << cname << " " << instanceIter << " : " << instanceList << ')' << prelude_newline << "  ";
+    generate_arg_matchers(result, instanceIter, iter.first.methodname, iter.first.argtypes);
+    result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
 
   }
 
