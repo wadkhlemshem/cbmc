@@ -1409,12 +1409,14 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_va
     if(already_captured.id == capture_symbol)
       return;
 
-  exprt defined = inputs.at(capture_symbol);
-  if(defined == exprt())
+  auto findit = inputs.find(capture_symbol);
+  if(findit == inputs.end())
   {
     std::cout << "Stub method returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
     return;
   }
+
+  exprt defined = findit->second;
 
   bool isnull = false;
   
