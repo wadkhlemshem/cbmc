@@ -367,6 +367,16 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	// defined_symbols may be something like [ id1 = { x = 1, y = "Hello" },
 	//                                         id2 = { a = id1, b = "World" } ]
 	std::string init_statements;
+
+	std::ostringstream mocknameoss;
+	mocknameoss << "mock_instance_" << (++mocknumber);
+	std::string mockname = mocknameoss.str();
+	init_statements += (java_ret_type + " " + mockname + ";\n");
+
+	// Start an anonymous scope, as the symbol names defined below may not be unique
+	// if the same method stub was used more than once.
+	init_statements += "{\n";
+	
 	for(auto defined : defined_symbols)
 	{
 	  auto findit = st.symbols.find(defined.id);
@@ -393,15 +403,16 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	  add_decl_with_init_prefix(init_statements, st, *use_symbol);
 	  add_assign_value(init_statements, st, *use_symbol, defined.value);
 	}
-	std::ostringstream mocknameoss;
-	mocknameoss << "mock_instance_" << (++mocknumber);
-	std::string mockname = mocknameoss.str();
-	const irep_idt& last_sym_name = defined_symbols.back().id;
-	init_statements += (java_ret_type + " " + mockname + " = " + as_string(last_sym_name) + ";");
 
+	const irep_idt& last_sym_name = defined_symbols.back().id;
+	init_statements += (mockname + " = " + as_string(last_sym_name) + ";");
+
+	// End anonymous scope.
+	init_statements += "}\n";
+	
 	return_value = as_string(mockname);
 	  
-	mockenv_builder.add_to_prelude(init_statements + ";");
+	mockenv_builder.add_to_prelude(init_statements);
       }
 
       bool is_static = !to_code_type(func.type).has_this();
