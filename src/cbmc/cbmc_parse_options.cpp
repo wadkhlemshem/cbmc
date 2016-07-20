@@ -455,6 +455,9 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("gen-java-test-case"))
     options.set_option("gen-java-test-case", true);
+
+  if(cmdline.isset("java-disable-mocks"))
+    options.set_option("java-disable-mocks", true);
 }
 
 /*******************************************************************\

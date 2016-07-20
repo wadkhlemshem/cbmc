@@ -1,3 +1,6 @@
+
+#include <ctype.h>
+
 #include <algorithm>
 #include <set>
 #include <iostream>
@@ -53,7 +56,7 @@ void add_test_class_name(std::string &result, const std::string &func_name)
   result+="Test {\n";
   indent(result)+="@org.junit.Test public void test";
   result+=func_name;
-  result+="() {\n";
+  result+="() throws Exception {\n";
 }
 
 void add_symbol(std::string &result, const symbolt &s)
@@ -163,7 +166,7 @@ public:
       const struct_typet::componentt &comp=comps[comp_index];
       if (!is_class_name_comp(comp, comp_index))
       {
-        indent(result, 2u)+="Reflector.setInstanceField(";
+        indent(result, 2u)+="com.diffblue.java_testcase.Reflector.setInstanceField(";
         result+=this_name;
         result+=",\"";
         result+=id2string(comp.get_pretty_name());
@@ -187,14 +190,16 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   add_qualified_class_name(qualified_class_name, ns, type);  
 
   std::string instance_expr;
-  if(mock_classes.count(qualified_class_name)) {
+  bool should_mock = mock_classes.count(qualified_class_name);
+  if(should_mock)
     instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
-    mockenv_builder.register_mock_instance(qualified_class_name, this_name);
-  }
   else
-    instance_expr = "Reflector.forceInstance(\"" + qualified_class_name + "\")";
+    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_name + "\")";
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
+
+  if(should_mock)
+    result+=mockenv_builder.register_mock_instance(qualified_class_name, this_name);
 
   member_factoryt mem_fac(result, st, this_name, type, *this);
   const struct_exprt::operandst &ops=value.operands();
@@ -298,6 +303,13 @@ std::string get_escaped_func_name(const symbolt &symbol)
   return result;
 }
 
+bool shouldnt_mock_class(const std::string& classname)
+{
+  // Should make a proper black/whitelist in due time; for now just avoid
+  // mocking things like Exceptions.
+  return classname.find("java.") == 0;
+}
+  
 void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpretert::list_input_varst& opaque_function_returns)
 {
 
@@ -314,6 +326,9 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
     std::string classname = class_and_function_name.substr(0, sepidx);
     std::string funcname = class_and_function_name.substr(sepidx + 1);
 
+    if(shouldnt_mock_class(classname))
+      continue;
+    
     // Note that this class must be mocked whenever we try to generate a reference to it:
     mock_classes.insert(classname);
 
@@ -337,23 +352,95 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
     assert(fn_and_returns.second.size() != 0);
     // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
-    add_decl_from_type(java_ret_type, st, fn_and_returns.second.back().type(), &type_is_primitive);
+    const auto& last_definition_list = fn_and_returns.second.back().assignments;
+    const auto& last_toplevel_assignment = last_definition_list.back().value;
+    add_decl_from_type(java_ret_type, st, last_toplevel_assignment.type(), &type_is_primitive);
 
-    for(auto ret : fn_and_returns.second) {
+    for(auto defined_symbols_context : fn_and_returns.second) {
 
+      const auto& defined_symbols = defined_symbols_context.assignments;
       std::string return_value;
-
+      assert(defined_symbols.size() != 0);
+      
       if(type_is_primitive)
-	add_value(return_value, st, ret);
+      {
+	// defined_symbols should be simply [ some_identifier = some_primitive ]
+	assert(defined_symbols.size() == 1);
+	add_value(return_value, st, defined_symbols.back().value);
+      }
       else {
-	std::string init_statements;
+	// defined_symbols may be something like [ id1 = { x = 1, y = "Hello" },
+	//                                         id2 = { a = id1, b = "World" } ]
+	std::vector<init_statement> init_statements;
+
 	std::ostringstream mocknameoss;
 	mocknameoss << "mock_instance_" << (++mocknumber);
 	std::string mockname = mocknameoss.str();
-	init_statements = (java_ret_type + " " + mockname + " = ");
-	add_value(init_statements, st, ret, mockname);
-	return_value = mockname;
-	mockenv_builder.add_to_prelude(init_statements + ";");
+	init_statements.push_back(init_statement::statement(java_ret_type + " " + mockname));
+
+	// Start an anonymous scope, as the symbol names defined below may not be unique
+	// if the same method stub was used more than once.
+	init_statements.push_back(init_statement::scopeOpen());
+	
+	for(auto defined : defined_symbols)
+	{
+	  auto findit = st.symbols.find(defined.id);
+	  symbolt fake_symbol;
+	  const symbolt* use_symbol;
+	  if(findit == st.symbols.end())
+	  {
+	    // Dynamic object names are not in the symtab at the moment.
+	    fake_symbol.type = defined.value.type();
+	    fake_symbol.name = defined.id;
+	    std::string namestr = as_string(defined.id);
+	    size_t findidx = namestr.find("::");
+	    if(findidx == std::string::npos)
+	      fake_symbol.base_name = fake_symbol.name;
+	    else
+	    {
+	      assert(namestr.size() >= findidx + 3);
+	      fake_symbol.base_name = namestr.substr(findidx + 2);
+	    }
+	    use_symbol = &fake_symbol;
+	  }
+	  else
+	    use_symbol = &findit->second;
+
+	  // Initial empty statement makes the loop below easier.
+	  std::string this_object_init = ";"; 
+	  add_decl_with_init_prefix(this_object_init, st, *use_symbol);
+	  add_assign_value(this_object_init, st, *use_symbol, defined.value);
+
+	  // Break the declaration into lines, for formatting purposes.
+	  // (Todo: gather the init code this way everywhere, instead of as a long string)
+	  for(size_t last_semi = 0, this_semi = this_object_init.find(';', 1);
+	      last_semi != std::string::npos;
+	      last_semi = this_semi, this_semi = this_object_init.find(';', last_semi+1))
+	  {
+
+	    size_t takefrom = last_semi + 1;
+	    while(takefrom < this_semi &&
+		  takefrom < this_object_init.length() &&
+		  isspace(this_object_init[takefrom]))
+	      ++takefrom;
+	    
+	    if(takefrom < this_semi && takefrom < this_object_init.length()) {
+	      std::string thisline = this_object_init.substr(takefrom, this_semi == std::string::npos ? std::string::npos : this_semi - takefrom);
+	      init_statements.push_back(init_statement::statement(thisline));
+	    }
+	    
+	  }
+	}
+
+	const irep_idt& last_sym_name = defined_symbols.back().id;
+	init_statements.push_back(init_statement::statement(mockname + " = " + as_string(last_sym_name)));
+
+	// End anonymous scope.
+	init_statements.push_back(init_statement::scopeClose());
+	
+	return_value = as_string(mockname);
+	  
+	mockenv_builder.add_to_prelude(init_statements);
       }
 
       bool is_static = !to_code_type(func.type).has_this();
@@ -362,7 +449,14 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
       if(is_static)
 	mockenv_builder.static_call(classname, funcname, java_arg_types, return_value);
       else if(is_constructor)
-	mockenv_builder.constructor_call(classname, java_arg_types, return_value);
+      {
+	std::string caller = as_string(defined_symbols_context.calling_function);
+	size_t namespace_idx = caller.find("java::");
+	size_t classname_idx = namespace_idx + 6;
+	size_t method_idx = caller.rfind('.');
+	assert(namespace_idx == 0 && method_idx != std::string::npos);
+	mockenv_builder.constructor_call(caller.substr(classname_idx, method_idx - classname_idx), classname, java_arg_types, return_value);
+      }
       else
 	mockenv_builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
 
@@ -374,7 +468,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
 } // End of anonymous namespace
 
-std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns)
+std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns, bool disable_mocks)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -383,8 +477,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   // Do this first since the mock object creation can require annotations on the test class.
   // Parameter is the indent level on generated code.
   reference_factoryt ref_factory(4);
-  
-  ref_factory.add_mock_objects(st, opaque_function_returns);
+
+  if(!disable_mocks)
+    ref_factory.add_mock_objects(st, opaque_function_returns);
 
   result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
   add_test_class_name(result, func_name);
@@ -395,8 +490,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
-    std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
-    result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
+  std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
     add_func_call(result,st,func_id);

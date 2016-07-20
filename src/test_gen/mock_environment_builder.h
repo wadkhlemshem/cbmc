@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <sstream>
 #include <functional> // for std::hash
@@ -54,11 +55,22 @@ instance_method_answer(const std::string& ao, const std::string& al) :
   
 };
 
+struct init_statement {
+  enum statement_type { SCOPE_OPEN, SCOPE_CLOSE, STATEMENT };
+  statement_type type;
+  std::string statementText;
+
+  static init_statement scopeOpen() { return { SCOPE_OPEN, "" }; };
+  static init_statement scopeClose() { return { SCOPE_CLOSE, "" }; };
+  static init_statement statement(const std::string& s) { return { STATEMENT, s }; };    
+  
+};
+
 class mock_environment_builder {
 
-  // Track mock instance names, so we can connect up the answer-list objects
-  // during finalisation.
-  std::unordered_map<std::string, std::vector<std::string> > mock_instance_names;
+  // Track mock classes that have been instantiated and so need an instance-list
+  // and answer object connections.
+  std::unordered_set<std::string> mock_instances_exist;
 
   // Track class instance methods that have an answer object set up.
   std::unordered_map<method_signature, instance_method_answer> instance_method_answers;
@@ -74,8 +86,9 @@ class mock_environment_builder {
 
   mock_environment_builder(unsigned int ip);
   
-  // Add a mock to mock_instance_names
-  void register_mock_instance(const std::string& tyname, const std::string& instancename);
+  // Add a mock to mock_instance_names. Returns a statement to execute while instancename
+  // is still in scope.
+  std::string register_mock_instance(const std::string& tyname, const std::string& instancename);
 
   // Intercept the next constructor call to tyname and return a fresh mock instance.
   std::string instantiate_mock(const std::string& tyname, bool is_constructor);
@@ -90,14 +103,12 @@ class mock_environment_builder {
   void static_call(const std::string& targetclass, const std::string& methodname, const std::vector<std::string>& argtypes, const std::string& retval);
 
   // Return retval the next time a targetclass is constructed.
-  void constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval);
+  void constructor_call(const std::string& callingclass, const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval);
   
   // Return annotations needed for the main class to run under JUnit:
   std::string get_class_annotations();
 
-  void add_to_prelude(const std::string& toadd) {
-    mock_prelude << toadd << prelude_newline;
-  }
+  void add_to_prelude(const std::vector<init_statement>&);
   
   // Return the mock setup code that should directly precede the test entry point.
   std::string get_mock_prelude() { return mock_prelude.str(); }

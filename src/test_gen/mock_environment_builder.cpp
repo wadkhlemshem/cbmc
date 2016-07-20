@@ -14,9 +14,12 @@ mock_environment_builder::mock_environment_builder(unsigned int ip) {
 
 }
 
-void mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
+std::string mock_environment_builder::register_mock_instance(const std::string& tyname, const std::string& instancename) {
 
-  mock_instance_names[tyname].push_back(instancename);
+  std::string instanceList = tyname + "_instances";
+  if(mock_instances_exist.insert(tyname).second)
+    mock_prelude << "java.util.ArrayList<" << tyname << "> " << instanceList << " = new java.util.ArrayList<" << tyname << ">();" << prelude_newline;
+  return prelude_newline + instanceList + ".add(" + instancename + ");";
 
 }
 
@@ -29,10 +32,11 @@ std::string mock_environment_builder::instantiate_mock(const std::string& tyname
 
 // Return retval the next time a targetclass is constructed.
 // We don't use argtypes at the moment.
-void mock_environment_builder::constructor_call(const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
+void mock_environment_builder::constructor_call(const std::string& callingclass, const std::string& targetclass, const std::vector<std::string>& argtypes, const std::string& retval) {
 
-  // Note that constructor interception needs setting up:
-  powermock_classes.insert(targetclass);
+  // Note that the *caller* (not the callee) needs PrepareForTest.
+  powermock_classes.insert(callingclass);
+  
   mock_prelude <<
     "org.powermock.api.mockito.PowerMockito.whenNew(" << targetclass << ".class).withAnyArguments().thenReturn(" << retval << ");" << prelude_newline;
 
@@ -101,7 +105,7 @@ void mock_environment_builder::instance_call(const std::string& targetclass, con
     std::string boxed_type = box_java_type(rettype);
     
     mock_prelude << "final java.util.ArrayList<" << boxed_type << "> " << al << " = new java.util.ArrayList<" << boxed_type << ">();" << prelude_newline <<
-      "final IterAnswer " << ao << " = new IterAnswer<" << boxed_type << ">(" << al << ");" << prelude_newline;
+      "final com.diffblue.java_testcase.IterAnswer " << ao << " = new com.diffblue.java_testcase.IterAnswer<" << boxed_type << ">(" << al << ");" << prelude_newline;
     
   }
 
@@ -147,18 +151,18 @@ std::string mock_environment_builder::finalise_instance_calls() {
   result << prelude_newline;
   
   for(auto iter : instance_method_answers) {
-
-    const auto& mocknames = mock_instance_names[iter.first.classname];
-    if(mocknames.size() == 0) {
-      std::cout << "Warning: class " << iter.first.classname << " has instance method mocks but never instantiated\n";
+    
+    const auto& cname = iter.first.classname;
+    if(!mock_instances_exist.count(cname)) {
+      std::cout << "Warning: class " << cname << " has instance method mocks but never instantiated\n";
     }
 
-    for(const auto& name : mocknames) {
-
-      generate_arg_matchers(result, name, iter.first.methodname, iter.first.argtypes);
-      result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
-
-    }
+    std::string instanceList = cname + "_instances";
+    std::string instanceIter = cname + "_iter";
+    
+    result << "for(" << cname << " " << instanceIter << " : " << instanceList << ')' << prelude_newline << "  ";
+    generate_arg_matchers(result, instanceIter, iter.first.methodname, iter.first.argtypes);
+    result << ".thenAnswer(" << iter.second.answer_object << ");" << prelude_newline;
 
   }
 
@@ -201,4 +205,28 @@ std::string mock_environment_builder::get_class_annotations() {
 
   return out.str();
   
+}
+
+void mock_environment_builder::add_to_prelude(const std::vector<init_statement>& statements) {
+
+  for(const auto& s : statements)
+  {
+    switch(s.type)
+    {
+    case init_statement::SCOPE_OPEN:
+      mock_prelude << '{';
+      prelude_newline += "  ";
+      mock_prelude << prelude_newline;      
+      break;
+    case init_statement::SCOPE_CLOSE:
+      mock_prelude << "\b\b";
+      if(prelude_newline.length() >= 3)
+	prelude_newline.erase(prelude_newline.length() - 2, 2);
+      mock_prelude << '}' << prelude_newline;
+      break;
+    case init_statement::STATEMENT:
+      mock_prelude << s.statementText << ';' << prelude_newline;
+    }
+  }
+    
 }
