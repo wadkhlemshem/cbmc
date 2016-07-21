@@ -384,7 +384,7 @@ void java_bytecode_convertt::convert(
     const empty_typet empty;
     const pointer_typet object_ref_type(empty);
 #endif
-    const pointer_typet object_ref_type(class_type);
+    const pointer_typet object_ref_type(symbol_typet(class_symbol.name));
     this_p.type()=object_ref_type;
     this_p.set_this();
     parameters.insert(parameters.begin(), this_p);
@@ -1357,7 +1357,7 @@ codet java_bytecode_convertt::convert_instructions(
     else if(statement=="getfield")
     {
       assert(op.size()==1 && results.size()==1);
-      results[0]=to_member(op[0], arg0);
+      results[0]=java_bytecode_promotion(to_member(op[0], arg0));
     }
     else if(statement=="getstatic")
     {

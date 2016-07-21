@@ -258,7 +258,7 @@ void interpretert::evaluate(
     {
       std::vector<mp_integer> tmp;
       evaluate(*it, tmp);
-      if(tmp.size()==1) final|=tmp.front();
+      if(tmp.size()==1) final=bitwise_or(final,tmp.front());
     }
     dest.push_back(final);
     return;
@@ -273,10 +273,112 @@ void interpretert::evaluate(
     {
       std::vector<mp_integer> tmp;
       evaluate(*it, tmp);
-      if(tmp.size()==1) final&=tmp.front();
+      if(tmp.size()==1) final=bitwise_and(final,tmp.front());
     }
     dest.push_back(final);
     return;
+  }
+  else if(expr.id()==ID_bitxor)
+  {
+    if(expr.operands().size()<2)
+      throw id2string(expr.id())+" expects at least two operands";
+
+    mp_integer final=0;
+    forall_operands(it, expr)
+    {
+      std::vector<mp_integer> tmp;
+      evaluate(*it, tmp);
+      if(tmp.size()==1) final=bitwise_xor(final,tmp.front());
+    }
+    dest.push_back(final);
+    return;
+  }
+  else if(expr.id()==ID_bitnot)
+  {
+    if(expr.operands().size()!=1)
+      throw id2string(expr.id())+" expects one operand";
+    std::vector<mp_integer> tmp;
+    evaluate(expr.op0(), tmp);
+    if(tmp.size()==1)
+    {
+      dest.push_back(bitwise_neg(tmp.front()));
+      return;
+    }
+  }
+  else if(expr.id()==ID_shl)
+  {
+    if(expr.operands().size()!=2)
+      throw id2string(expr.id())+" expects two operands";
+
+    std::vector<mp_integer> tmp0, tmp1;
+    evaluate(expr.op0(), tmp0);
+    evaluate(expr.op1(), tmp1);
+    if(tmp0.size()==1 && tmp1.size()==1)
+    {
+      mp_integer final=logic_left_shift(tmp0.front(),tmp1.front(),get_size(expr.op0().type()));
+      dest.push_back(final);
+      return;
+    }
+  }
+  else if((expr.id()==ID_shr) || (expr.id()==ID_lshr))
+  {
+    if(expr.operands().size()!=2)
+      throw id2string(expr.id())+" expects two operands";
+
+    std::vector<mp_integer> tmp0, tmp1;
+    evaluate(expr.op0(), tmp0);
+    evaluate(expr.op1(), tmp1);
+    if(tmp0.size()==1 && tmp1.size()==1)
+    {
+      mp_integer final=logic_right_shift(tmp0.front(),tmp1.front(),get_size(expr.op0().type()));
+      dest.push_back(final);
+      return;
+    }
+  }
+  else if(expr.id()==ID_ashr)
+  {
+    if(expr.operands().size()!=2)
+      throw id2string(expr.id())+" expects two operands";
+
+    std::vector<mp_integer> tmp0, tmp1;
+    evaluate(expr.op0(), tmp0);
+    evaluate(expr.op1(), tmp1);
+    if(tmp0.size()==1 && tmp1.size()==1)
+    {
+      mp_integer final=arith_right_shift(tmp0.front(),tmp1.front(),get_size(expr.op0().type()));
+      dest.push_back(final);
+      return;
+    }
+  }
+  else if(expr.id()==ID_ror)
+  {
+    if(expr.operands().size()!=2)
+      throw id2string(expr.id())+" expects two operands";
+
+    std::vector<mp_integer> tmp0, tmp1;
+    evaluate(expr.op0(), tmp0);
+    evaluate(expr.op1(), tmp1);
+    if(tmp0.size()==1 && tmp1.size()==1)
+    {
+      mp_integer final=rotate_right(tmp0.front(),tmp1.front(),get_size(expr.op0().type()));
+      dest.push_back(final);
+      return;
+    }
+  }
+  else if(expr.id()==ID_rol)
+  {
+    if(expr.operands().size()!=2)
+      throw id2string(expr.id())+" expects two operands";
+
+    std::vector<mp_integer> tmp0, tmp1;
+    evaluate(expr.op0(), tmp0);
+    evaluate(expr.op1(), tmp1);
+    if(tmp0.size()==1 && tmp1.size()==1)
+    {
+      mp_integer final=rotate_left(tmp0.front(),tmp1.front(),get_size(expr.op0().type()));
+      dest.push_back(final);
+      return;
+    }
   }
   else if(expr.id()==ID_equal ||
           expr.id()==ID_notequal ||

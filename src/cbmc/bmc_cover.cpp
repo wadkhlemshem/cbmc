@@ -343,6 +343,10 @@ bool bmc_covert::operator()()
   
   // report
   unsigned goals_covered=0;
+  
+  for(const auto & it : goal_map)
+    if(it.second.satisfied) goals_covered++;
+  
   switch(bmc.ui)
   {
     case ui_message_handlert::PLAIN:
@@ -352,8 +356,6 @@ bool bmc_covert::operator()()
       for(const auto & it : goal_map)
       {
         const goalt &goal=it.second;
-
-        if(goal.satisfied) goals_covered++;
 
         status() << "[" << it.first << "]";
 
@@ -376,8 +378,6 @@ bool bmc_covert::operator()()
       for(const auto & it : goal_map)
       {
         const goalt &goal=it.second;
-
-        if(goal.satisfied) goals_covered++;
 
         xmlt xml_result("result");
         xml_result.set_attribute("goal", id2string(it.first));
@@ -425,8 +425,6 @@ bool bmc_covert::operator()()
       {
         const goalt &goal=it.second;
 
-        if(goal.satisfied) goals_covered++;
-
         json_objectt &result=result_array.push_back().make_object();
         result["status"]=json_stringt(goal.satisfied?"satisfied":"failed");
         result["goal"]=json_stringt(id2string(it.first));
@@ -472,10 +470,12 @@ bool bmc_covert::operator()()
            << " of " << goal_map.size() << " covered ("
            << std::fixed << std::setw(1) << std::setprecision(1)
            << (goal_map.empty()?100.0:100.0*goals_covered/goal_map.size())
-           << "%), using "
-           << cover_goals.iterations() << " iteration"
-           << (cover_goals.iterations()==1?"":"s")
-           << eom;
+           << "%)" << eom;
+           
+  statistics() << "** Used "
+               << cover_goals.iterations() << " iteration"
+               << (cover_goals.iterations()==1?"":"s")
+               << eom;
 
   if(bmc.ui==ui_message_handlert::PLAIN)
   {

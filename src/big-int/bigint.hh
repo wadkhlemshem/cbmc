@@ -148,10 +148,6 @@ private:
   inline int ucompare (BigInt const &) const;
   void add (onedig_t const *, unsigned, bool) _fast;
   void mul (onedig_t const *, unsigned, bool) _fast;
-  void bitwiseor (onedig_t const *, unsigned,bool) _fast;
-  void bitwiseand (onedig_t const *, unsigned,bool) _fast;
-  void bitwisexor (onedig_t const *, unsigned,bool) _fast;
-  void bitwiseneg () _fast;
 
   // Auxiliary constructor used for temporary or static BigInt.
   // Sets size=0 which indicates that ~BigInt must not delete[].
@@ -259,8 +255,6 @@ public:
   BigInt &operator/= (ullong_t) _fast;
   BigInt &operator%= (ullong_t) _fast;
 
-  BigInt &operator|= (BigInt const &) _fast;
-  BigInt &operator&= (BigInt const &) _fast;
   BigInt &operator+= (BigInt const &) _fast;
   BigInt &operator-= (BigInt const &) _fast;
   BigInt &operator*= (BigInt const &) _fast;

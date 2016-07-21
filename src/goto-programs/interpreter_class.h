@@ -31,7 +31,25 @@ public:
   friend class simplify_evaluatet;
 
   typedef std::map<const irep_idt,exprt> input_varst;
-  typedef std::map<const irep_idt,std::list<exprt> > list_input_varst;
+
+  // An assertion that identifier 'id' carries value 'value' in some particular context.
+  struct function_assignmentt {
+    irep_idt id;
+    exprt value;
+  };
+
+  // A list of such assignments.
+  typedef std::vector<function_assignmentt> function_assignmentst;
+
+  // An assignment list annotated with the calling context.
+  struct function_assignments_contextt {
+    irep_idt calling_function;
+    function_assignmentst assignments;
+  };
+  
+  // list_input_varst maps function identifiers onto a vector of [name = value] assignments
+  // per call to that function.
+  typedef std::map<const irep_idt,std::list<function_assignments_contextt> > list_input_varst;
   typedef hash_map_cont<irep_idt, unsigned, irep_id_hash> memory_mapt;
 
 protected:
@@ -66,7 +84,8 @@ protected:
   typet get_type(const irep_idt &id);
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
-  char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id);
+  void get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured);
+  char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id);
 
 
   void step();
@@ -146,8 +165,11 @@ protected:
   void print_inputs();
   void print_memory(bool input_flags);
 
+  goto_programt::const_targett getPC(const unsigned location,bool &ok);
+  void prune_inputs(input_varst &inputs,list_input_varst& function_inputs, const bool filter);
+
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
-  input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, bool filtered=false);
+  input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, const bool filtered=false);
 
 };

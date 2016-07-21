@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
 #include <util/message.h>
+#include <util/string2int.h>
 #include <ansi-c/c_types.h>
 #include <json/json_parser.h>
 
@@ -886,7 +887,9 @@ void interpretert::execute_function_call()
     if (it!=function_input_vars.end())
     {
       std::vector<mp_integer> value;
-      evaluate(it->second.front(),value);
+      assert(it->second.size() != 0);
+      assert(it->second.front().assignments.size() != 0);
+      evaluate(it->second.front().assignments.back().value,value);
       if (return_value_address>0)
       {
         assign(return_value_address,value);
@@ -1120,7 +1123,7 @@ void interpretert::list_non_bodied() {
   }*/
 }
 
-char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &id)
+char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &id)
 {
   goto_programt::instructionst::const_iterator pc=it;
   if (pc->is_assign())
@@ -1159,8 +1162,10 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
       if((return_address > 0) && (return_address<memory.size()))
       {
-        irep_idt id=memory[return_address].identifier;
-        function_input_vars[f_id].push_back(get_value(code_assign.lhs().type(),return_address));
+	function_assignmentt retval = {irep_idt(), get_value(code_assign.lhs().type(),return_address)};
+	function_assignmentst defnlist = { retval };
+	// Add an actual calling context instead of a blank irep if our caller needs it.
+        function_input_vars[f_id].push_back({irep_idt(), defnlist});
       }
     }
   }
@@ -1327,6 +1332,88 @@ void interpretert::print_memory(bool input_flags) {
 }
 
 /*******************************************************************
+ Function: getPC
+
+ Inputs:
+
+ Outputs:
+
+ Purpose: retrieves the PC pointer for the given location
+
+ \*******************************************************************/
+goto_programt::const_targett interpretert::getPC(const unsigned location,bool &ok)
+{
+  goto_programt::const_targett no_location;
+  for(goto_functionst::function_mapt::const_iterator f_it =
+      goto_functions.function_map.begin();
+      f_it!=goto_functions.function_map.end(); f_it++)
+  {
+    if(f_it->second.body_available())
+    {
+      for(goto_programt::instructionst::const_iterator it =
+    	  f_it->second.body.instructions.begin();
+          it!=f_it->second.body.instructions.end(); it++)
+      {
+        if (it->location_number==location)
+        {
+          ok=true;
+          return it;
+        }
+      }
+    }
+  }
+  ok=false;
+  return no_location;
+}
+
+/*******************************************************************
+ Function: prune_inputs
+
+ Inputs:
+
+ Outputs:
+
+ Purpose: cleans the list of inputs organising std vectors into arrays and filtering non-inputs if requested
+
+ \*******************************************************************/
+void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_inputs, const bool filter)
+{
+  for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
+    const exprt size=from_integer(it->second.size(), integer_typet());
+    assert(it->second.front().assignments.size() != 0);
+    const auto& first_function_assigns = it->second.front().assignments;
+    const auto& toplevel_definition = first_function_assigns.back().value;
+    array_typet type=array_typet(toplevel_definition.type(),size);
+    array_exprt list(type);
+    list.reserve_operands(it->second.size());
+    for(auto l_it : it->second)
+    {
+      list.copy_to_operands(l_it.assignments.back().value);
+    }
+    inputs[it->first]=list;
+  }
+  input_vars=inputs;
+  function_input_vars=function_inputs;
+  if(filter)
+  {
+    try
+    {
+      fill_inputs(inputs);
+      while(!done) {
+        show_state();
+        step();
+      }
+    }
+    catch (const char *e)
+    {
+      std::cout << e << std::endl;
+    }
+    list_inputs();
+    list_inputs(inputs);
+  }
+}
+
+/*******************************************************************
  Function: load_counter_example_inputs
 
  Inputs:
@@ -1341,38 +1428,176 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     const std::string &filename) {
   jsont counter_example;
   message_clientt message_client;
-  if(parse_json(filename, message_client.get_message_handler(),
-      counter_example)) {
+
+  if(parse_json(filename,message_client.get_message_handler(),counter_example))
+  {
+	bool ok;
     show=false;
+    stop_on_assertion=false;
+
     input_varst inputs;
-    for(jsont::objectt::const_iterator it=counter_example.object.end();
-        it!=counter_example.object.begin();) {
-      it--;
-      irep_idt id=it->second["lhs"].value;
-      inputs[id]=to_expr(ns, id, it->second["value"].value);
-    }
-    try {
-      initialise(true);
-      fill_inputs(inputs);
-      while(!done) {
-        step();
-        show_state();
-      }
-    }
-    catch(const char *e)
+    list_input_varst function_inputs;
+
+    function=goto_functions.function_map.find(goto_functionst::entry_point());
+    if(function==goto_functions.function_map.end())
+      throw "main not found";
+
+    initialise(true);
+    jsont::objectt::const_reverse_iterator it=counter_example.object.rbegin();
+    if(it!=counter_example.object.rend())
     {
-      std::cout << e << std::endl;
+      unsigned location=integer2unsigned(string2integer(it->second["location"].value));
+      targetAssert=getPC(location,ok);
     }
-    list_inputs(inputs);
+
+    while(it!=counter_example.object.rend())
+    {
+      const jsont &pc_object=it->second["location"];
+      if (pc_object.kind==jsont::J_NULL) continue;
+      unsigned location=integer2unsigned(string2integer(pc_object.value));
+      goto_programt::const_targett pc=getPC(location,ok);
+      if (!ok) continue;
+      const jsont &lhs_object=it->second["lhs"];
+      if (lhs_object.kind==jsont::J_NULL) continue;
+      irep_idt id=lhs_object.value;
+      const jsont &val_object=it->second["value"];
+      if (val_object.kind==jsont::J_NULL) continue;
+      if(pc->is_other() || pc->is_assign() || pc->is_function_call())
+      {
+    	const code_assignt &code_assign=to_code_assign(PC->code);//TODO: the other and function_call may be different
+        mp_integer address;
+        const exprt &lhs=code_assign.lhs();
+        exprt value=to_expr(ns, id, val_object.value);
+        symbol_exprt symbol_expr=to_symbol_expr(
+            (lhs.id()==ID_member) ? to_member_expr(lhs).symbol() : lhs);
+        irep_idt id=symbol_expr.get_identifier();
+        address=evaluate_address(lhs);
+        if(address==0) {
+          address=build_memory_map(id,symbol_expr.type());
+        }
+        std::vector<mp_integer> rhs;
+        evaluate(value,rhs);
+        assign(address, rhs);
+        if(lhs.id()==ID_member)
+        {
+          address=evaluate_address(symbol_expr);
+          inputs[id]=get_value(symbol_expr.type(),integer2unsigned(address));
+        }
+        else
+        {
+          inputs[id]=value;
+        }
+        irep_idt f_id;
+        if(is_opaque_function(pc,f_id)!=0)
+        {
+	  // TODO: save/restore the full data structure?
+          function_inputs[f_id].push_front({ irep_idt(), { { irep_idt(), inputs[id] } } });
+        }
+      }
+      it++;
+    }
+    prune_inputs(inputs,function_inputs,true);
+    print_inputs();
     show=true;
+    stop_on_assertion=true;
   }
   return input_vars;
 }
 
+static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
+
+  return to_symbol_expr(
+	  (step.full_lhs.id()==ID_member) ?
+	  to_member_expr(step.full_lhs).symbol() :
+          step.full_lhs);
+
+}
+
+enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
+
+calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
+{
+  f_id = callinst.function().get(ID_identifier);
+  const symbolt& called_func = symbol_table.lookup(f_id);
+  capture_symbol = called_func.type.get("opaque_method_capture_symbol");
+  if(capture_symbol != irep_idt())
+    return COMPLEX_OPAQUE_STUB;
+  else if(called_func.value.id() == ID_nil)
+    return SIMPLE_OPAQUE_STUB;
+  else
+    return NOT_OPAQUE_STUB;
+}
+
+// Get the current value of capture_symbol plus the values of any symbols referenced in its fields.
+// Store them in 'captured' in bottom-up order.
+void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured)
+{
+
+  // Circular reference?
+  for(auto already_captured : captured)
+    if(already_captured.id == capture_symbol)
+      return;
+
+  auto findit = inputs.find(capture_symbol);
+  if(findit == inputs.end())
+  {
+    std::cout << "Stub method returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
+    return;
+  }
+
+  exprt defined = findit->second;
+
+  bool isnull = false;
+  
+  if(defined.type().id() == ID_pointer)
+  {
+  
+    auto struct_ty = defined.type().subtype();
+    assert(struct_ty.id() == ID_struct);
+
+    std::vector<mp_integer> pointer_as_bytes;
+    evaluate(defined, pointer_as_bytes);
+    isnull = true;
+    for(auto b : pointer_as_bytes)
+      if(!b.is_zero())
+	isnull = false;
+
+    if(!isnull)
+    {
+	std::vector<mp_integer> struct_as_bytes;
+	evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
+	defined = get_value(struct_ty, struct_as_bytes);
+    }
+
+  }
+
+  if(!isnull)
+  {
+  
+    const auto& defined_struct = to_struct_expr(defined);
+    const auto& struct_type = to_struct_type(defined.type());
+    const auto& members = struct_type.components();
+    unsigned idx = 0;
+    assert(defined_struct.operands().size() == members.size());
+    // Assumption: all object trees captured this way refer directly to particular
+    // symex::dynamic_object expressions, which are always address-of-symbol constructions.
+    forall_operands(opit, defined_struct) {
+      if(members[idx].type().id() == ID_pointer)
+	{
+	  const auto& referee = to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
+	  get_value_tree(referee, inputs, captured);
+	}
+      ++idx;
+    }
+
+  }
+
+  captured.push_back({capture_symbol, defined});
+
+}
+
 interpretert::input_varst& interpretert::load_counter_example_inputs(
-    const goto_tracet &trace, list_input_varst& function_inputs, bool filtered) {
-  jsont counter_example;
-  //message_clientt messgae_client;
+    const goto_tracet &trace, list_input_varst& function_inputs, const bool filtered) {
   show=false;
   stop_on_assertion=false;
 
@@ -1382,19 +1607,53 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   if(function==goto_functions.function_map.end())
     throw "main not found";
 
+  irep_idt previous_assigned_symbol;
+ 
   initialise(true);
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
-  while(it!=trace.steps.rend()) {
-    if(goto_trace_stept::ASSIGNMENT==it->type
-    && (it->pc->is_other() || it->pc->is_assign()
-            || it->pc->is_function_call()))
+  for(;it!=trace.steps.rend();++it) {
+    if(it->is_function_call())      
     {
+      irep_idt called, capture_symbol;
+      switch(calls_opaque_stub(to_code_function_call(it->pc->code), symbol_table, called, capture_symbol))
+      {
+	
+      case NOT_OPAQUE_STUB:
+	break;
+      case SIMPLE_OPAQUE_STUB:
+	{
+	  // Simple opaque function that returns a primitive. The assignment after
+	  // this (before it in trace order) will have given the value assigned to its return nondet.
+	  if(previous_assigned_symbol != irep_idt())
+	  {
+	    function_assignmentst single_defn = { { previous_assigned_symbol, inputs[previous_assigned_symbol] } };
+	    function_inputs[called].push_front({ function->first, single_defn });
+	  }
+	  break;
+	}
+      case COMPLEX_OPAQUE_STUB:
+	{
+	  // Complex stub: capture the value of capture_symbol instead of whatever happened
+	  // to have been defined most recently. Also capture any other referenced objects.
+	  function_assignmentst defined;
+	  get_value_tree(capture_symbol, inputs, defined);
+	  if(defined.size() != 0) // Definition found?
+	    function_inputs[called].push_front({ function->first, defined });
+	  break;
+	}
+	
+      } // End switch on stub type
+
+    } // End if-is-function-call
+    else if(goto_trace_stept::ASSIGNMENT==it->type
+	    && (it->pc->is_other() || it->pc->is_assign()
+		|| it->pc->is_function_call()))
+    {
+   
       mp_integer address;
-      symbol_exprt symbol_expr=to_symbol_expr(
-          (it->full_lhs.id()==ID_member) ?
-              to_member_expr(it->full_lhs).symbol() :
-              it->full_lhs);
+
+      symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
 
       address=evaluate_address(it->full_lhs);
@@ -1404,6 +1663,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
       assign(address, rhs);
+
       if(it->full_lhs.id()==ID_member)
       {
         address=evaluate_address(symbol_expr);
@@ -1413,44 +1673,12 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
         inputs[id]=it->full_lhs_value;
       }
-      irep_idt f_id;
-      if(is_opaque_function(it->pc,f_id)!=0)
-      {
-        function_inputs[f_id].push_front(inputs[id]);
-      }
+
+      previous_assigned_symbol=id;
+      
     }
-    it++;
   }
-  for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
-    const exprt size=from_integer(it->second.size(), integer_typet());
-    array_typet type=array_typet(it->second.front().type(),size);
-    array_exprt list(type);
-    list.reserve_operands(it->second.size());
-    for(std::list<exprt>::iterator l_it=it->second.begin();l_it!=it->second.end();l_it++)
-    {
-      list.copy_to_operands(*l_it);
-    }
-    inputs[it->first]=list;
-  }
-  input_vars=inputs;
-  function_input_vars=function_inputs;
-  if(filtered)
-  {
-    try 
-    {
-      fill_inputs(inputs);
-      while(!done) {
-        show_state();
-        step();
-      }
-    } 
-    catch (const char *e) 
-    {
-      std::cout << e << std::endl;
-    }
-    list_inputs();
-    list_inputs(inputs);
-  }
+  prune_inputs(inputs,function_inputs,filtered);
   print_inputs();
   show=true;
   stop_on_assertion=true;

@@ -459,6 +459,8 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   if(cmdline.isset("cover-function-only"))
     options.set_option("cover-function-only", true);
 
+  if(cmdline.isset("java-disable-mocks"))
+    options.set_option("java-disable-mocks", true);
 }
 
 /*******************************************************************\
@@ -754,6 +756,21 @@ int cbmc_parse_optionst::get_goto_program(
 
     if(process_goto_program(options, goto_functions))
       return 6;
+
+    // show it?
+    if(cmdline.isset("show-loops"))
+    {
+      show_loop_ids(get_ui(), goto_functions);
+      return 0;
+    }
+
+    // show it?
+    if(cmdline.isset("show-goto-functions"))
+    {
+      namespacet ns(symbol_table);
+      show_goto_functions(ns, get_ui(), goto_functions);
+      return 0;
+    }
   }
 
   catch(const char *e)
@@ -976,21 +993,6 @@ bool cbmc_parse_optionst::process_goto_program(
     // remove skips
     remove_skip(goto_functions);
     goto_functions.update();
-
-    // show it?
-    if(cmdline.isset("show-loops"))
-    {
-      show_loop_ids(get_ui(), goto_functions);
-      return true;
-    }
-
-    // show it?
-    if(cmdline.isset("show-goto-functions"))
-    {
-      namespacet ns(symbol_table);
-      show_goto_functions(ns, get_ui(), goto_functions);
-      return true;
-    }
   }
 
   catch(const char *e)
