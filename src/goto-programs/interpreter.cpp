@@ -887,8 +887,8 @@ void interpretert::execute_function_call()
     if (it!=function_input_vars.end())
     {
       std::vector<mp_integer> value;
-      assert(it->second.size() != 0);
-      assert(it->second.front().assignments.size() != 0);
+      assert(it->second.size()!=0);
+      assert(it->second.front().assignments.size()!=0);
       evaluate(it->second.front().assignments.back().value,value);
       if (return_value_address>0)
       {
@@ -1162,8 +1162,8 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
       if((return_address > 0) && (return_address<memory.size()))
       {
-	function_assignmentt retval = {irep_idt(), get_value(code_assign.lhs().type(),return_address)};
-	function_assignmentst defnlist = { retval };
+	function_assignmentt retval={irep_idt(), get_value(code_assign.lhs().type(),return_address)};
+	function_assignmentst defnlist={ retval };
 	// Add an actual calling context instead of a blank irep if our caller needs it.
         function_input_vars[f_id].push_back({irep_idt(), defnlist});
       }
@@ -1380,9 +1380,9 @@ void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_i
 {
   for(list_input_varst::iterator it=function_inputs.begin(); it!=function_inputs.end();it++) {
     const exprt size=from_integer(it->second.size(), integer_typet());
-    assert(it->second.front().assignments.size() != 0);
-    const auto& first_function_assigns = it->second.front().assignments;
-    const auto& toplevel_definition = first_function_assigns.back().value;
+    assert(it->second.front().assignments.size()!=0);
+    const auto& first_function_assigns=it->second.front().assignments;
+    const auto& toplevel_definition=first_function_assigns.back().value;
     array_typet type=array_typet(toplevel_definition.type(),size);
     array_exprt list(type);
     list.reserve_operands(it->second.size());
@@ -1504,6 +1504,17 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   return input_vars;
 }
 
+/*******************************************************************
+ Function: get_assigned_symbol
+
+ Inputs: Trace step
+
+ Outputs: Symbol expression that the step assigned to
+
+ Purpose: Looks through memberof expressions etc to find a root symbol.
+
+ \*******************************************************************/
+
 static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
 
   return to_symbol_expr(
@@ -1513,60 +1524,97 @@ static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
 
 }
 
+/*******************************************************************
+ Function: calls_opaque_stub
+
+ Inputs: Call instruction and symbol table
+
+ Outputs: Returns COMPLEX_OPAQUE_STUB if the given instruction
+          calls a function with a synthetic stub modelling its
+          behaviour, or SIMPLE_OPAQUE_STUB if it is not available at all,
+          or NOT_OPAQUE_STUB otherwise.
+          In the first case, sets capture_symbol to the symbol name
+          the stub defines. In either stub case, sets f_id to the function
+          called.
+
+ Purpose: Determine whether a call instruction targets an internal
+          function or some form of opaque function.
+
+ \*******************************************************************/
+
 enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
 
-calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst, const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
+calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst,
+  const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
 {
-  f_id = callinst.function().get(ID_identifier);
-  const symbolt& called_func = symbol_table.lookup(f_id);
-  capture_symbol = called_func.type.get("opaque_method_capture_symbol");
-  if(capture_symbol != irep_idt())
+  f_id=callinst.function().get(ID_identifier);
+  const symbolt& called_func=symbol_table.lookup(f_id);
+  capture_symbol=called_func.type.get("opaque_method_capture_symbol");
+  if(capture_symbol!=irep_idt())
     return COMPLEX_OPAQUE_STUB;
-  else if(called_func.value.id() == ID_nil)
+  else if(called_func.value.id()==ID_nil)
     return SIMPLE_OPAQUE_STUB;
   else
     return NOT_OPAQUE_STUB;
 }
 
-// Get the current value of capture_symbol plus the values of any symbols referenced in its fields.
+/*******************************************************************
+ Function: get_value_tree
+
+ Inputs: Symbol to capture, map of current symbol ("input") values.
+
+ Outputs: Populates captured with a bottom-up-ordered list of symbol
+          values containing every value reachable from capture_symbol.
+          For example, if capture_symbol contains a pointer to some
+          object x, captured will be populated with x's value and then
+          capture_symbol's.
+
+ Purpose: Take a snapshot of state reachable from capture_symbol.
+
+ \*******************************************************************/
+
+// Get the current value of capture_symbol plus
+// the values of any symbols referenced in its fields.
 // Store them in 'captured' in bottom-up order.
-void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured)
+void interpretert::get_value_tree(const irep_idt& capture_symbol,
+  const input_varst& inputs, function_assignmentst& captured)
 {
 
   // Circular reference?
   for(auto already_captured : captured)
-    if(already_captured.id == capture_symbol)
+    if(already_captured.id==capture_symbol)
       return;
 
-  auto findit = inputs.find(capture_symbol);
-  if(findit == inputs.end())
+  auto findit=inputs.find(capture_symbol);
+  if(findit==inputs.end())
   {
-    std::cout << "Stub method returned without defining " << capture_symbol << ". Did the program trace end inside a stub?\n";
+    std::cout << "Stub method returned without defining " << capture_symbol
+	      << ". Did the program trace end inside a stub?\n";
     return;
   }
 
-  exprt defined = findit->second;
+  exprt defined=findit->second;
 
-  bool isnull = false;
+  bool isnull=false;
   
-  if(defined.type().id() == ID_pointer)
+  if(defined.type().id()==ID_pointer)
   {
   
-    auto struct_ty = defined.type().subtype();
-    assert(struct_ty.id() == ID_struct);
+    auto struct_ty=defined.type().subtype();
+    assert(struct_ty.id()==ID_struct);
 
     std::vector<mp_integer> pointer_as_bytes;
     evaluate(defined, pointer_as_bytes);
-    isnull = true;
+    isnull=true;
     for(auto b : pointer_as_bytes)
       if(!b.is_zero())
-	isnull = false;
+	isnull=false;
 
     if(!isnull)
     {
 	std::vector<mp_integer> struct_as_bytes;
 	evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
-	defined = get_value(struct_ty, struct_as_bytes);
+	defined=get_value(struct_ty, struct_as_bytes);
     }
 
   }
@@ -1574,17 +1622,17 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_va
   if(!isnull)
   {
   
-    const auto& defined_struct = to_struct_expr(defined);
-    const auto& struct_type = to_struct_type(defined.type());
-    const auto& members = struct_type.components();
-    unsigned idx = 0;
-    assert(defined_struct.operands().size() == members.size());
+    const auto& defined_struct=to_struct_expr(defined);
+    const auto& struct_type=to_struct_type(defined.type());
+    const auto& members=struct_type.components();
+    unsigned idx=0;
+    assert(defined_struct.operands().size()==members.size());
     // Assumption: all object trees captured this way refer directly to particular
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
     forall_operands(opit, defined_struct) {
-      if(members[idx].type().id() == ID_pointer)
+      if(members[idx].type().id()==ID_pointer)
 	{
-	  const auto& referee = to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
+	  const auto& referee=to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
 	  get_value_tree(referee, inputs, captured);
 	}
       ++idx;
@@ -1595,6 +1643,17 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol, const input_va
   captured.push_back({capture_symbol, defined});
 
 }
+
+/*******************************************************************
+ Function: load_counter_example_inputs
+
+ Inputs:
+
+ Outputs:
+
+ Purpose:
+
+ \*******************************************************************/
 
 interpretert::input_varst& interpretert::load_counter_example_inputs(
     const goto_tracet &trace, list_input_varst& function_inputs, const bool filtered) {
@@ -1616,7 +1675,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     if(it->is_function_call())      
     {
       irep_idt called, capture_symbol;
-      switch(calls_opaque_stub(to_code_function_call(it->pc->code), symbol_table, called, capture_symbol))
+      switch(calls_opaque_stub(to_code_function_call(it->pc->code),
+			       symbol_table,called,capture_symbol))
       {
 	
       case NOT_OPAQUE_STUB:
@@ -1624,11 +1684,13 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       case SIMPLE_OPAQUE_STUB:
 	{
 	  // Simple opaque function that returns a primitive. The assignment after
-	  // this (before it in trace order) will have given the value assigned to its return nondet.
-	  if(previous_assigned_symbol != irep_idt())
+	  // this (before it in trace order) will have given the value
+	  // assigned to its return nondet.
+	  if(previous_assigned_symbol!=irep_idt())
 	  {
-	    function_assignmentst single_defn = { { previous_assigned_symbol, inputs[previous_assigned_symbol] } };
-	    function_inputs[called].push_front({ function->first, single_defn });
+	    function_assignmentst single_defn=
+	      { { previous_assigned_symbol,inputs[previous_assigned_symbol] } };
+	    function_inputs[called].push_front({ function->first,single_defn });
 	  }
 	  break;
 	}
@@ -1637,9 +1699,9 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  // Complex stub: capture the value of capture_symbol instead of whatever happened
 	  // to have been defined most recently. Also capture any other referenced objects.
 	  function_assignmentst defined;
-	  get_value_tree(capture_symbol, inputs, defined);
-	  if(defined.size() != 0) // Definition found?
-	    function_inputs[called].push_front({ function->first, defined });
+	  get_value_tree(capture_symbol,inputs,defined);
+	  if(defined.size()!=0) // Definition found?
+	    function_inputs[called].push_front({ function->first,defined });
 	  break;
 	}
 	
@@ -1662,7 +1724,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       }
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
-      assign(address, rhs);
+      assign(address,rhs);
 
       if(it->full_lhs.id()==ID_member)
       {
@@ -1701,6 +1763,6 @@ void interpreter(
   const symbol_tablet &symbol_table,
   const goto_functionst &goto_functions)
 {
-  interpretert interpreter(symbol_table, goto_functions);
+  interpretert interpreter(symbol_table,goto_functions);
   interpreter();
 }
