@@ -190,14 +190,14 @@ void assign_parameter_names(code_typet &ftype,const irep_idt &name_prefix,
 
   // Mostly borrowed from java_bytecode_convert.cpp; maybe factor this out.
   // assign names to parameters
-  for(std::size_t i=0,param_index=0; i<parameters.size(); ++i)
+  for(std::size_t i=0; i<parameters.size(); ++i)
   {
     irep_idt base_name,identifier;
 
     if(i==0 && parameters[i].get_this())
       base_name="this";
     else
-      base_name="stub_ignored_arg" + i2string(param_index);
+      base_name="stub_ignored_arg" + i2string(i);
 
     identifier=id2string(name_prefix) + "::" + id2string(base_name);
     parameters[i].set_base_name(base_name);
