@@ -8,6 +8,8 @@
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/java_test_case_generator.h>
 
+#include <functional>
+
 namespace
 {
 bool contains(const std::string &id, const char * const needle)
@@ -57,7 +59,7 @@ typedef std::function<
 
 void generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
-    const test_case_generatort generate, std::string test_case_name="")
+    const test_case_generatort generate, std::string property="")
 {
 
   interpretert::list_input_varst opaque_function_returns;
@@ -68,18 +70,17 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
   {
-    if(!test_case_name.empty())
-      std::cout << "Test case: " << test_case_name << std::endl;
+    if(!property.empty())
+      std::cout << "Test case: " << property << std::endl;
     std::cout << source;
   }
   else
   {
-    assert(!test_case_name.empty());
-    out_file_name+='_';
-    out_file_name+=test_case_name;
-    out_file_name+='_';
-    out_file_name+=std::to_string(out_file_no);
-    out_file_no++;
+    assert(!property.empty());
+    // the key is the property_id of the goal 
+    std::size_t h = std::hash<std::string>()(property);
+    out_file_name+=std::to_string(h);
+
     std::ofstream(out_file_name.c_str()) << source;
   }
 }

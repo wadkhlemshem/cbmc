@@ -499,7 +499,8 @@ bool bmc_covert::operator()()
     {
       const goalt &goal=goal_entry.second;
       if (goal.satisfied)
-        generate_java_test_case(opt, st, gf, goal.goto_trace, goal.description);
+        generate_java_test_case(opt, st, gf, goal.goto_trace, 
+				id2string(goal.source_location.get_property_id()));
     }
   
   return false;

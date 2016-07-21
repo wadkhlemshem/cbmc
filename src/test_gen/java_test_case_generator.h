@@ -16,7 +16,7 @@
 #define TEST_CASE_FAIL 1
 #define TEST_CASE_ERROR 10
 
-static int out_file_no = 0;
+//static int out_file_no = 0;
 
 /**
  * @brief
@@ -52,6 +52,6 @@ void generate_java_test_case(
     const symbol_tablet &st,
     const goto_functionst &gf,
     const class goto_tracet &trace,
-    const std::string &name);
+    const std::string &property);
 
 #endif /* JAVA_TEST_CASE_GENERATOR_H_ */
