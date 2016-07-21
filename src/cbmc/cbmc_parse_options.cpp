@@ -1153,6 +1153,7 @@ void cbmc_parse_optionst::help()
     " --classpath dir/jar          set the classpath\n"
     " --main-class class-name      set the name of the main class\n"
     " --gen-java-test-case         generate test case\n" 
+    " --cover-function-only        add coverage instrumentation only to the entry function" 
     "\n"
     "Semantic transformations:\n"
     " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"
