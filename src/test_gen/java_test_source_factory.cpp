@@ -219,7 +219,7 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
 
 bool is_input_struct(const symbolt &symbol)
 {
-  return std::string::npos != id2string(symbol.name).find("tmp_struct_init");
+  return std::string::npos != id2string(symbol.name).find("tmp_object_factory");
 }
 
 void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
