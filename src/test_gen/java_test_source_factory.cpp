@@ -315,16 +315,16 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
   mock_classes.clear();
 
-  unsigned mocknumber = 0;
+  unsigned mocknumber=0;
   
   for(auto fn_and_returns : opaque_function_returns) {
 
-    const symbolt &func = st.lookup(fn_and_returns.first);
-    auto class_and_function_name = symbol_to_function_name(func);
-    size_t sepidx = class_and_function_name.rfind('.');
-    assert(sepidx != std::string::npos && "Unqualified call in Java code?");
-    std::string classname = class_and_function_name.substr(0, sepidx);
-    std::string funcname = class_and_function_name.substr(sepidx + 1);
+    const symbolt &func=st.lookup(fn_and_returns.first);
+    auto class_and_function_name=symbol_to_function_name(func);
+    size_t sepidx=class_and_function_name.rfind('.');
+    assert(sepidx!=std::string::npos && "Unqualified call in Java code?");
+    std::string classname=class_and_function_name.substr(0, sepidx);
+    std::string funcname=class_and_function_name.substr(sepidx + 1);
 
     if(shouldnt_mock_class(classname))
       continue;
@@ -335,7 +335,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
     std::vector<std::string> java_arg_types;
     std::string java_ret_type;
 
-    const code_typet &code_type = to_code_type(func.type);
+    const code_typet &code_type=to_code_type(func.type);
 
     bool type_is_primitive;
     
@@ -346,26 +346,27 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	continue;
       add_decl_from_type(thisparam, st, param.type(), &type_is_primitive);
       if(type_is_primitive)
-	thisparam = "__primitive__" + thisparam;
+	thisparam="__primitive__" + thisparam;
       java_arg_types.push_back(thisparam);
     }
 
-    assert(fn_and_returns.second.size() != 0);
-    // Get type from replacement value, as remove_returns passlet has scrubbed the function return type by this point.
-    const auto& last_definition_list = fn_and_returns.second.back().assignments;
-    const auto& last_toplevel_assignment = last_definition_list.back().value;
+    assert(fn_and_returns.second.size()!=0);
+    // Get type from replacement value,
+    // as remove_returns passlet has scrubbed the function return type by this point.
+    const auto& last_definition_list=fn_and_returns.second.back().assignments;
+    const auto& last_toplevel_assignment=last_definition_list.back().value;
     add_decl_from_type(java_ret_type, st, last_toplevel_assignment.type(), &type_is_primitive);
 
     for(auto defined_symbols_context : fn_and_returns.second) {
 
-      const auto& defined_symbols = defined_symbols_context.assignments;
+      const auto& defined_symbols=defined_symbols_context.assignments;
       std::string return_value;
-      assert(defined_symbols.size() != 0);
+      assert(defined_symbols.size()!=0);
       
       if(type_is_primitive)
       {
 	// defined_symbols should be simply [ some_identifier = some_primitive ]
-	assert(defined_symbols.size() == 1);
+	assert(defined_symbols.size()==1);
 	add_value(return_value, st, defined_symbols.back().value);
       }
       else {
@@ -375,7 +376,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 
 	std::ostringstream mocknameoss;
 	mocknameoss << "mock_instance_" << (++mocknumber);
-	std::string mockname = mocknameoss.str();
+	std::string mockname=mocknameoss.str();
 	init_statements.push_back(init_statement::statement(java_ret_type + " " + mockname));
 
 	// Start an anonymous scope, as the symbol names defined below may not be unique
@@ -384,78 +385,81 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st, const interpr
 	
 	for(auto defined : defined_symbols)
 	{
-	  auto findit = st.symbols.find(defined.id);
+	  auto findit=st.symbols.find(defined.id);
 	  symbolt fake_symbol;
 	  const symbolt* use_symbol;
-	  if(findit == st.symbols.end())
+	  if(findit==st.symbols.end())
 	  {
 	    // Dynamic object names are not in the symtab at the moment.
-	    fake_symbol.type = defined.value.type();
-	    fake_symbol.name = defined.id;
-	    std::string namestr = as_string(defined.id);
-	    size_t findidx = namestr.find("::");
-	    if(findidx == std::string::npos)
-	      fake_symbol.base_name = fake_symbol.name;
+	    fake_symbol.type=defined.value.type();
+	    fake_symbol.name=defined.id;
+	    std::string namestr=as_string(defined.id);
+	    size_t findidx=namestr.find("::");
+	    if(findidx==std::string::npos)
+	      fake_symbol.base_name=fake_symbol.name;
 	    else
 	    {
 	      assert(namestr.size() >= findidx + 3);
-	      fake_symbol.base_name = namestr.substr(findidx + 2);
+	      fake_symbol.base_name=namestr.substr(findidx + 2);
 	    }
-	    use_symbol = &fake_symbol;
+	    use_symbol=&fake_symbol;
 	  }
 	  else
-	    use_symbol = &findit->second;
+	    use_symbol=&findit->second;
 
 	  // Initial empty statement makes the loop below easier.
-	  std::string this_object_init = ";"; 
+	  std::string this_object_init=";"; 
 	  add_decl_with_init_prefix(this_object_init, st, *use_symbol);
 	  add_assign_value(this_object_init, st, *use_symbol, defined.value);
 
 	  // Break the declaration into lines, for formatting purposes.
 	  // (Todo: gather the init code this way everywhere, instead of as a long string)
-	  for(size_t last_semi = 0, this_semi = this_object_init.find(';', 1);
-	      last_semi != std::string::npos;
-	      last_semi = this_semi, this_semi = this_object_init.find(';', last_semi+1))
+	  for(size_t last_semi=0, this_semi=this_object_init.find(';', 1);
+	      last_semi!=std::string::npos;
+	      last_semi=this_semi, this_semi=this_object_init.find(';', last_semi+1))
 	  {
 
-	    size_t takefrom = last_semi + 1;
+	    size_t takefrom=last_semi + 1;
 	    while(takefrom < this_semi &&
 		  takefrom < this_object_init.length() &&
 		  isspace(this_object_init[takefrom]))
 	      ++takefrom;
 	    
 	    if(takefrom < this_semi && takefrom < this_object_init.length()) {
-	      std::string thisline = this_object_init.substr(takefrom, this_semi == std::string::npos ? std::string::npos : this_semi - takefrom);
+	      std::string thisline=this_object_init.substr(
+		takefrom, this_semi==std::string::npos ? std::string::npos : this_semi - takefrom);
 	      init_statements.push_back(init_statement::statement(thisline));
 	    }
 	    
 	  }
 	}
 
-	const irep_idt& last_sym_name = defined_symbols.back().id;
-	init_statements.push_back(init_statement::statement(mockname + " = " + as_string(last_sym_name)));
+	const irep_idt& last_sym_name=defined_symbols.back().id;
+	init_statements.push_back(
+	  init_statement::statement(mockname + "=" + as_string(last_sym_name)));
 
 	// End anonymous scope.
 	init_statements.push_back(init_statement::scopeClose());
 	
-	return_value = as_string(mockname);
+	return_value=as_string(mockname);
 	  
 	mockenv_builder.add_to_prelude(init_statements);
       }
 
-      bool is_static = !to_code_type(func.type).has_this();
-      bool is_constructor = code_type.get_bool(ID_constructor);
+      bool is_static=!to_code_type(func.type).has_this();
+      bool is_constructor=code_type.get_bool(ID_constructor);
       
       if(is_static)
 	mockenv_builder.static_call(classname, funcname, java_arg_types, return_value);
       else if(is_constructor)
       {
-	std::string caller = as_string(defined_symbols_context.calling_function);
-	size_t namespace_idx = caller.find("java::");
-	size_t classname_idx = namespace_idx + 6;
-	size_t method_idx = caller.rfind('.');
-	assert(namespace_idx == 0 && method_idx != std::string::npos);
-	mockenv_builder.constructor_call(caller.substr(classname_idx, method_idx - classname_idx), classname, java_arg_types, return_value);
+	std::string caller=as_string(defined_symbols_context.calling_function);
+	size_t namespace_idx=caller.find("java::");
+	size_t classname_idx=namespace_idx + 6;
+	size_t method_idx=caller.rfind('.');
+	assert(namespace_idx==0 && method_idx!=std::string::npos);
+	mockenv_builder.constructor_call(caller.substr(classname_idx, method_idx - classname_idx),
+					 classname, java_arg_types, return_value);
       }
       else
 	mockenv_builder.instance_call(classname, funcname, java_arg_types, java_ret_type, return_value);
@@ -491,7 +495,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
   std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
-  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() + "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
+  result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() +
+    "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
     add_func_call(result,st,func_id);
