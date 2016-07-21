@@ -11,24 +11,44 @@
 
 // Supporting types for the map tracking instance method interception
 
+struct java_type {
+  std::string classname;
+  bool is_primitive;
+
+  bool operator==(const java_type& other) const
+  {
+    return classname == other.classname && is_primitive == other.is_primitive;
+  }
+};
+
 struct method_signature {
   
   const std::string classname;
   const std::string methodname;
-  const std::vector<std::string> argtypes;
+  const std::vector<java_type> argtypes;
 
   method_signature() = default;
   
-method_signature(const std::string& cn,const std::string& mn,const std::vector<std::string> ats) :
+method_signature(const std::string& cn,const std::string& mn,const std::vector<java_type> ats) :
   classname(cn),methodname(mn),argtypes(ats) {}
 
-  bool operator==(const method_signature& other) const {
-    return other.classname == classname && other.methodname == methodname && other.argtypes == argtypes;
+  bool operator==(const method_signature& other) const
+  {
+    return other.classname == classname &&
+           other.methodname == methodname &&
+           other.argtypes == argtypes;
   }
 
 };
 
 namespace std {
+
+  template<> struct hash<java_type> {
+    size_t operator()(const java_type& jt) const {
+      return hash<string>()(jt.classname);
+    }
+  };
+  
   template<> struct hash<method_signature> {
 
     size_t operator()(const method_signature& m) const {
@@ -37,7 +57,7 @@ namespace std {
 	hash<string>()(m.methodname);
 
       for(auto iter : m.argtypes)
-	ret ^= hash<string>()(iter);
+	ret ^= hash<java_type>()(iter);
 
       return ret;
 
@@ -97,16 +117,16 @@ class mock_environment_builder {
   std::string instantiate_mock(const std::string& tyname,bool is_constructor);
   
   // Intercept the next instance call to targetobj.methodname(paramtype0,paramtype1,...) and return retval.
-  void instance_call(const std::string& targetclass,const std::string& methodname,const std::vector<std::string>& argtypes,const std::string& rettype,const std::string& retval);
+  void instance_call(const std::string& targetclass,const std::string& methodname,const std::vector<java_type>& argtypes,const java_type& rettype,const std::string& retval);
 
   // Write instance method interception code that can only be generated once all required intercepts are known.
   std::string finalise_instance_calls();
   
   // Intercept the next static call to targetclass.methodname(argtypes...) and return retval.
-  void static_call(const std::string& targetclass,const std::string& methodname,const std::vector<std::string>& argtypes,const std::string& retval);
+  void static_call(const std::string& targetclass,const std::string& methodname,const std::vector<java_type>& argtypes,const std::string& retval);
 
   // Return retval the next time a targetclass is constructed.
-  void constructor_call(const std::string& callingclass,const std::string& targetclass,const std::vector<std::string>& argtypes,const std::string& retval);
+  void constructor_call(const std::string& callingclass,const std::string& targetclass,const std::vector<java_type>& argtypes,const std::string& retval);
   
   // Return annotations needed for the main class to run under JUnit:
   std::string get_class_annotations();

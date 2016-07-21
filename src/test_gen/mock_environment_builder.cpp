@@ -2,7 +2,6 @@
 #include "mock_environment_builder.h"
 
 #include <iostream>
-#include <locale>
 #include <assert.h>
 
 /*******************************************************************\
@@ -75,7 +74,7 @@ mock_environment_builder::instantiate_mock(const std::string &tyname,
 // We don't use argtypes at the moment.
 void mock_environment_builder::constructor_call(
     const std::string &callingclass,const std::string &targetclass,
-    const std::vector<std::string>&argtypes,const std::string &retval)
+    const std::vector<java_type>&argtypes,const std::string &retval)
 {
 
   // Note that the *caller* (not the callee) needs PrepareForTest.
@@ -120,27 +119,29 @@ Function: box_java_type
 
 \*******************************************************************/
 
-static std::string box_java_type(const std::string &unboxed)
+static std::string box_java_type(const java_type &unboxed)
 {
 
-  if(unboxed=="boolean")
+  if(!unboxed.is_primitive)
+    return unboxed.classname;
+  if(unboxed.classname=="boolean")
     return "Boolean";
-  else if(unboxed=="byte")
+  else if(unboxed.classname=="byte")
     return "Byte";
-  else if(unboxed=="char")
+  else if(unboxed.classname=="char")
     return "Character";
-  else if(unboxed=="float")
+  else if(unboxed.classname=="float")
     return "Float";
-  else if(unboxed=="int")
+  else if(unboxed.classname=="int")
     return "Integer";
-  else if(unboxed=="long")
+  else if(unboxed.classname=="long")
     return "Long";
-  else if(unboxed=="short")
+  else if(unboxed.classname=="short")
     return "Short";
-  else if(unboxed=="double")
+  else if(unboxed.classname=="double")
     return "Double";
   else
-    return unboxed;
+    assert(0 && "Unknown java primtive?");
 }
 
 /*******************************************************************\
@@ -163,7 +164,7 @@ Function: instance_call
 // At the moment we don't care which instance of targetclass was called against.
 void mock_environment_builder::instance_call(
     const std::string &targetclass,const std::string &methodname,
-    const std::vector<std::string>&argtypes,const std::string &rettype,
+    const std::vector<java_type> &argtypes,const java_type &rettype,
     const std::string &retval)
 {
 
@@ -177,13 +178,12 @@ void mock_environment_builder::instance_call(
   {
 
     // This is the first interception of targetclass::methodname (for this
-    // overload).
-    // Set up a response list and answer object:
+    // overload). Set up a response list and answer object:
 
     std::ostringstream answerlist;
     answerlist << classname_to_symname(targetclass) << "_" << methodname;
     for(auto iter : argtypes)
-      answerlist << "_" << iter;
+      answerlist << "_" << iter.classname;
 
     std::string al=answerlist.str();
     std::string ao=answerlist.str();
@@ -220,14 +220,10 @@ Function: generate_arg_matchers
 
 \*******************************************************************/
 
-static std::locale loc;
-static const char *prefix="__primitive__";
-static unsigned int prefixlen=std::string(prefix).length();
-
 static void generate_arg_matchers(std::ostringstream &printto,
                                   const std::string &targetclass,
                                   const std::string &methodname,
-                                  const std::vector<std::string>&argtypes)
+                                  const std::vector<java_type> &argtypes)
 {
 
   printto << "org.mockito.Mockito.when(" << targetclass << "." << methodname
@@ -236,18 +232,18 @@ static void generate_arg_matchers(std::ostringstream &printto,
   for(unsigned int i=0,ilim=argtypes.size(); i<ilim; ++i)
   {
 
-    const std::string &arg=argtypes[i];
+    const auto &arg=argtypes[i];
     if(i!=0)
       printto << ",";
 
     // Accept anyInt,anyShort,anyDouble,etc for primitives,or isA to match
     // object types.
 
-    if(!arg.substr(0,prefixlen).compare(prefix))
-      printto << "org.mockito.Matchers.any" << (char)toupper(arg[prefixlen])
-	      << arg.substr(prefixlen+1) << "()";
+    if(arg.is_primitive)
+      printto << "org.mockito.Matchers.any" << (char)toupper(arg.classname[0])
+	      << arg.classname.substr(1) << "()";
     else
-      printto << "org.mockito.Matchers.isA(" << arg << ".class)";
+      printto << "org.mockito.Matchers.isA(" << arg.classname << ".class)";
   }
 
   printto << "))";
@@ -312,7 +308,7 @@ As instance_call above,but for Java static methods.
 
 void mock_environment_builder::static_call(
     const std::string &targetclass,const std::string &methodname,
-    const std::vector<std::string>&argtypes,const std::string &retval)
+    const std::vector<java_type> &argtypes,const std::string &retval)
 {
 
   // Intercepting static calls needs PowerMockito setup:
