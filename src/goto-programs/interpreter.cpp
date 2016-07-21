@@ -1515,13 +1515,51 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
  \*******************************************************************/
 
-static symbol_exprt get_assigned_symbol(const goto_trace_stept& step) {
+static symbol_exprt get_assigned_symbol(const exprt& expr)
+{
+  if(expr.id() == ID_symbol)
+    return to_symbol_expr(expr);
 
-  return to_symbol_expr(
-	  (step.full_lhs.id()==ID_member) ?
-	  to_member_expr(step.full_lhs).symbol() :
-          step.full_lhs);
+  if(expr.id() == ID_member ||
+     expr.id() == ID_dereference ||
+     expr.id() == ID_typecast ||
+     expr.id() == ID_index ||
+     expr.id() == ID_byte_extract_little_endian ||
+     expr.id() == ID_byte_extract_big_endian)
+    return get_assigned_symbol(expr.op0());
 
+  // Try to handle opcodes I haven't thought of by looking for the
+  // only pointer-typed operand:
+
+  const exprt* unique_pointer = 0;
+  
+  for(const auto& op : expr.operands())
+  {
+    if(op.type().id() == ID_pointer)
+    {
+      if(!unique_pointer)
+	unique_pointer = &op;
+      else
+      {
+	unique_pointer = 0;
+	break;
+      }
+    }
+  }
+
+  if(unique_pointer)
+    return get_assigned_symbol(*unique_pointer);
+  else
+  {
+    std::string error = "Failed to look through '" + as_string(expr.id())
+      + "' in get_assigned_symbol.";
+    throw error;
+  }
+}
+
+static symbol_exprt get_assigned_symbol(const goto_trace_stept& step)
+{
+  return get_assigned_symbol(step.full_lhs);
 }
 
 /*******************************************************************
