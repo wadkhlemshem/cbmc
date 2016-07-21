@@ -15,6 +15,8 @@ Date: May 2016
 #include <util/i2string.h>
 #include <util/expr_util.h>
 
+#include <util/config.h>
+
 #include "cover.h"
 
 class basic_blockst
@@ -408,7 +410,26 @@ std::set<exprt> collect_decisions(const goto_programt::const_targett t)
 
 /*******************************************************************\
 
-Function: instrument_cover_goals
+Function: instrument_cover_goals_function_only
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void instrument_cover_goals_function_only(
+  const symbol_tablet &symbol_table,
+  goto_programt &goto_program,
+  coverage_criteriont criterion)
+{
+  instrument_cover_goals(symbol_table,goto_program,criterion,true);
+}
+/*******************************************************************\
+
+Function: instrument_cover_goals_function_only
 
   Inputs:
 
@@ -423,6 +444,26 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont criterion)
 {
+  instrument_cover_goals(symbol_table,goto_program,criterion,false);
+}
+/*******************************************************************\
+
+Function: instrument_cover_goals
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void instrument_cover_goals(
+  const symbol_tablet &symbol_table,
+  goto_programt &goto_program,
+  coverage_criteriont criterion,
+  bool function_only)
+{
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
   std::set<unsigned> blocks_done;
@@ -432,14 +473,22 @@ void instrument_cover_goals(
      has_prefix(id2string(goto_program.instructions.front().source_location.get_file()),
                 "<builtin-library-"))
     return;
-  
+
   Forall_goto_program_instructions(i_it, goto_program)
   {
+
+    std::string curr_function = id2string(i_it->function);
+
+    // if the --cover-function-only flag is set, then we only add coverage 
+    // instrumentation for the entry function  
+    bool cover_curr_function = !function_only||
+      curr_function.find(config.main)!=std::string::npos;
+
     switch(criterion)
     {
     case coverage_criteriont::ASSERTION:
       // turn into 'assert(false)' to avoid simplification
-      if(i_it->is_assert())
+      if(i_it->is_assert()&&cover_curr_function)
       {
         i_it->guard=false_exprt();
         i_it->source_location.set_property_class("coverage");
@@ -449,7 +498,7 @@ void instrument_cover_goals(
       
     case coverage_criteriont::COVER:
       // turn __CPROVER_cover(x) into 'assert(!x)'
-      if(i_it->is_function_call())
+      if(i_it->is_function_call()&&cover_curr_function)
       {
         const code_function_callt &code_function_call=
           to_code_function_call(i_it->code);
@@ -486,7 +535,8 @@ void instrument_cover_goals(
             basic_blocks.source_location_map[block_nr];
           
           if(!source_location.get_file().empty() &&
-             source_location.get_file()[0]!='<')
+             source_location.get_file()[0]!='<'&&
+	     cover_curr_function)
           {
             std::string comment="function "+id2string(i_it->function)+" block "+b;
 	    const irep_idt function=i_it->function; 
@@ -505,8 +555,9 @@ void instrument_cover_goals(
     case coverage_criteriont::BRANCH:
       if(i_it->is_assert())
         i_it->make_skip();
-
-      if(i_it==goto_program.instructions.begin())
+      
+      if(i_it==goto_program.instructions.begin()&&
+	 cover_curr_function)
       {
         // we want branch coverage to imply 'entry point of function'
         // coverage
@@ -524,7 +575,8 @@ void instrument_cover_goals(
 	t->source_location.set_function(i_it->function);
       }
     
-      if(i_it->is_goto() && !i_it->guard.is_true())
+      if(i_it->is_goto() && !i_it->guard.is_true()&&
+	   cover_curr_function)
       {
         std::string b=i2string(basic_blocks[i_it]);
         std::string true_comment=
@@ -552,12 +604,12 @@ void instrument_cover_goals(
         i_it++;
       }
       break;
-      
     case coverage_criteriont::CONDITION:
       if(i_it->is_assert())
         i_it->make_skip();
 
       // Conditions are all atomic predicates in the programs.
+      if(cover_curr_function)
       {
         const std::set<exprt> conditions=collect_conditions(i_it);
 
@@ -595,6 +647,7 @@ void instrument_cover_goals(
         i_it->make_skip();
 
       // Decisions are maximal Boolean combinations of conditions.
+      if(cover_curr_function)
       {
         const std::set<exprt> decisions=collect_decisions(i_it);
 
@@ -636,6 +689,7 @@ void instrument_cover_goals(
       // 3. Each condition in a decision takes every possible outcome
       // 4. Each condition in a decision is shown to independently
       //    affect the outcome of the decision.
+      if(cover_curr_function)
       {
         const std::set<exprt> conditions=collect_conditions(i_it);
         const std::set<exprt> decisions=collect_decisions(i_it);
@@ -735,5 +789,32 @@ void instrument_cover_goals(
       continue;
       
     instrument_cover_goals(symbol_table, f_it->second.body, criterion);
+  }
+}
+
+/*******************************************************************\
+
+Function: instrument_cover_goals_function_only
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void instrument_cover_goals_function_only(
+  const symbol_tablet &symbol_table,
+  goto_functionst &goto_functions,
+  coverage_criteriont criterion)
+{
+  Forall_goto_functions(f_it, goto_functions)
+  {
+    if(f_it->first==ID__start ||
+       f_it->first=="__CPROVER_initialize")
+      continue;
+      
+    instrument_cover_goals_function_only(symbol_table, f_it->second.body, criterion);
   }
 }

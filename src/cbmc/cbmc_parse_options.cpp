@@ -455,6 +455,10 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("gen-java-test-case"))
     options.set_option("gen-java-test-case", true);
+
+  if(cmdline.isset("cover-function-only"))
+    options.set_option("cover-function-only", true);
+
 }
 
 /*******************************************************************\
@@ -962,7 +966,10 @@ bool cbmc_parse_optionst::process_goto_program(
       }
           
       status() << "Instrumenting coverge goals" << eom;
-      instrument_cover_goals(symbol_table, goto_functions, c);
+      if(cmdline.isset("cover-function-only"))
+	instrument_cover_goals_function_only(symbol_table,goto_functions,c);
+      else
+	instrument_cover_goals(symbol_table,goto_functions,c);
       goto_functions.update();
     }
 
