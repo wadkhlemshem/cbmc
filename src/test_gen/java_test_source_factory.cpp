@@ -10,6 +10,7 @@
 #include <util/std_expr.h>
 #include <util/symbol_table.h>
 #include <util/namespace.h>
+#include <util/prefix.h>
 
 #include <java_bytecode/expr2java.h>
 
@@ -39,6 +40,8 @@ public:
 		 const exprt &value, const std::string var_name="");
   void add_value(std::string &result, const symbol_tablet &st,
 		 const struct_exprt &value, const std::string &this_name);
+  void add_array_value(std::string &result, const symbol_tablet &st,
+		 const struct_exprt &value, const std::string &this_name);  
   void add_assign_value(std::string &result, const symbol_tablet &st,
 			const symbolt &symbol, const exprt &value);
   void add_global_state_assignments(std::string &result, const symbol_tablet &st,
@@ -190,11 +193,26 @@ public:
   }
 };
 
+void reference_factoryt::add_array_value(std::string &result, const symbol_tablet &st,
+    const struct_exprt &value, const std::string &this_name)
+{
+  // Initialise an array with a sane element count.
+  const int array_limit = 5;
+  
+
+}
+  
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
   const namespacet ns(st);
   const typet &type=value.type();
+  irep_idt typebasename = type.get(ID_C_base_name);
+  if(has_prefix(id2string(typebasename),"array["))
+  {
+    add_array_value(result,st,value,this_name);
+    return;
+  }
 
   std::string qualified_class_name;
   add_qualified_class_name(qualified_class_name, ns, type);  
