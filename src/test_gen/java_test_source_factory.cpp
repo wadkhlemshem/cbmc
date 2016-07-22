@@ -22,7 +22,7 @@
 namespace
 {
 
-  class java_call_descriptor;
+class java_call_descriptor;
   
 // Class to carry mock_classes and the mock environment builder around so that any
 // attempt to generate a new object can easily find out whether it needs a real
@@ -507,6 +507,18 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 
     // Note that this class must be mocked whenever we try to generate a reference to it:
     mock_classes.insert(desc.classname);
+
+  }
+
+  for(auto fn_and_returns : opaque_function_returns)
+  {
+
+    const symbolt &func=st.lookup(fn_and_returns.first);    
+    struct java_call_descriptor desc;
+    populate_descriptor_names(func,desc);
+
+    if(shouldnt_mock_class(desc.classname))
+      continue;
 
     assert(fn_and_returns.second.size() != 0);
     // Get type from replacement value,
