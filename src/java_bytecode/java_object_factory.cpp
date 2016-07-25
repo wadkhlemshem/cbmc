@@ -289,6 +289,12 @@ void gen_nondet_array_init(const exprt &expr,
   
   init_code.copy_to_operands(
     code_assignt(counter_expr,as_number(0, clength->type())));
+
+  std::string head_name=as_string(counter.base_name)+"_header";
+  code_labelt init_head_label(head_name,code_skipt());
+  code_gotot goto_head(head_name);
+
+  init_code.move_to_operands(init_head_label);
   
   std::string done_name=as_string(counter.base_name)+"_done";
   code_labelt init_done_label(done_name,code_skipt());
@@ -313,6 +319,7 @@ void gen_nondet_array_init(const exprt &expr,
                                as_number(1, clength->type())));
 
   init_code.move_to_operands(incr);
+  init_code.move_to_operands(goto_head);
   init_code.move_to_operands(init_done_label);
   
 }

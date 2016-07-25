@@ -729,6 +729,7 @@ void interpretert::evaluate(
     {
       const typet& target_type=expr.type();
       auto extract_from_iter=extract_from.begin();
+
       if(extract_member_at(extract_from_iter,extract_from.end(),expr.op0().type(),
                            extract_offset[0],target_type,dest,false)
          && dest.size()!=0)
