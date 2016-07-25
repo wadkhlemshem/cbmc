@@ -1764,15 +1764,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       evaluate(it->full_lhs_value,rhs);
       assign(address,rhs);
 
-      if(it->full_lhs.id()==ID_member)
-      {
-        address=evaluate_address(symbol_expr);
-        inputs[id]=get_value(symbol_expr.type(),integer2unsigned(address));
-      }
-      else
-      {
-        inputs[id]=it->full_lhs_value;
-      }
+      mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
+      inputs[id]=get_value(symbol_expr.type(),integer2unsigned(whole_lhs_object_address));
 
       previous_assigned_symbol=id;
       
