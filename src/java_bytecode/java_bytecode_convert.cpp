@@ -1674,8 +1674,10 @@ void java_bytecode_convertt::add_array_types()
     struct_type.components()[0].set_name("@java.lang.Object");
     struct_type.components()[0].type()=symbol_typet("java::java.lang.Object");
     struct_type.components()[1].set_name("length");
+    struct_type.components()[1].set_pretty_name("length");    
     struct_type.components()[1].type()=java_int_type();
     struct_type.components()[2].set_name("data");
+    struct_type.components()[2].set_pretty_name("data");        
     struct_type.components()[2].type()=
       pointer_typet(java_type_from_char(letters[i]));
 
