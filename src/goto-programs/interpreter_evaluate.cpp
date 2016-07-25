@@ -113,6 +113,9 @@ Function: interpretert::extract_member_at
 
 // Side-effect: moves source_values and source_length forwards
 // appropriately to the types it walks over.
+
+// Seems quite likely there's another recursion over datatypes that this
+// could be merged with, but haven't found an ideal candidate yet.
 bool interpretert::extract_member_at(
   std::vector<mp_integer>::iterator& source_iter,
   const std::vector<mp_integer>::iterator source_end,

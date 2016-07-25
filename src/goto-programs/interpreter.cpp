@@ -534,7 +534,7 @@ exprt interpretert::get_value(const typet &type, unsigned offset,bool use_non_de
     }
     return result;
   } else if(real_type.id()==ID_array) {
-    exprt result(ID_constant, type);
+    exprt result=array_exprt(to_array_type(real_type));
     const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
     unsigned subtype_size=get_size(type.subtype());
     mp_integer mp_count;

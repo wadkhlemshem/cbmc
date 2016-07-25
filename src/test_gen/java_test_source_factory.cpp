@@ -54,6 +54,32 @@ public:
 			const interpretert::list_input_varst& opaque_function_returns);
   
 };
+
+// Override symbol resolution to trim off SSA prefixes (?) when generating testcases.
+class expr2java_remove_suffix:public expr2javat {
+
+  virtual std::string convert(const exprt &src, unsigned &precedence)
+  {
+    if(src.id()==ID_symbol)
+    {
+      std::string result=expr2javat::convert(src,precedence);
+      return result.substr(0,result.rfind('!'));
+    }
+    else {
+      return expr2javat::convert(src,precedence);
+    }
+  }
+
+public:
+ 
+  virtual std::string convert(const exprt &src)
+    {
+      return expr2javat::convert(src);
+    }
+
+  expr2java_remove_suffix(const namespacet& ns) : expr2javat(ns) {}
+  
+};
   
 std::string &indent(std::string &result, const size_t num_indent=1u)
 {
@@ -117,8 +143,10 @@ void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
 
 void expr2java(std::string &result, const exprt &value, const namespacet &ns)
 {
-  std::string item=expr2java(value, ns);
-  result+=item.substr(0, item.find('!', 0));
+  expr2java_remove_suffix e2j(ns);
+  e2j.get_shorthands(value);
+  std::string item=e2j.convert(value);
+  result+=item;
 }
 
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st, const exprt &value,
