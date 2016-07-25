@@ -98,6 +98,88 @@ void interpretert::clear_input_flags()
   }
 }
 
+
+/*******************************************************************\
+
+Function: interpretert::extract_member_at
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+// Side-effect: moves source_values and source_length forwards
+// appropriately to the types it walks over.
+bool interpretert::extract_member_at(
+  std::vector<mp_integer>::iterator& source_iter,
+  const std::vector<mp_integer>::iterator source_end,
+  const typet& source_type,
+  mp_integer offset,
+  const typet& target_type,
+  std::vector<mp_integer> &dest,
+  bool should_return_this) const
+{
+  // Should allow any primitive reinterpretation here.
+  bool return_this = should_return_this ||
+    (offset==0 &&
+     (source_type==target_type ||
+      (source_type.id()==ID_pointer && target_type.id()==ID_pointer)));
+
+  if(source_type.id()==ID_struct)
+  {
+    const auto& st=to_struct_type(source_type);
+    const struct_typet::componentst &components=st.components();
+    member_offset_iterator offsets(st,ns);
+    while(offsets->second!=-1 && offsets->second<=offset)
+    {
+      if(!extract_member_at(source_iter,source_end,components[offsets->first].type(),
+                            offset-offsets->second,target_type,dest,return_this))
+        return false;
+      ++offsets;
+    }
+    if(offsets->second==-1)
+      return false;
+  }
+  else if(source_type.id()==ID_array)
+  {
+    const auto& at=to_array_type(source_type);
+    mp_integer elem_size=pointer_offset_size(at.subtype(),ns);
+    if(elem_size==-1)
+      return false;
+    while(offset>=0)
+    {
+      if(!extract_member_at(source_iter,source_end,at.subtype(),
+                            offset,target_type,dest,return_this))
+        return false;
+      offset-=elem_size;
+    }
+  }
+  else if(source_type.id()==ID_signedbv ||
+          source_type.id()==ID_unsignedbv ||
+          source_type.id()==ID_fixedbv ||
+          source_type.id()==ID_floatbv ||
+          source_type.id()==ID_bv ||
+          source_type.id()==ID_c_bool ||
+          source_type.id()==ID_pointer)
+  {
+    if(return_this)
+    {
+      assert(source_iter!=source_end);
+      dest.push_back(*source_iter);
+    }
+    ++source_iter;
+  }
+  else {
+    return false;
+  }
+
+  return true;
+  
+}
+
 /*******************************************************************\
 
 Function: interpretert::evaluate
@@ -614,6 +696,8 @@ void interpretert::evaluate(
   }
   else if(expr.id()==ID_pointer_offset)
   {
+    // Alternative to this: could evaluate_address op0(), then find the underlying
+    // symbol, take its address and subtract.
     if(expr.operands().size()!=1)
       throw "pointer_offset expects one operand";
     bool has_symbolic_expr=expr.op0().id()==ID_constant &&
@@ -630,6 +714,25 @@ void interpretert::evaluate(
         dest.push_back(result);
         return;
       }
+    }
+  }
+  else if(expr.id()==ID_byte_extract_little_endian ||
+          expr.id()==ID_byte_extract_big_endian)
+  {
+    if(expr.operands().size()!=2)
+      throw "byte_extract should have two operands";
+    std::vector<mp_integer> extract_offset;
+    evaluate(expr.op1(),extract_offset);
+    std::vector<mp_integer> extract_from;
+    evaluate(expr.op0(),extract_from);    
+    if(extract_offset.size()==1 && extract_from.size()!=0)
+    {
+      const typet& target_type=expr.type();
+      auto extract_from_iter=extract_from.begin();
+      if(extract_member_at(extract_from_iter,extract_from.end(),expr.op0().type(),
+                           extract_offset[0],target_type,dest,false)
+         && dest.size()!=0)
+        return;
     }
   }
   else if(expr.id()==ID_dereference ||

@@ -148,6 +148,15 @@ protected:
     return v.front()!=0;
   }
 
+  bool extract_member_at(
+    std::vector<mp_integer>::iterator& source_iter,
+    const std::vector<mp_integer>::iterator source_end,
+    const typet& source_type,
+    mp_integer offset,
+    const typet& target_type,
+    std::vector<mp_integer> &dest,
+    bool should_return_this) const;
+  
   void evaluate(
     const exprt &expr,
     std::vector<mp_integer> &dest) const;
