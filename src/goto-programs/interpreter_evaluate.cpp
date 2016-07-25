@@ -732,8 +732,9 @@ void interpretert::evaluate(
 
       if(extract_member_at(extract_from_iter,extract_from.end(),expr.op0().type(),
                            extract_offset[0],target_type,dest,false)
-         && dest.size()!=0)
+         && dest.size()!=0) {
         return;
+      }
     }
   }
   else if(expr.id()==ID_dereference ||
@@ -742,9 +743,29 @@ void interpretert::evaluate(
           expr.id()==ID_member)
   {
     mp_integer a=evaluate_address(expr);
-    dest.resize(get_size(expr.type()));
-    read(a, dest);
-    return;
+    if(a.is_zero() && expr.id()==ID_index)
+    {
+      // Try reading from a constant array:
+      std::vector<mp_integer> idx;
+      evaluate(expr.op1(),idx);
+      if(idx.size()==1)
+      {
+        if(expr.op0().id()==ID_array)
+        {
+          const auto& ops=expr.op0().operands();
+          assert(idx[0].is_long());
+          evaluate(ops[idx[0].to_long()],dest);
+          if(dest.size()!=0)
+            return;
+        }
+      }
+    }
+    else if(!a.is_zero())
+    {
+      dest.resize(get_size(expr.type()));
+      read(a, dest);
+      return;
+    }
   }
   else if(expr.id()==ID_typecast)
   {
@@ -874,7 +895,11 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
     evaluate(expr.op1(), tmp1);
 
     if(tmp1.size()==1)
-      return evaluate_address(expr.op0())+tmp1.front();
+    {
+      auto base=evaluate_address(expr.op0());
+      if(!base.is_zero())
+        return base+tmp1.front();
+    }
   }
   else if(expr.id()==ID_member)
   {
@@ -903,14 +928,14 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
       offset+=get_size(it->type());
     }    
 
-    return evaluate_address(expr.op0())+offset;
+    auto base=evaluate_address(expr.op0());
+    if(!base.is_zero())
+      return base+offset;
   }
   
-  if (show)
-  {
+  if(show)
     std::cout << "!! failed to evaluate address: "
               << from_expr(ns, function->first, expr)
               << std::endl;
-  }
   return 0;
 }
