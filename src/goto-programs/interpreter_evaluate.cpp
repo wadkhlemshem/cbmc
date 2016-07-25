@@ -13,6 +13,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/ieee_float.h>
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
+#include <util/pointer_offset_size.h>
 #include <string.h>
 
 #include "interpreter_class.h"
@@ -610,6 +611,26 @@ void interpretert::evaluate(
       throw "address_of expects one operand";
     dest.push_back(evaluate_address(expr.op0()));
     return;
+  }
+  else if(expr.id()==ID_pointer_offset)
+  {
+    if(expr.operands().size()!=1)
+      throw "pointer_offset expects one operand";
+    bool has_symbolic_expr=expr.op0().id()==ID_constant &&
+      expr.op0().operands().size()!=0;
+    const exprt& symbolic_ptr=has_symbolic_expr ? expr.op0().op0() : expr.op0();
+    // TOCHECK: I think compute_pointer_offset wants a deref'd expression
+    // but pointer_offset takes a pointer operand.
+    // It can't cope with a deref operator, at least as currently written.
+    if(symbolic_ptr.id()==ID_address_of)
+    {
+      auto result=compute_pointer_offset(symbolic_ptr.op0(),ns);
+      if(result!=-1)
+      {
+        dest.push_back(result);
+        return;
+      }
+    }
   }
   else if(expr.id()==ID_dereference ||
           expr.id()==ID_index ||
