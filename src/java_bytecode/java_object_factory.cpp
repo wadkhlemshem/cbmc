@@ -64,9 +64,10 @@ bool allocate_object(
     if(allocate_type.id()!=ID_empty && !object_size.is_nil())
     {
       // malloc expression
-      exprt malloc_expr(ID_malloc);
+      exprt malloc_expr = side_effect_exprt(ID_malloc);
       malloc_expr.copy_to_operands(object_size);
-      malloc_expr.type()=allocate_type;
+      typet result_type=pointer_typet(allocate_type);
+      malloc_expr.type()=result_type;
       if(malloc_expr.type()!=target_expr.type())
         malloc_expr=typecast_exprt(malloc_expr,target_expr.type());
       code_assignt code(target_expr, malloc_expr);
@@ -309,9 +310,11 @@ void gen_nondet_array_init(const exprt &expr,
   exprt arraycellref=dereference_exprt(
     plus_exprt(data_field_expr,counter_expr,data_field_expr.type()),
     data_field_expr.type().subtype());
-  
+
+  bool must_dynamically_allocate=create_dynamic_objects ||
+    element_type.id()==ID_pointer;
   gen_nondet_init(arraycellref,init_code,symbol_table,recursion_set,
-                  false,irep_idt(),false,create_dynamic_objects,
+                  false,irep_idt(),false,must_dynamically_allocate,
                   /*override_type=*/&element_type);
 
   code_assignt incr(counter_expr,
