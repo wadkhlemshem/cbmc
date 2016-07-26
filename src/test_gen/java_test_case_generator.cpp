@@ -44,11 +44,14 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
   assert(fm.end() != entry_func);
   const goto_programt::instructionst &in=entry_func->second.body.instructions;
   typedef goto_programt::instructionst::const_reverse_iterator reverse_target;
-  const reverse_target last=in.rbegin();
+  reverse_target codeit=in.rbegin();
   const reverse_target end=in.rend();
-  assert(end != last);
-  const reverse_target call=std::next(last);
-  assert(end != call);
+  assert(end != codeit);
+  // Tolerate 'dead' statements at the end of _start.
+  while(end!=codeit && codeit->code.get_statement()!=ID_function_call)
+    ++codeit;
+  assert(end != codeit);
+  const reverse_target call=codeit;
   const code_function_callt &func_call=to_code_function_call(call->code);
   const exprt &func_expr=func_call.function();
   return to_symbol_expr(func_expr).get_identifier();
