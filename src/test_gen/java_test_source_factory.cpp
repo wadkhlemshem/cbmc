@@ -44,6 +44,12 @@ public:
 		 const struct_exprt &value, const std::string &this_name);  
   void add_assign_value(std::string &result, const symbol_tablet &st,
 			const symbolt &symbol, const exprt &value);
+  void add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
+                                      const symbolt& symbol, const exprt& value,
+                                      bool should_declare);
+  void add_declare_and_assign(std::string &result, const symbol_tablet &st,
+                              const symbolt& symbol, const exprt& value,
+                              bool should_declare);
   void add_global_state_assignments(std::string &result, const symbol_tablet &st,
 				    inputst &in);
   bool add_func_call_parameters(std::string &result, const symbol_tablet &st,
@@ -116,7 +122,7 @@ void add_qualified_class_name(std::string &result, const namespacet &ns,
   } else result+=id2string(to_struct_type(type).get_tag());
 }
 
-void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive = 0)
+void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive=0)
 {
   if(out_is_primitive)
     *out_is_primitive = false;
@@ -221,26 +227,11 @@ public:
   }
 };
 
-void reference_factoryt::add_array_value(std::string &result, const symbol_tablet &st,
-    const struct_exprt &value, const std::string &this_name)
-{
-  // Initialise an array with a sane element count.
-  const int array_limit = 5;
-  
-
-}
-  
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
   const namespacet ns(st);
   const typet &type=value.type();
-  irep_idt typebasename = type.get(ID_C_base_name);
-  if(has_prefix(id2string(typebasename),"array["))
-  {
-    add_array_value(result,st,value,this_name);
-    return;
-  }
 
   std::string qualified_class_name;
   add_qualified_class_name(qualified_class_name, ns, type);  
@@ -273,6 +264,77 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   result+=";\n";
 }
 
+symbol_exprt find_underlying_symbol_expr(exprt e)
+{
+  while(e.id()!=ID_symbol)
+  {
+    assert(e.operands().size()==1);
+    e=e.op0();
+  }
+  // Make up a symbol with name of 'symbol' but type of the 'data' member:
+  std::string symid=id2string(to_symbol_expr(e).get_identifier());
+  size_t bangoff=symid.rfind('!');
+  if(bangoff!=std::string::npos)
+    symid=symid.substr(0,bangoff);
+  return symbol_exprt(symid,e.type());
+}
+
+void reference_factoryt::add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
+                                                        const symbolt& symbol, const exprt& value,
+                                                        bool should_declare)
+{
+  if (should_declare) add_decl_with_init_prefix(result, st, symbol);
+  add_assign_value(result, st, symbol, value);
+}
+
+typet array_symbol_to_array(const symbol_typet& st)
+{
+  const irept &element_irep=st.find(ID_C_element_type);
+  assert(element_irep!=irept());
+  const typet &element_type=static_cast<const typet&>(element_irep);
+  return array_typet(element_type,nil_exprt());
+}
+  
+void reference_factoryt::add_declare_and_assign(std::string &result, const symbol_tablet &st,
+                                                const symbolt& symbol, const exprt& value,
+                                                bool should_declare)
+{
+  // Special case arrays, which are internally represented as
+  // structs with length and data members but need to turn back into simple arrays.
+
+  typet tofollow=symbol.type;
+  if(tofollow.id()==ID_pointer)
+    tofollow=tofollow.subtype();
+  const typet& underlying=namespacet(st).follow(tofollow);
+  if(underlying.id()==ID_struct &&
+     has_prefix(id2string(to_struct_type(underlying).get_tag()),"java::array["))
+  {
+    exprt use_value;
+    typet use_type;
+    if(symbol.type.id()==ID_pointer)
+    {
+      // Declare using the type appropriate to the RHS; use the value as-is.
+      const symbolt& rhs_sym=st.lookup(find_underlying_symbol_expr(value).get_identifier());
+      use_type=array_symbol_to_array(to_symbol_type(rhs_sym.type));
+      use_value=value;
+    }
+    else {
+      // value should be of the form { @base=..., length=..., data=some_array }
+      assert(value.operands().size()==3);
+      const symbolt& dataop_sym=st.lookup(find_underlying_symbol_expr(value.op2()).get_identifier());
+      use_type=dataop_sym.type;
+      use_value=value.op2();
+    }
+    symbolt fake_symbol=symbol;
+    fake_symbol.type=use_type;
+    add_declare_and_assign_noarray(result,st,fake_symbol,use_value,should_declare);
+  }
+  else
+  {
+    add_declare_and_assign_noarray(result,st,symbol,value,should_declare);
+  }
+}
+  
 bool is_input_struct(const symbolt &symbol)
 {
   return std::string::npos != id2string(symbol.name).find("tmp_object_factory");
@@ -286,8 +348,8 @@ void reference_factoryt::add_global_state_assignments(std::string &result, const
     const symbolt &symbol=st.lookup(it->first);
     if (!symbol.is_static_lifetime) continue;
     indent(result, 2u);
-    if (is_input_struct(symbol)) add_decl_with_init_prefix(result, st, symbol);
-    add_assign_value(result, st, symbol, it->second);
+    bool should_declare=is_input_struct(symbol);
+    add_declare_and_assign(result,st,symbol,it->second,should_declare);
   }
 }
 
@@ -301,7 +363,7 @@ std::set<irep_idt> get_parameters(const symbolt &func)
   return result;
 }
 
-  bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
+bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id, inputst &inputs)
 {
   const symbolt &func=st.lookup(func_id);
@@ -316,8 +378,7 @@ std::set<irep_idt> get_parameters(const symbolt &func)
     }
     else
     {
-      add_decl_with_init_prefix(indent(result, 2u), st, symbol);
-      add_assign_value(result, st, symbol, value->second);
+      add_declare_and_assign(indent(result,2u),st,symbol,value->second,true);
     }
   }
   return true;
@@ -495,9 +556,8 @@ void reference_factoryt::add_mock_call(
 				  defined.value.type(), fake_symbol);
 
       // Initial empty statement makes the loop below easier.
-      std::string this_object_init=";"; 
-      add_decl_with_init_prefix(this_object_init, st, use_symbol);
-      add_assign_value(this_object_init, st, use_symbol, defined.value);
+      std::string this_object_init=";";
+      add_declare_and_assign(this_object_init,st,use_symbol,defined.value,true);
 
       string_to_statements(this_object_init, init_statements);
     }
