@@ -254,36 +254,42 @@ void gen_nondet_array_init(const exprt &expr,
 
   const int max_nondet_array_length=5;
   auto max_length_expr=as_number(5,clength->type());
-  exprt length_field_expr=member_exprt(expr,"length",clength->type());
 
   typet allocate_type;
-  
+
+  symbolt &length_sym=new_tmp_symbol(symbol_table,"nondet_array_length");
+  length_sym.type=clength->type();
+  const auto &length_sym_expr=length_sym.symbol_expr();
   if(create_dynamic_objects)
   {
     // Initialise array with some undetermined length:
-    gen_nondet_init(length_field_expr,init_code,symbol_table,recursion_set,
+    gen_nondet_init(length_sym_expr,init_code,symbol_table,recursion_set,
                     false,irep_idt(),false,false);
 
     // Insert assumptions to bound its length:
-    binary_relation_exprt assume1(length_field_expr,ID_ge,
+    binary_relation_exprt assume1(length_sym_expr,ID_ge,
                                   as_number(0, clength->type()));
-    binary_relation_exprt assume2(length_field_expr,ID_le,
+    binary_relation_exprt assume2(length_sym_expr,ID_le,
                                   max_length_expr);
     code_assumet assume_inst1(assume1);
     code_assumet assume_inst2(assume2);
     init_code.move_to_operands(assume_inst1);
     init_code.move_to_operands(assume_inst2);
 
-    allocate_type=array_typet(element_type,length_field_expr);
+    allocate_type=array_typet(element_type,length_sym_expr);
   }
   else
   {
     // Initialise array to max length.
-    code_assignt assign_length(length_field_expr,max_length_expr);
+    code_assignt assign_length(length_sym_expr,max_length_expr);
     init_code.move_to_operands(assign_length);
     allocate_type=array_typet(element_type,max_length_expr);    
   }
 
+  exprt length_field_expr=member_exprt(expr,"length",clength->type());
+  code_assignt assign_length(length_field_expr,length_sym_expr);
+  init_code.move_to_operands(assign_length);
+ 
   // Allocate space for array elements:
   exprt data_field_expr=member_exprt(expr,"data",cdata->type());
   exprt allocated=allocate_object(data_field_expr,allocate_type,init_code,
@@ -310,7 +316,7 @@ void gen_nondet_array_init(const exprt &expr,
   code_gotot goto_done(done_name);
 
   code_ifthenelset done_test;
-  done_test.cond()=equal_exprt(counter_expr,length_field_expr);
+  done_test.cond()=equal_exprt(counter_expr,length_sym_expr);
   done_test.then_case()=goto_done;
 
   init_code.move_to_operands(done_test);
