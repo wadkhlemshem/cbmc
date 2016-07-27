@@ -291,8 +291,12 @@ void gen_nondet_array_init(const exprt &expr,
   init_code.move_to_operands(assign_length);
  
   // Allocate space for array elements:
-  exprt data_field_expr=member_exprt(expr,"data",cdata->type());
-  exprt allocated=allocate_object(data_field_expr,allocate_type,init_code,
+
+  symbolt &init_array_symbol=new_tmp_symbol(symbol_table,"nondet_array_data");
+  init_array_symbol.type=pointer_typet(element_type);
+  exprt init_array_symbol_expr=init_array_symbol.symbol_expr();
+
+  exprt allocated=allocate_object(init_array_symbol_expr,allocate_type,init_code,
                                   symbol_table,create_dynamic_objects);
   assert(allocated!=exprt());
 
@@ -301,7 +305,7 @@ void gen_nondet_array_init(const exprt &expr,
   symbolt &counter=new_tmp_symbol(symbol_table,"array_init_iter");
   counter.type=length_field_expr.type();
   exprt counter_expr=counter.symbol_expr();
-  
+
   init_code.copy_to_operands(
     code_assignt(counter_expr,as_number(0, clength->type())));
 
@@ -322,8 +326,8 @@ void gen_nondet_array_init(const exprt &expr,
   init_code.move_to_operands(done_test);
 
   exprt arraycellref=dereference_exprt(
-    plus_exprt(data_field_expr,counter_expr,data_field_expr.type()),
-    data_field_expr.type().subtype());
+    plus_exprt(init_array_symbol_expr,counter_expr,init_array_symbol_expr.type()),
+    init_array_symbol_expr.type().subtype());
 
   bool must_dynamically_allocate=create_dynamic_objects ||
     element_type.id()==ID_pointer;
@@ -335,9 +339,17 @@ void gen_nondet_array_init(const exprt &expr,
                     plus_exprt(counter_expr,
                                as_number(1, clength->type())));
 
+  exprt data_field_expr=member_exprt(expr,"data",cdata->type());
+  if(ns.follow(init_array_symbol_expr.type().subtype()) !=
+     ns.follow(data_field_expr.type().subtype()))
+  {
+    init_array_symbol_expr=typecast_exprt(init_array_symbol_expr,data_field_expr.type());
+  }
+     
   init_code.move_to_operands(incr);
   init_code.move_to_operands(goto_head);
   init_code.move_to_operands(init_done_label);
+  init_code.copy_to_operands(code_assignt(data_field_expr,init_array_symbol_expr));
   
 }
 }
