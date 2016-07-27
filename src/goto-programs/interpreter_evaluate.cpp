@@ -111,7 +111,7 @@ Function: interpretert::extract_member_at
 
 \*******************************************************************/
 
-// Side-effect: moves source_values and source_length forwards
+// Side-effect: moves source_iter forwards
 // appropriately to the types it walks over.
 
 // Seems quite likely there's another recursion over datatypes that this
@@ -699,8 +699,6 @@ void interpretert::evaluate(
   }
   else if(expr.id()==ID_pointer_offset)
   {
-    // Alternative to this: could evaluate_address op0(), then find the underlying
-    // symbol, take its address and subtract.
     if(expr.operands().size()!=1)
       throw "pointer_offset expects one operand";
     bool has_symbolic_expr=expr.op0().id()==ID_constant &&
@@ -709,15 +707,31 @@ void interpretert::evaluate(
     // TOCHECK: I think compute_pointer_offset wants a deref'd expression
     // but pointer_offset takes a pointer operand.
     // It can't cope with a deref operator, at least as currently written.
+    // TODO: generalise this.
+    mp_integer result=-1; 
     if(symbolic_ptr.id()==ID_address_of)
     {
-      auto result=compute_pointer_offset(symbolic_ptr.op0(),ns);
-      if(result!=-1)
+      result=compute_pointer_offset(symbolic_ptr.op0(),ns);
+    }
+    else if(symbolic_ptr.id()==ID_plus)
+    {
+      // TODO: factor this into compute_pointer_offset?
+      assert(symbolic_ptr.operands().size()==2 && symbolic_ptr.op0().type().id()==ID_pointer);
+      std::vector<mp_integer> rhs_value;
+      evaluate(symbolic_ptr.op1(),rhs_value);
+      // Note lhs offset is ignored because pointer_offset appears to compute with
+      // respect to the LHS pointer not its underlying object.
+      if(rhs_value.size()==1)
       {
-        dest.push_back(result);
-        return;
+        mp_integer ptr_subtype_size=pointer_offset_size(symbolic_ptr.op0().type().subtype(),ns);
+        result=ptr_subtype_size*rhs_value[0];
       }
     }
+    if(result!=-1)
+    {
+      dest.push_back(result);
+      return;
+    }    
   }
   else if(expr.id()==ID_byte_extract_little_endian ||
           expr.id()==ID_byte_extract_big_endian)
@@ -934,6 +948,32 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
     auto base=evaluate_address(expr.op0());
     if(!base.is_zero())
       return base+offset;
+  }
+  else if(expr.id()==ID_byte_extract_little_endian ||
+          expr.id()==ID_byte_extract_big_endian)
+  {
+    if(expr.operands().size()!=2)
+      throw "byte_extract should have two operands";    
+    std::vector<mp_integer> extract_offset;
+    evaluate(expr.op1(),extract_offset);
+    std::vector<mp_integer> extract_from;
+    evaluate(expr.op0(),extract_from);
+    if(extract_offset.size()==1 && extract_from.size()!=0)
+    {
+      const typet& target_type=expr.type();
+      auto extract_from_iter=extract_from.begin();
+      std::vector<mp_integer> dest;
+
+      // Side-effect of extract_member_at: moves extract_from_iter to point *after*
+      // the extracted members.
+      if(extract_member_at(extract_from_iter,extract_from.end(),expr.op0().type(),
+                           extract_offset[0],target_type,dest,false)
+         && dest.size()!=0) {
+        mp_integer walked_over_addresses=std::distance(extract_from.begin(),extract_from_iter);
+        walked_over_addresses-=dest.size(); // Give address of first relevant cell.
+        return evaluate_address(expr.op0())+walked_over_addresses;
+      }
+    }    
   }
   
   if(show)

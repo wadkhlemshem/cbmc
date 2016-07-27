@@ -1767,7 +1767,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
       inputs[id]=get_value(symbol_expr.type(),integer2unsigned(whole_lhs_object_address));
       input_first_assignments[id]=it->pc->function;
-
+      
       previous_assigned_symbol=id;
       
     }
