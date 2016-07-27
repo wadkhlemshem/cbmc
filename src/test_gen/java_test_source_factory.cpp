@@ -449,6 +449,20 @@ std::set<irep_idt> get_parameters(const symbolt &func)
   return result;
 }
 
+bool is_instance_method(const symbol_tablet &st, const irep_idt &func_id)
+{
+  const symbolt &func=st.lookup(func_id);
+  const std::set<irep_idt> params(get_parameters(func));
+  if(params.size() > 0)
+    for (const irep_idt &param : params)
+      {
+        const symbolt &symbol=st.lookup(param);
+        if (symbol.base_name=="this")
+          return true;
+      }
+  return false;
+}
+
 bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id, inputst &inputs)
 {
@@ -464,35 +478,49 @@ bool reference_factoryt::add_func_call_parameters(std::string &result, const sym
     }
     else
     {
-      add_declare_and_assign(indent(result,2u),st,symbol,value->second,true);
+      if(symbol.base_name=="this")
+        // do not declare "this" variable  for instance method
+        continue;
+      else
+        add_declare_and_assign(indent(result,2u),st,symbol,value->second,true);
     }
   }
   return true;
 }
 
-std::string symbol_to_function_name(const symbolt &s) {
-
-  const std::string func_name_with_brackets(id2string(s.pretty_name));
-  const size_t sz=func_name_with_brackets.size();
-  assert(sz >= 2u);
-  return func_name_with_brackets.substr(0, sz - 2);
-
+std::string symbol_to_function_name(const symbolt &s, bool instance_method=false) {
+  if(instance_method)
+    return id2string(s.base_name);
+  else
+    {
+      const std::string func_name_with_brackets(id2string(s.pretty_name));
+      const size_t sz=func_name_with_brackets.size();
+      assert(sz >= 2u);
+      return func_name_with_brackets.substr(0, sz - 2);
+    }
 }
   
 void add_func_call(std::string &result, const symbol_tablet &st,
-    const irep_idt &func_id)
+                   const irep_idt &func_id, bool instance_method=false)
 {
   // XXX: Should be expr2java(...) once functional.
   const symbolt &s=st.lookup(func_id);
-  indent(result, 2u) += symbol_to_function_name(s);
+  if(instance_method)
+    result += '.' + symbol_to_function_name(s, instance_method);
+  else
+    indent(result, 2u) += symbol_to_function_name(s, instance_method);
   result+='(';
   const std::set<irep_idt> params(get_parameters(s));
   unsigned nparams = 0;
   for (const irep_idt &param : params)
   {
+    const symbolt &symbol=st.lookup(param);
+    if(symbol.base_name=="this")
+      // skip "this" parameter
+      continue;
     if(nparams++ != 0)
       result+=", ";
-    add_symbol(result, st.lookup(param));
+    add_symbol(result, symbol);
   }
   result+=");\n";
 }
@@ -731,7 +759,22 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
-    add_func_call(result,st,func_id);
+    if(is_instance_method(st, func_id))
+      {
+        for (const irep_idt &param : get_parameters(st.lookup(func_id)))
+          {
+            const symbolt &symbol=st.lookup(param);
+            if (symbol.base_name=="this")
+              {
+                const inputst::iterator value=inputs.find(param);
+                const namespacet ns(st);
+                expr2java(result, value->second, ns);
+              }
+          }
+        add_func_call(result,st,func_id,true);
+      }
+    else
+      add_func_call(result,st,func_id);
   }
 
   indent(result)+="}\n";
