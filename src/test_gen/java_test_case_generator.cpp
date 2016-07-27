@@ -20,18 +20,19 @@ bool contains(const std::string &id, const char * const needle)
 bool is_meta(const irep_idt &id)
 {
   const std::string &str=id2string(id);
-  return contains(str, "$assertionsDisabled")
-      || contains(str, "symex_dynamic::");
+  return contains(str, "$assertionsDisabled");
 }
 
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
-    const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns)
+    const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns,
+    interpretert::input_var_functionst& first_assignments)
 {
   interpretert interpreter(st, gf);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);
     else ++it;
+  first_assignments=interpreter.get_input_first_assignments();
   return res;
 }
 
@@ -58,7 +59,10 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 }
 
 typedef std::function<
-  std::string(const symbol_tablet &, const irep_idt &, const inputst &, const interpretert::list_input_varst&, bool)> test_case_generatort;
+  std::string(const symbol_tablet &, const irep_idt &, const inputst &,
+              const interpretert::list_input_varst&,
+              const interpretert::input_var_functionst&,
+              bool)> test_case_generatort;
 
 void generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
@@ -66,10 +70,13 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
 {
 
   interpretert::list_input_varst opaque_function_returns;
+  interpretert::input_var_functionst input_defn_functions;
   
-  const inputst inputs(generate_inputs(st, gf, trace, opaque_function_returns));
+  const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,input_defn_functions));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns, options.get_bool_option("java-disable-mocks")));
+  const std::string source(generate(st,entry_func_id,inputs,opaque_function_returns,
+                                    input_defn_functions,
+                                    options.get_bool_option("java-disable-mocks")));
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
   {

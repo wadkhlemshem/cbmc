@@ -31,6 +31,7 @@ public:
   friend class simplify_evaluatet;
 
   typedef std::map<const irep_idt,exprt> input_varst;
+  typedef std::map<const irep_idt,irep_idt> input_var_functionst;
 
   // An assertion that identifier 'id' carries value 'value' in some particular context.
   struct function_assignmentt {
@@ -127,6 +128,7 @@ protected:
   
   call_stackt call_stack;  
   input_varst input_vars;
+  input_var_functionst input_first_assignments;
   list_input_varst function_input_vars;
   
   goto_functionst::function_mapt::const_iterator function;
@@ -180,5 +182,6 @@ protected:
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
   input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, const bool filtered=false);
-
+  const input_var_functionst& get_input_first_assignments() { return input_first_assignments; }
+  
 };

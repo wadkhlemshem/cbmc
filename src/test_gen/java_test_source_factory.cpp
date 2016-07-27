@@ -51,13 +51,17 @@ public:
                               const symbolt& symbol, const exprt& value,
                               bool should_declare);
   void add_global_state_assignments(std::string &result, const symbol_tablet &st,
-				    inputst &in);
+				    inputst &in, const interpretert::input_var_functionst&);
   bool add_func_call_parameters(std::string &result, const symbol_tablet &st,
 				const irep_idt &func_id, inputst &inputs);
   void add_mock_call(const interpretert::function_assignments_contextt,
 		     const java_call_descriptor& desc, const symbol_tablet&);
   void add_mock_objects(const symbol_tablet &st,
 			const interpretert::list_input_varst& opaque_function_returns);
+  void gather_referenced_symbols(const exprt& rhs, inputst& in, const symbol_tablet&,
+                                 std::vector<symbolt>& needed);
+  void gather_referenced_symbols(const symbolt& symbol, inputst& in, const symbol_tablet&,
+                                 std::vector<symbolt>& needed);
   
 };
 
@@ -264,11 +268,13 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   result+=";\n";
 }
 
-symbol_exprt find_underlying_symbol_expr(exprt e)
+symbol_exprt try_find_underlying_symbol_expr(exprt e)
 {
   while(e.id()!=ID_symbol)
   {
-    assert(e.operands().size()==1);
+    assert(e.operands().size()<=1);
+    if(e.operands().size()==0)
+      return symbol_exprt();
     e=e.op0();
   }
   // Make up a symbol with name of 'symbol' but type of the 'data' member:
@@ -277,6 +283,13 @@ symbol_exprt find_underlying_symbol_expr(exprt e)
   if(bangoff!=std::string::npos)
     symid=symid.substr(0,bangoff);
   return symbol_exprt(symid,e.type());
+}
+
+symbol_exprt find_underlying_symbol_expr(exprt e)
+{
+  symbol_exprt ret=try_find_underlying_symbol_expr(e);
+  assert(ret!=symbol_exprt());
+  return ret;
 }
 
 void reference_factoryt::add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
@@ -335,21 +348,94 @@ void reference_factoryt::add_declare_and_assign(std::string &result, const symbo
   }
 }
   
-bool is_input_struct(const symbolt &symbol)
+bool is_input_struct(const symbolt &symbol, const symbol_tablet& st,
+    const interpretert::input_var_functionst input_defn_functions)
 {
-  return std::string::npos != id2string(symbol.name).find("tmp_object_factory");
+  const irep_idt defn_fn=input_defn_functions.at(symbol.name);
+  const irep_idt& symtype=namespacet(st).follow(symbol.type).id();
+  return (symtype==ID_struct||symtype==ID_pointer||symtype==ID_array) &&
+    input_defn_functions.at(symbol.name)=="_start";
 }
 
-void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
-    inputst &in)
+const symbolt& get_or_fake_symbol(const symbol_tablet& st, const irep_idt& id,
+  const typet& expected_type, symbolt& fake_symbol)
 {
+
+  auto findit=st.symbols.find(id);
+
+  if(findit==st.symbols.end())
+  {
+    // Dynamic object names are not in the symtab at the moment.
+    fake_symbol.type=expected_type;
+    fake_symbol.name=id;
+    std::string namestr=as_string(id);
+    size_t findidx=namestr.find("::");
+    if(findidx==std::string::npos)
+      fake_symbol.base_name=fake_symbol.name;
+    else
+    {
+      assert(namestr.size() >= findidx + 3);
+      fake_symbol.base_name=namestr.substr(findidx + 2);
+    }
+    return fake_symbol;
+  }
+  else
+    return findit->second;
+
+}
+
+void reference_factoryt::gather_referenced_symbols(const exprt& rhs, inputst& in,
+                                                   const symbol_tablet& st,
+                                                   std::vector<symbolt>& needed)
+{
+  forall_operands(op_iter,rhs)
+  {
+    if(op_iter->type().id()==ID_pointer)
+    {
+      symbol_exprt underlying=try_find_underlying_symbol_expr(*op_iter);
+      if(underlying!=symbol_exprt())
+      {
+        symbolt fake_symbol;
+        const symbolt &op_symbol=get_or_fake_symbol(st,underlying.get_identifier(),
+                                                    underlying.type(),fake_symbol);
+        gather_referenced_symbols(op_symbol,in,st,needed);
+      }
+    }
+    else if(op_iter->type().id()==ID_struct)
+    {
+      gather_referenced_symbols(*op_iter,in,st,needed);
+    }
+  }
+}
+  
+void reference_factoryt::gather_referenced_symbols(const symbolt& symbol, inputst& in,
+                                                   const symbol_tablet& st,
+                                                   std::vector<symbolt>& needed)
+{
+  const exprt& rhs=in[symbol.name];
+  gather_referenced_symbols(rhs,in,st,needed);
+  needed.push_back(symbol);
+}
+  
+void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
+    inputst &in, const interpretert::input_var_functionst &input_defn_functions)
+{
+  std::vector<symbolt> needed;
   for (inputst::const_reverse_iterator it=in.rbegin(); it != in.rend(); ++it)
   {
-    const symbolt &symbol=st.lookup(it->first);
+    symbolt fake_symbol;
+    const symbolt &symbol=get_or_fake_symbol(st,it->first,it->second.type(),fake_symbol);
     if (!symbol.is_static_lifetime) continue;
+    if (!is_input_struct(symbol,st,input_defn_functions)) continue;
+    gather_referenced_symbols(symbol,in,st,needed);
+  }
+  std::set<irep_idt> already_done;
+  for(const auto& symbol : needed)
+  {
+    if(!already_done.insert(symbol.name).second)
+      continue;
     indent(result, 2u);
-    bool should_declare=is_input_struct(symbol);
-    add_declare_and_assign(result,st,symbol,it->second,should_declare);
+    add_declare_and_assign(result,st,symbol,in[symbol.name],true);
   }
 }
 
@@ -425,33 +511,6 @@ bool shouldnt_mock_class(const std::string& classname)
   // Should make a proper black/whitelist in due time; for now just avoid
   // mocking things like Exceptions.
   return classname.find("java.") == 0;
-}
-
-const symbolt& get_or_fake_symbol(const symbol_tablet& st, const irep_idt& id,
-  const typet& expected_type, symbolt& fake_symbol)
-{
-
-  auto findit=st.symbols.find(id);
-
-  if(findit==st.symbols.end())
-  {
-    // Dynamic object names are not in the symtab at the moment.
-    fake_symbol.type=expected_type;
-    fake_symbol.name=id;
-    std::string namestr=as_string(id);
-    size_t findidx=namestr.find("::");
-    if(findidx==std::string::npos)
-      fake_symbol.base_name=fake_symbol.name;
-    else
-    {
-      assert(namestr.size() >= findidx + 3);
-      fake_symbol.base_name=namestr.substr(findidx + 2);
-    }
-    return fake_symbol;
-  }
-  else
-    return findit->second;
-
 }
 
 void string_to_statements(const std::string& instring,
@@ -643,7 +702,9 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 
 } // End of anonymous namespace
 
-std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns, bool disable_mocks)
+std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
+    inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
+    const interpretert::input_var_functionst& input_defn_functions, bool disable_mocks)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -661,7 +722,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
 
   std::string post_mock_setup_result;
   
-  ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs);
+  ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs, input_defn_functions);
   bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.

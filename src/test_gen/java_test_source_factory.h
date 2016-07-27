@@ -18,7 +18,7 @@
  *
  * @details
  */
-typedef std::map<const irep_idt, exprt> inputst;
+typedef interpretert::input_varst inputst;
 
 /**
  * @brief
@@ -36,6 +36,7 @@ std::string generate_java_test_case_from_inputs(
     const irep_idt &func_id,
     inputst inputs,
     const interpretert::list_input_varst& opaque_function_returns,
+    const interpretert::input_var_functionst& input_defn_functions,
     bool disable_mocks);
 
 std::string func_name(const symbolt &symbol);
