@@ -1728,7 +1728,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  {
 	    function_assignmentst single_defn=
 	      { { previous_assigned_symbol,inputs[previous_assigned_symbol] } };
-	    function_inputs[called].push_front({ function->first,single_defn });
+	    function_inputs[called].push_front({ it->pc->function,single_defn });
 	  }
 	  break;
 	}
@@ -1739,7 +1739,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  function_assignmentst defined;
 	  get_value_tree(capture_symbol,inputs,defined);
 	  if(defined.size()!=0) // Definition found?
-	    function_inputs[called].push_front({ function->first,defined });
+	    function_inputs[called].push_front({ it->pc->function,defined });
 	  break;
 	}
 	
@@ -1766,6 +1766,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
       mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
       inputs[id]=get_value(symbol_expr.type(),integer2unsigned(whole_lhs_object_address));
+      input_first_assignments[id]=it->pc->function;
 
       previous_assigned_symbol=id;
       
