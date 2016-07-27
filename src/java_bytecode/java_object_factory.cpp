@@ -35,13 +35,17 @@ namespace {
 // Returns false if we can't figure out the size of allocate_type.
 // allocate_type may differ from target_expr, e.g. for target_expr having
 // type int* and allocate_type being an int[10].
-bool allocate_object(
+exprt allocate_object(
   const exprt& target_expr,
   const typet& allocate_type,
   code_blockt& init_code,
   symbol_tablet& symbol_table,
   bool create_dynamic_objects)
 {
+  namespacet ns(symbol_table);
+  const typet& allocate_type_resolved=ns.follow(allocate_type);
+  const typet& target_type=ns.follow(target_expr.type().subtype());
+  bool cast_needed=allocate_type_resolved!=target_type;
   if(!create_dynamic_objects)
   {
     symbolt &aux_symbol=new_tmp_symbol(symbol_table);
@@ -50,11 +54,11 @@ bool allocate_object(
       
     exprt object=aux_symbol.symbol_expr();
     exprt aoe=address_of_exprt(object);
-    if(aoe.type()!=target_expr.type())
+    if(cast_needed)
       aoe=typecast_exprt(aoe, target_expr.type());
     code_assignt code(target_expr,aoe);
     init_code.copy_to_operands(code);
-    return true;
+    return aoe;
   }
   else
   {
@@ -68,11 +72,18 @@ bool allocate_object(
       malloc_expr.copy_to_operands(object_size);
       typet result_type=pointer_typet(allocate_type);
       malloc_expr.type()=result_type;
-      if(malloc_expr.type()!=target_expr.type())
+      // Create a symbol for the malloc expression so we can initialise
+      // without having to do it potentially through a double-deref, which
+      // breaks the to-SSA phase.
+      symbolt &malloc_sym=new_tmp_symbol(symbol_table,"malloc_site");
+      malloc_sym.type=pointer_typet(allocate_type);
+      init_code.copy_to_operands(code_assignt(malloc_sym.symbol_expr(), malloc_expr));
+      malloc_expr=malloc_sym.symbol_expr();
+      if(cast_needed)
         malloc_expr=typecast_exprt(malloc_expr,target_expr.type());
       code_assignt code(target_expr, malloc_expr);
       init_code.copy_to_operands(code);
-      return true;
+      return malloc_sym.symbol_expr();
     }
     else
     {
@@ -80,7 +91,7 @@ bool allocate_object(
       null_pointer_exprt null_pointer_expr(to_pointer_type(target_expr.type()));
       code_assignt code(target_expr, null_pointer_expr);
       init_code.copy_to_operands(code);
-      return false;
+      return exprt();
     }
   }
 }
@@ -131,17 +142,13 @@ void gen_nondet_init(
       }
     }
 
-    if(allocate_object(expr,subtype,init_code,symbol_table,create_dynamic_objects))
+    exprt allocated=allocate_object(expr,subtype,init_code,symbol_table,create_dynamic_objects);
     {
-      exprt init_expr=expr;
-      if(override_type)
-      {
-        const typet& real_lhs_type=ns.follow(expr.type());
-        if(real_lhs_type!=*override_type)
-          init_expr=typecast_exprt(expr,*override_type);
-      }
-      init_expr=dereference_exprt(init_expr,init_expr.type().subtype());
-        
+      exprt init_expr;
+      if(allocated.id()==ID_address_of)
+        init_expr=allocated.op0();
+      else
+        init_expr=dereference_exprt(allocated,allocated.type().subtype());
       gen_nondet_init(init_expr,init_code,symbol_table,
                       recursion_set,false,"",false,create_dynamic_objects);
     }
@@ -279,8 +286,9 @@ void gen_nondet_array_init(const exprt &expr,
 
   // Allocate space for array elements:
   exprt data_field_expr=member_exprt(expr,"data",cdata->type());
-  assert(allocate_object(data_field_expr,allocate_type,init_code,
-                         symbol_table,create_dynamic_objects));
+  exprt allocated=allocate_object(data_field_expr,allocate_type,init_code,
+                                  symbol_table,create_dynamic_objects);
+  assert(allocated!=exprt());
 
   // Emit init loop for(array_init_iter=0; array_init_iter!=array.length; ++array_init_iter)
   //                  init(array[array_init_iter]);
