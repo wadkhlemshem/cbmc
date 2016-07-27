@@ -138,6 +138,9 @@ public:
     const irep_idt &l0,
     const irep_idt &l1,
     const irep_idt &l2);
+
+  static bool can_build_identifier(const exprt &src);
+  
 };
 
 /*! \brief Cast a generic exprt to an \ref ssa_exprt

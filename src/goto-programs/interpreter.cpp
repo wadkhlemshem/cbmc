@@ -686,7 +686,7 @@ void interpretert::execute_assign()
 
       // TODO: need to look at other cases on ssa_exprt (derference should be handled on ssa
       const exprt &expr=trace_step.full_lhs;
-      if((expr.id()==ID_member && to_member_expr(expr).struct_op().id()!=ID_dereference) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      if(ssa_exprt::can_build_identifier(trace_step.full_lhs))
       {
         trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
       }
