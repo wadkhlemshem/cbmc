@@ -5,6 +5,7 @@
 #include "goto_functions.h"
 #include "goto_trace.h"
 #include "json_goto_trace.h"
+#include "util/message.h"
 
 /*******************************************************************\
 
@@ -22,7 +23,9 @@ public:
     const goto_functionst &_goto_functions):
     symbol_table(_symbol_table),
     ns(_symbol_table),
-    goto_functions(_goto_functions)
+    goto_functions(_goto_functions),
+	message_handler(std::cout),
+    message(message_handler)
   {
   }
   
@@ -57,8 +60,9 @@ protected:
   const namespacet ns;
   const goto_functionst &goto_functions;
   typedef std::map<const irep_idt,const typet> dynamic_typest;
+  stream_message_handlert message_handler;
+  mutable messaget message;
   mutable dynamic_typest dynamic_types;
-
   mutable memory_mapt memory_map;
   
   class memory_cellt
@@ -139,7 +143,7 @@ protected:
   mutable int num_dynamic_objects;
   int stack_depth;
   int thread_id;
-  
+
   bool evaluate_boolean(const exprt &expr) const
   {
     std::vector<mp_integer> v;
@@ -148,6 +152,15 @@ protected:
     return v.front()!=0;
   }
 
+  bool extract_member_at(
+    std::vector<mp_integer>::iterator& source_iter,
+    const std::vector<mp_integer>::iterator source_end,
+    const typet& source_type,
+    mp_integer offset,
+    const typet& target_type,
+    std::vector<mp_integer> &dest,
+    bool should_return_this) const;
+  
   void evaluate(
     const exprt &expr,
     std::vector<mp_integer> &dest) const;

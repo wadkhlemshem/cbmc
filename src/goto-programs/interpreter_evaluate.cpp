@@ -13,6 +13,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/ieee_float.h>
 #include <util/fixedbv.h>
 #include <util/std_expr.h>
+#include <util/pointer_offset_size.h>
 #include <string.h>
 
 #include "interpreter_class.h"
@@ -95,6 +96,91 @@ void interpretert::clear_input_flags()
     const memory_cellt &cell=memory[i];
     if (cell.initialised>0) cell.initialised=0;
   }
+}
+
+
+/*******************************************************************\
+
+Function: interpretert::extract_member_at
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+// Side-effect: moves source_values and source_length forwards
+// appropriately to the types it walks over.
+
+// Seems quite likely there's another recursion over datatypes that this
+// could be merged with, but haven't found an ideal candidate yet.
+bool interpretert::extract_member_at(
+  std::vector<mp_integer>::iterator& source_iter,
+  const std::vector<mp_integer>::iterator source_end,
+  const typet& source_type,
+  mp_integer offset,
+  const typet& target_type,
+  std::vector<mp_integer> &dest,
+  bool should_return_this) const
+{
+  // Should allow any primitive reinterpretation here.
+  bool return_this = should_return_this ||
+    (offset==0 &&
+     (source_type==target_type ||
+      (source_type.id()==ID_pointer && target_type.id()==ID_pointer)));
+
+  if(source_type.id()==ID_struct)
+  {
+    const auto& st=to_struct_type(source_type);
+    const struct_typet::componentst &components=st.components();
+    member_offset_iterator offsets(st,ns);
+    while(offsets->second!=-1 && offsets->second<=offset)
+    {
+      if(!extract_member_at(source_iter,source_end,components[offsets->first].type(),
+                            offset-offsets->second,target_type,dest,return_this))
+        return false;
+      ++offsets;
+    }
+    if(offsets->second==-1)
+      return false;
+  }
+  else if(source_type.id()==ID_array)
+  {
+    const auto& at=to_array_type(source_type);
+    mp_integer elem_size=pointer_offset_size(at.subtype(),ns);
+    if(elem_size==-1)
+      return false;
+    while(offset>=0)
+    {
+      if(!extract_member_at(source_iter,source_end,at.subtype(),
+                            offset,target_type,dest,return_this))
+        return false;
+      offset-=elem_size;
+    }
+  }
+  else if(source_type.id()==ID_signedbv ||
+          source_type.id()==ID_unsignedbv ||
+          source_type.id()==ID_fixedbv ||
+          source_type.id()==ID_floatbv ||
+          source_type.id()==ID_bv ||
+          source_type.id()==ID_c_bool ||
+          source_type.id()==ID_pointer)
+  {
+    if(return_this)
+    {
+      assert(source_iter!=source_end);
+      dest.push_back(*source_iter);
+    }
+    ++source_iter;
+  }
+  else {
+    return false;
+  }
+
+  return true;
+  
 }
 
 /*******************************************************************\
@@ -183,7 +269,7 @@ void interpretert::evaluate(
       irep_idt value=to_constant_expr(expr).get_value();
       const char *str=value.c_str();
       unsigned length=strlen(str)+1;
-      if (show) std::cout << "string decoding not fully implemented " << length << std::endl;
+      if (show) message.warning() << "string decoding not fully implemented " << length << messaget::endl << messaget::eom;
       mp_integer tmp=value.get_no();
       dest.push_back(tmp);
       return;
@@ -232,12 +318,12 @@ void interpretert::evaluate(
     side_effect_exprt side_effect=to_side_effect_expr(expr);
     if(side_effect.get_statement()==ID_nondet)
     {
-      if (show) std::cout << "nondet not implemented" << std::endl;
+      if (show) message.error() << "nondet not implemented" << messaget::endl << messaget::eom;
       return;
     }
     else if(side_effect.get_statement()==ID_malloc)
     {
-      if (show) std::cout << "malloc not fully implemented " << expr.type().subtype().pretty() << std::endl;
+      if (show) message.error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::endl << messaget::eom;
       std::stringstream buffer;
       num_dynamic_objects++;
       buffer <<"symex_dynamic::dynamic_object" << num_dynamic_objects;
@@ -246,7 +332,7 @@ void interpretert::evaluate(
      dest.push_back(address);
       return;
     }
-    if (show) std::cout << "side effect not implemented " << side_effect.get_statement() << std::endl;
+    if (show) message.error() << "side effect not implemented " << side_effect.get_statement() << messaget::endl << messaget::eom;
   }
   else if(expr.id()==ID_bitor)
   {
@@ -611,15 +697,78 @@ void interpretert::evaluate(
     dest.push_back(evaluate_address(expr.op0()));
     return;
   }
+  else if(expr.id()==ID_pointer_offset)
+  {
+    // Alternative to this: could evaluate_address op0(), then find the underlying
+    // symbol, take its address and subtract.
+    if(expr.operands().size()!=1)
+      throw "pointer_offset expects one operand";
+    bool has_symbolic_expr=expr.op0().id()==ID_constant &&
+      expr.op0().operands().size()!=0;
+    const exprt& symbolic_ptr=has_symbolic_expr ? expr.op0().op0() : expr.op0();
+    // TOCHECK: I think compute_pointer_offset wants a deref'd expression
+    // but pointer_offset takes a pointer operand.
+    // It can't cope with a deref operator, at least as currently written.
+    if(symbolic_ptr.id()==ID_address_of)
+    {
+      auto result=compute_pointer_offset(symbolic_ptr.op0(),ns);
+      if(result!=-1)
+      {
+        dest.push_back(result);
+        return;
+      }
+    }
+  }
+  else if(expr.id()==ID_byte_extract_little_endian ||
+          expr.id()==ID_byte_extract_big_endian)
+  {
+    if(expr.operands().size()!=2)
+      throw "byte_extract should have two operands";
+    std::vector<mp_integer> extract_offset;
+    evaluate(expr.op1(),extract_offset);
+    std::vector<mp_integer> extract_from;
+    evaluate(expr.op0(),extract_from);    
+    if(extract_offset.size()==1 && extract_from.size()!=0)
+    {
+      const typet& target_type=expr.type();
+      auto extract_from_iter=extract_from.begin();
+
+      if(extract_member_at(extract_from_iter,extract_from.end(),expr.op0().type(),
+                           extract_offset[0],target_type,dest,false)
+         && dest.size()!=0) {
+        return;
+      }
+    }
+  }
   else if(expr.id()==ID_dereference ||
           expr.id()==ID_index ||
           expr.id()==ID_symbol ||
           expr.id()==ID_member)
   {
     mp_integer a=evaluate_address(expr);
-    dest.resize(get_size(expr.type()));
-    read(a, dest);
-    return;
+    if(a.is_zero() && expr.id()==ID_index)
+    {
+      // Try reading from a constant array:
+      std::vector<mp_integer> idx;
+      evaluate(expr.op1(),idx);
+      if(idx.size()==1)
+      {
+        if(expr.op0().id()==ID_array)
+        {
+          const auto& ops=expr.op0().operands();
+          assert(idx[0].is_long());
+          evaluate(ops[idx[0].to_long()],dest);
+          if(dest.size()!=0)
+            return;
+        }
+      }
+    }
+    else if(!a.is_zero())
+    {
+      dest.resize(get_size(expr.type()));
+      read(a, dest);
+      return;
+    }
   }
   else if(expr.id()==ID_typecast)
   {
@@ -686,10 +835,10 @@ void interpretert::evaluate(
     return;
   }
 //  if (!show) return;
-  std::cout << "!! failed to evaluate expression: "
+  message.error() << "!! failed to evaluate expression: "
             << from_expr(ns, function->first, expr)
-            << std::endl;
-  std::cout << expr.id() << "[" << expr.type().id() << "]" << std::endl;
+            << messaget::endl;
+  message.error() << expr.id() << "[" << expr.type().id() << "]" << messaget::endl << messaget::eom;
 }
 
 /*******************************************************************\
@@ -749,7 +898,11 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
     evaluate(expr.op1(), tmp1);
 
     if(tmp1.size()==1)
-      return evaluate_address(expr.op0())+tmp1.front();
+    {
+      auto base=evaluate_address(expr.op0());
+      if(!base.is_zero())
+        return base+tmp1.front();
+    }
   }
   else if(expr.id()==ID_member)
   {
@@ -778,14 +931,16 @@ mp_integer interpretert::evaluate_address(const exprt &expr) const
       offset+=get_size(it->type());
     }    
 
-    return evaluate_address(expr.op0())+offset;
+    auto base=evaluate_address(expr.op0());
+    if(!base.is_zero())
+      return base+offset;
   }
   
   if (show)
   {
-    std::cout << "!! failed to evaluate address: "
+    message.error() << "!! failed to evaluate address: "
               << from_expr(ns, function->first, expr)
-              << std::endl;
+              << messaget::endl << messaget::eom;
   }
   return 0;
 }
