@@ -161,7 +161,7 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
 
   exprt derefd=clean_deref(cast_ptr);
 
-  gen_nondet_init(derefd,new_instructions,symbol_table,is_constructor,
+  gen_nondet_init(derefd,new_instructions,symbol_table,false,
                   /*create_dynamic=*/true);
 
   if((!is_constructor) && !assume_non_null)
