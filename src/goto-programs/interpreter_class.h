@@ -79,6 +79,7 @@ protected:
   void build_memory_map();
   void build_memory_map(const symbolt &symbol);
   mp_integer build_memory_map(const irep_idt &id,const typet &type) const;
+  typet concretise_type(const typet &type) const;
   unsigned get_size(const typet &type) const;
 
   irep_idt get_component_id(const irep_idt &object,unsigned offset);

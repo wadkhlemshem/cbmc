@@ -382,7 +382,6 @@ void interpretert::step()
   default:
     throw "encountered instruction with undefined instruction type";
   }
-  
   PC=next_PC;
 }
 
@@ -981,6 +980,26 @@ void interpretert::build_memory_map(const symbolt &symbol)
   }
 }
 
+typet interpretert::concretise_type(const typet &type) const
+{
+  if(type.id()==ID_array)
+  {
+    const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
+    std::vector<mp_integer> computed_size;
+    evaluate(size_expr,computed_size);
+    if(computed_size.size()==1 && computed_size[0]!=0)
+    {
+      std::cout << "Concretised array with size " << computed_size[0] << "\n";
+      return array_typet(type.subtype(),
+                         constant_exprt::integer_constant(computed_size[0].to_ulong()));
+    }
+    else {
+      std::cout << "Failed to concretise variable array\n";
+    }
+  }
+  return type;
+}
+
 /*******************************************************************\
 
 Function: interpretert::build_memory_map
@@ -995,14 +1014,15 @@ Function: interpretert::build_memory_map
 mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type) const
 {
   if (dynamic_types.find(id)!=dynamic_types.end()) return memory_map[id];
-  unsigned size=get_size(type);
+  typet alloc_type=concretise_type(type);
+  unsigned size=get_size(alloc_type);
 
   if(size!=0)
   {
     unsigned address=memory.size();
     memory.resize(address+size);
     memory_map[id]=address;
-    dynamic_types.insert(std::pair<const irep_idt,typet>(id,type));
+    dynamic_types.insert(std::pair<const irep_idt,typet>(id,alloc_type));
 
     for(unsigned i=0;i<size;i++)
     {
@@ -1660,6 +1680,13 @@ void interpretert::get_value_tree(const exprt& capture_expr,
   get_value_tree(referee,inputs,captured);
 }
 
+static bool is_assign_step(const goto_trace_stept& step)
+{
+  return goto_trace_stept::ASSIGNMENT==step.type
+    && (step.pc->is_other() || step.pc->is_assign()
+        || step.pc->is_function_call());
+}
+
 /*******************************************************************
  Function: load_counter_example_inputs
 
@@ -1685,6 +1712,31 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   irep_idt previous_assigned_symbol;
  
   initialise(true);
+
+  // First walk the trace forwards to initialise variable-length arrays
+  // whose size-expressions depend on context (e.g. int x = 5; int[] y = new int[x];)
+
+  for(const auto& step : trace.steps)
+  {
+    if(is_assign_step(step))
+    {
+      mp_integer address;
+
+      symbol_exprt symbol_expr=get_assigned_symbol(step);
+      irep_idt id=symbol_expr.get_identifier();
+
+      address=evaluate_address(step.full_lhs);
+      if(address==0)
+        address=build_memory_map(id,symbol_expr.type());
+
+      std::vector<mp_integer> rhs;
+      evaluate(step.full_lhs_value,rhs);
+      assign(address,rhs);
+    }
+  }
+
+  // Now walk backwards to find object states at their origin points.
+  
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
   for(;it!=trace.steps.rend();++it) {
@@ -1724,9 +1776,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       } // End switch on stub type
 
     } // End if-is-function-call
-    else if(goto_trace_stept::ASSIGNMENT==it->type
-	    && (it->pc->is_other() || it->pc->is_assign()
-		|| it->pc->is_function_call()))
+    else if(is_assign_step(*it))
     {
    
       mp_integer address;
@@ -1735,17 +1785,24 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       irep_idt id=symbol_expr.get_identifier();
 
       address=evaluate_address(it->full_lhs);
-      if(address==0) {
-        address=build_memory_map(id,symbol_expr.type());
-      }
+      assert(address!=0);
       std::vector<mp_integer> rhs;
       evaluate(it->full_lhs_value,rhs);
       assign(address,rhs);
 
       mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
-      inputs[id]=get_value(symbol_expr.type(),integer2unsigned(whole_lhs_object_address));
+      // The dynamic type and the static symbol type may differ for VLAs,
+      // where the symbol carries a size expression and the dynamic type
+      // registry contains its actual length.
+      auto findit=dynamic_types.find(symbol_expr.get_identifier());
+      typet get_type;
+      if(findit!=dynamic_types.end())
+        get_type=findit->second;
+      else
+        get_type=symbol_expr.type();
+      inputs[id]=get_value(get_type,integer2unsigned(whole_lhs_object_address));
       input_first_assignments[id]=it->pc->function;
-      
+
       previous_assigned_symbol=id;
       
     }
