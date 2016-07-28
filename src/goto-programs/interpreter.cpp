@@ -1659,21 +1659,17 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
 
   if(!isnull)
   {
-  
-    const auto& defined_struct=to_struct_expr(defined);
-    const auto& struct_type=to_struct_type(defined.type());
-    const auto& members=struct_type.components();
-    unsigned idx=0;
-    assert(defined_struct.operands().size()==members.size());
+
+    assert(defined.type().id()==ID_struct ||
+           defined.type().id()==ID_array);
     // Assumption: all object trees captured this way refer directly to particular
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
-    forall_operands(opit, defined_struct) {
-      if(members[idx].type().id()==ID_pointer)
-	{
-	  const auto& referee=to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
-	  get_value_tree(referee, inputs, captured);
-	}
-      ++idx;
+    forall_operands(opit, defined) {
+      if(opit->type().id()==ID_pointer)
+      {
+        const auto& referee=to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
+        get_value_tree(referee, inputs, captured);
+      }
     }
 
   }
