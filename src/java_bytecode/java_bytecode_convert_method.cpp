@@ -122,9 +122,8 @@ protected:
     else
       {
         // return reference to unnamed local variable
-        variablet var;
-        variablet &v = var;
-        return v;
+        var_list.resize(1);
+        return var_list[0];
       }
   }
 
