@@ -25,7 +25,8 @@ bool is_meta(const irep_idt &id)
 
 inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
     const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns,
-    interpretert::input_var_functionst& first_assignments)
+    interpretert::input_var_functionst& first_assignments,
+    interpretert::dynamic_typest& dynamic_types)
 {
   interpretert interpreter(st, gf);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
@@ -33,6 +34,7 @@ inputst generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
     if (is_meta(it->first)) it=res.erase(it);
     else ++it;
   first_assignments=interpreter.get_input_first_assignments();
+  dynamic_types=interpreter.get_dynamic_types();
   return res;
 }
 
@@ -62,6 +64,7 @@ typedef std::function<
   std::string(const symbol_tablet &, const irep_idt &, const inputst &,
               const interpretert::list_input_varst&,
               const interpretert::input_var_functionst&,
+              const interpretert::dynamic_typest&,
               bool)> test_case_generatort;
 
 void generate_test_case(const optionst &options, const symbol_tablet &st,
@@ -71,11 +74,13 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
 
   interpretert::list_input_varst opaque_function_returns;
   interpretert::input_var_functionst input_defn_functions;
+  interpretert::dynamic_typest dynamic_types;
   
-  const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,input_defn_functions));
+  const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
+                                       input_defn_functions,dynamic_types));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   const std::string source(generate(st,entry_func_id,inputs,opaque_function_returns,
-                                    input_defn_functions,
+                                    input_defn_functions,dynamic_types,
                                     options.get_bool_option("java-disable-mocks")));
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())

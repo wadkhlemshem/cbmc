@@ -32,6 +32,7 @@ public:
 
   typedef std::map<const irep_idt,exprt> input_varst;
   typedef std::map<const irep_idt,irep_idt> input_var_functionst;
+  typedef std::map<const irep_idt,const typet> dynamic_typest;
 
   // An assertion that identifier 'id' carries value 'value' in some particular context.
   struct function_assignmentt {
@@ -57,7 +58,6 @@ protected:
   const symbol_tablet &symbol_table;
   const namespacet ns;
   const goto_functionst &goto_functions;
-  typedef std::map<const irep_idt,const typet> dynamic_typest;
   mutable dynamic_typest dynamic_types;
 
   mutable memory_mapt memory_map;
@@ -183,5 +183,5 @@ protected:
   input_varst& load_counter_example_inputs(const std::string &filename);
   input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, const bool filtered=false);
   const input_var_functionst& get_input_first_assignments() { return input_first_assignments; }
-  
+  const dynamic_typest& get_dynamic_types() { return dynamic_types; }
 };

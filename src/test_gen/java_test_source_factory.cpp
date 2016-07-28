@@ -34,8 +34,17 @@ public:
 
   std::set<std::string> mock_classes;
   mock_environment_builder mockenv_builder;
+  const symbol_tablet& symbol_table;
+  const interpretert::dynamic_typest& dynamic_types;
 
-  reference_factoryt(int indent) : mockenv_builder(indent) {}
+  reference_factoryt(int indent, const symbol_tablet& st,
+                     const interpretert::dynamic_typest& dt) :
+    mockenv_builder(indent),
+    symbol_table(st),
+    dynamic_types(dt) {}
+
+  const typet& get_symbol_type(const irep_idt&);
+  const symbolt& get_or_fake_symbol(const irep_idt&, symbolt& fake);
   void add_value(std::string &result, const symbol_tablet &st,
 		 const exprt &value, const std::string var_name="");
   void add_value(std::string &result, const symbol_tablet &st,
@@ -231,6 +240,15 @@ public:
   }
 };
 
+const typet& reference_factoryt::get_symbol_type(const irep_idt& id)
+{
+  auto findit=dynamic_types.find(id);
+  if(findit==dynamic_types.end())
+    return symbol_table.lookup(id).type;
+  else
+    return findit->second;
+}
+  
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
@@ -324,18 +342,19 @@ void reference_factoryt::add_declare_and_assign(std::string &result, const symbo
   {
     exprt use_value;
     typet use_type;
-    if(symbol.type.id()==ID_pointer)
+    if(symbol.type.id()==ID_pointer && value.id()!=ID_struct)
     {
       // Declare using the type appropriate to the RHS; use the value as-is.
-      const symbolt& rhs_sym=st.lookup(find_underlying_symbol_expr(value).get_identifier());
-      use_type=array_symbol_to_array(to_symbol_type(rhs_sym.type));
+      const typet& rhs_type=get_symbol_type(find_underlying_symbol_expr(value).get_identifier());
+      use_type=array_symbol_to_array(to_symbol_type(rhs_type));
       use_value=value;
     }
     else {
       // value should be of the form { @base=..., length=..., data=some_array }
       assert(value.operands().size()==3);
-      const symbolt& dataop_sym=st.lookup(find_underlying_symbol_expr(value.op2()).get_identifier());
-      use_type=dataop_sym.type;
+      const typet& dataop_type=get_symbol_type(
+        find_underlying_symbol_expr(value.op2()).get_identifier());
+      use_type=dataop_type;
       use_value=value.op2();
     }
     symbolt fake_symbol=symbol;
@@ -357,16 +376,13 @@ bool is_input_struct(const symbolt &symbol, const symbol_tablet& st,
     input_defn_functions.at(symbol.name)=="_start";
 }
 
-const symbolt& get_or_fake_symbol(const symbol_tablet& st, const irep_idt& id,
-  const typet& expected_type, symbolt& fake_symbol)
+const symbolt& reference_factoryt::get_or_fake_symbol(const irep_idt& id, symbolt& fake_symbol)
 {
-
-  auto findit=st.symbols.find(id);
-
-  if(findit==st.symbols.end())
+  auto findit=symbol_table.symbols.find(id);
+  if(findit==symbol_table.symbols.end())
   {
     // Dynamic object names are not in the symtab at the moment.
-    fake_symbol.type=expected_type;
+    fake_symbol.type=get_symbol_type(id);
     fake_symbol.name=id;
     std::string namestr=as_string(id);
     size_t findidx=namestr.find("::");
@@ -381,7 +397,6 @@ const symbolt& get_or_fake_symbol(const symbol_tablet& st, const irep_idt& id,
   }
   else
     return findit->second;
-
 }
 
 void reference_factoryt::gather_referenced_symbols(const exprt& rhs, inputst& in,
@@ -396,8 +411,7 @@ void reference_factoryt::gather_referenced_symbols(const exprt& rhs, inputst& in
       if(underlying!=symbol_exprt())
       {
         symbolt fake_symbol;
-        const symbolt &op_symbol=get_or_fake_symbol(st,underlying.get_identifier(),
-                                                    underlying.type(),fake_symbol);
+        const symbolt &op_symbol=get_or_fake_symbol(underlying.get_identifier(),fake_symbol);
         gather_referenced_symbols(op_symbol,in,st,needed);
       }
     }
@@ -424,7 +438,7 @@ void reference_factoryt::add_global_state_assignments(std::string &result, const
   for (inputst::const_reverse_iterator it=in.rbegin(); it != in.rend(); ++it)
   {
     symbolt fake_symbol;
-    const symbolt &symbol=get_or_fake_symbol(st,it->first,it->second.type(),fake_symbol);
+    const symbolt &symbol=get_or_fake_symbol(it->first,fake_symbol);
     if (!symbol.is_static_lifetime) continue;
     if (!is_input_struct(symbol,st,input_defn_functions)) continue;
     gather_referenced_symbols(symbol,in,st,needed);
@@ -639,11 +653,11 @@ void reference_factoryt::add_mock_call(
     for(auto defined : defined_symbols)
     {
       symbolt fake_symbol;
-      const symbolt& use_symbol=get_or_fake_symbol(st, defined.id,
-				  defined.value.type(), fake_symbol);
+      const symbolt& use_symbol=get_or_fake_symbol(defined.id,fake_symbol);
 
       // Initial empty statement makes the loop below easier.
       std::string this_object_init=";";
+      std::cout << "Defined symbol "<< defined.id << " type " << use_symbol.type.id() << " valtype "<< defined.value.type() << "\n";
       add_declare_and_assign(this_object_init,st,use_symbol,defined.value,true);
 
       string_to_statements(this_object_init, init_statements);
@@ -732,7 +746,8 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
     inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
-    const interpretert::input_var_functionst& input_defn_functions, bool disable_mocks)
+    const interpretert::input_var_functionst& input_defn_functions,
+    const interpretert::dynamic_typest& dynamic_types, bool disable_mocks)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -740,7 +755,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
 
   // Do this first since the mock object creation can require annotations on the test class.
   // Parameter is the indent level on generated code.
-  reference_factoryt ref_factory(4);
+  reference_factoryt ref_factory(4,st,dynamic_types);
 
   if(!disable_mocks)
     ref_factory.add_mock_objects(st, opaque_function_returns);
