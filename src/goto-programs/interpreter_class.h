@@ -86,6 +86,7 @@ protected:
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
   void get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured);
+  void get_value_tree(const exprt& capture_expr, const input_varst& inputs, function_assignmentst& captured);
   char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id);
 
 

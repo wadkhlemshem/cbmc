@@ -1632,50 +1632,32 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
   }
 
   exprt defined=findit->second;
-
-  bool isnull=false;
-  
   if(defined.type().id()==ID_pointer)
   {
-  
-    auto struct_ty=defined.type().subtype();
-    assert(struct_ty.id()==ID_struct);
-
-    std::vector<mp_integer> pointer_as_bytes;
-    evaluate(defined, pointer_as_bytes);
-    isnull=true;
-    for(auto b : pointer_as_bytes)
-      if(!b.is_zero())
-	isnull=false;
-
-    if(!isnull)
-    {
-	std::vector<mp_integer> struct_as_bytes;
-	evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
-	defined=get_value(struct_ty, struct_as_bytes);
-    }
-
+    get_value_tree(defined,inputs,captured);
   }
-
-  if(!isnull)
+  else
   {
-
     assert(defined.type().id()==ID_struct ||
            defined.type().id()==ID_array);
     // Assumption: all object trees captured this way refer directly to particular
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
     forall_operands(opit, defined) {
       if(opit->type().id()==ID_pointer)
-      {
-        const auto& referee=to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
-        get_value_tree(referee, inputs, captured);
-      }
+        get_value_tree(*opit,inputs,captured);
     }
-
   }
 
   captured.push_back({capture_symbol, defined});
 
+}
+
+void interpretert::get_value_tree(const exprt& capture_expr,
+  const input_varst& inputs, function_assignmentst& captured)
+{
+  assert(capture_expr.type().id()==ID_pointer);
+  const auto& referee=to_symbol_expr(to_address_of_expr(capture_expr).object()).get_identifier();
+  get_value_tree(referee,inputs,captured);
 }
 
 /*******************************************************************
