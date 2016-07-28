@@ -74,8 +74,14 @@ public:
   
 };
 
-// Override symbol resolution to trim off SSA prefixes (?) when generating testcases.
-class expr2java_remove_suffix:public expr2javat {
+bool is_array_tag(const irep_idt& tag)
+{
+  return has_prefix(id2string(tag),"java::array[");
+}
+  
+// Various overrides to produce valid Java rather than expr2java's Java-with-explicit-pointers.
+// Also a good opportunity to convert array structures appropriately.
+class expr2cleanjava:public expr2javat {
 
   virtual std::string convert(const exprt &src, unsigned &precedence)
   {
@@ -89,16 +95,71 @@ class expr2java_remove_suffix:public expr2javat {
     }
   }
 
+  virtual std::string convert_rec(const typet& src, const c_qualifierst& qualifiers,
+                                  const std::string& declarator)
+  {
+    // Write java::array[x] as x[]
+    if(src.id()==ID_symbol && is_array_tag(to_symbol_type(src).get_identifier()))
+    {
+      const auto& st=to_symbol_type(src);
+      const irept &element_irep=st.find(ID_C_element_type);
+      assert(element_irep!=irept());
+      const typet &element_type=static_cast<const typet&>(element_irep);
+      return convert_rec(array_typet(element_type,nil_exprt()),qualifiers,declarator);
+    }
+    else if(src.id()==ID_struct && is_array_tag(to_struct_type(src).get_tag()))
+    {
+      // Can't get the true element type from here. Settle for Object[] if a reference type.
+      const auto& st=to_struct_type(src);
+      array_typet datamem(st.get_component("data").type().subtype(),nil_exprt());
+      return convert_rec(datamem,qualifiers,declarator);
+    }
+    // Write struct literals in brief form:
+    else if(src.id()==ID_struct)
+    {
+      std::string tag=id2string(to_struct_type(src).get_tag());
+      // Structs appear to be inconsistently tagged with and without namespace just now.
+      if(!has_prefix(tag,"java::"))
+        tag = "java::"+tag;
+      return convert_rec(symbol_typet(tag),qualifiers,declarator);
+    }
+    // Write void*[] as Object[]
+    else if(src.id()==ID_array && src.subtype()==pointer_typet(empty_typet()))
+      return convert_rec(pointer_typet(symbol_typet("java::java.lang.Object"))
+                         ,qualifiers,declarator+"[]");
+    return expr2javat::convert_rec(src,qualifiers,declarator);
+  }
+
 public:
  
   virtual std::string convert(const exprt &src)
-    {
-      return expr2javat::convert(src);
-    }
+  {
+    return expr2javat::convert(src);
+  }
 
-  expr2java_remove_suffix(const namespacet& ns) : expr2javat(ns) {}
+  virtual std::string convert(const typet &src)
+  {
+    return expr2javat::convert(src);
+  }  
+
+  expr2cleanjava(const namespacet& ns) : expr2javat(ns) {}
   
 };
+
+void expr2java(std::string &result, const exprt &value, const namespacet &ns)
+{
+  expr2cleanjava e2j(ns);
+  e2j.get_shorthands(value);
+  std::string item=e2j.convert(value);
+  result+=item;
+}
+
+void type2java(std::string &result, const typet &type, const namespacet &ns)
+{
+  expr2cleanjava e2j(ns);
+  std::string item=e2j.convert(type);
+  result+=item;
+}
   
 std::string &indent(std::string &result, const size_t num_indent=1u)
 {
@@ -124,33 +185,17 @@ void add_symbol(std::string &result, const symbolt &s)
   result+=id2string(n);
 }
 
-void add_qualified_class_name(std::string &result, const namespacet &ns,
-    const typet &type)
-{
-  if (ID_symbol == type.id())
-  {
-    const std::string &id=id2string(to_symbol_type(type).get_identifier());
-    assert(id.size() >= JAVA_NS_PREFIX_LEN);
-    result+=id.substr(JAVA_NS_PREFIX_LEN);
-  } else result+=id2string(to_struct_type(type).get_tag());
-}
-
 void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive=0)
 {
-  if(out_is_primitive)
-    *out_is_primitive = false;
-  
   const namespacet ns(st);
-  const typet &subt=type.subtype();
   const irep_idt &type_id=type.id();
-  if (ID_symbol == type_id || ID_struct == type_id) add_qualified_class_name(
-      result, ns, type);
-  else if (ID_pointer == type_id) add_qualified_class_name(result, ns, subt);
-  else {
-    if(out_is_primitive)
-      *out_is_primitive = true;
-    result+=type2java(type, ns);
-  }
+  if(out_is_primitive)
+    *out_is_primitive=
+      type_id!=ID_symbol &&
+      type_id!=ID_struct &&
+      type_id!=ID_pointer &&
+      type_id!=ID_array;
+  type2java(result,type,ns);
 }
 
 void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
@@ -158,14 +203,6 @@ void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
 {
   add_decl_from_type(result, st, symbol.type);
   result+=' ';
-}
-
-void expr2java(std::string &result, const exprt &value, const namespacet &ns)
-{
-  expr2java_remove_suffix e2j(ns);
-  e2j.get_shorthands(value);
-  std::string item=e2j.convert(value);
-  result+=item;
 }
 
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st, const exprt &value,
@@ -256,7 +293,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   const typet &type=value.type();
 
   std::string qualified_class_name;
-  add_qualified_class_name(qualified_class_name, ns, type);  
+  type2java(qualified_class_name,type,ns);
 
   std::string instance_expr;
   bool should_mock = mock_classes.count(qualified_class_name);
@@ -320,10 +357,7 @@ void reference_factoryt::add_declare_and_assign_noarray(std::string &result, con
 
 typet array_symbol_to_array(const symbol_typet& st)
 {
-  const irept &element_irep=st.find(ID_C_element_type);
-  assert(element_irep!=irept());
-  const typet &element_type=static_cast<const typet&>(element_irep);
-  return array_typet(element_type,nil_exprt());
+
 }
   
 void reference_factoryt::add_declare_and_assign(std::string &result, const symbol_tablet &st,
@@ -332,34 +366,13 @@ void reference_factoryt::add_declare_and_assign(std::string &result, const symbo
 {
   // Special case arrays, which are internally represented as
   // structs with length and data members but need to turn back into simple arrays.
-
-  typet tofollow=symbol.type;
-  if(tofollow.id()==ID_pointer)
-    tofollow=tofollow.subtype();
-  const typet& underlying=namespacet(st).follow(tofollow);
-  if(underlying.id()==ID_struct &&
-     has_prefix(id2string(to_struct_type(underlying).get_tag()),"java::array["))
+  namespacet ns(st);
+  const typet& underlying=ns.follow(symbol.type);
+  if(underlying.id()==ID_struct && is_array_tag(to_struct_type(underlying).get_tag()))
   {
-    exprt use_value;
-    typet use_type;
-    if(symbol.type.id()==ID_pointer && value.id()!=ID_struct)
-    {
-      // Declare using the type appropriate to the RHS; use the value as-is.
-      const typet& rhs_type=get_symbol_type(find_underlying_symbol_expr(value).get_identifier());
-      use_type=array_symbol_to_array(to_symbol_type(rhs_type));
-      use_value=value;
-    }
-    else {
-      // value should be of the form { @base=..., length=..., data=some_array }
-      assert(value.operands().size()==3);
-      const typet& dataop_type=get_symbol_type(
-        find_underlying_symbol_expr(value.op2()).get_identifier());
-      use_type=dataop_type;
-      use_value=value.op2();
-    }
-    symbolt fake_symbol=symbol;
-    fake_symbol.type=use_type;
-    add_declare_and_assign_noarray(result,st,fake_symbol,use_value,should_declare);
+    // No need to worry about the type; our custom expr2java will write that correctly;
+    // just use the data-member (op2) value directly instead of writing .length=x, .data=y.
+    add_declare_and_assign_noarray(result,st,symbol,value.op2(),should_declare);
   }
   else
   {
@@ -657,7 +670,6 @@ void reference_factoryt::add_mock_call(
 
       // Initial empty statement makes the loop below easier.
       std::string this_object_init=";";
-      std::cout << "Defined symbol "<< defined.id << " type " << use_symbol.type.id() << " valtype "<< defined.value.type() << "\n";
       add_declare_and_assign(this_object_init,st,use_symbol,defined.value,true);
 
       string_to_statements(this_object_init, init_statements);
