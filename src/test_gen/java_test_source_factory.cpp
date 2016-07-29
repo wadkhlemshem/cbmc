@@ -90,6 +90,9 @@ class expr2cleanjava:public expr2javat {
       std::string result=expr2javat::convert(src,precedence);
       return result.substr(0,result.rfind('!'));
     }
+    // Address-of should be implicit
+    else if(src.id()==ID_address_of)
+      return convert(src.op0(),precedence);
     else {
       return expr2javat::convert(src,precedence);
     }
@@ -127,6 +130,10 @@ class expr2cleanjava:public expr2javat {
     else if(src.id()==ID_array && src.subtype()==pointer_typet(empty_typet()))
       return convert_rec(pointer_typet(symbol_typet("java::java.lang.Object"))
                          ,qualifiers,declarator+"[]");
+    // Write references without an explicit * operator
+    else if(src.id()==ID_pointer)
+      return convert_rec(src.subtype(),qualifiers,declarator);
+    
     return expr2javat::convert_rec(src,qualifiers,declarator);
   }
 

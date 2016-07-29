@@ -254,8 +254,6 @@ std::string expr2javat::convert_rec(
     return q+"boolean"+d;
   else if(src==java_byte_type())
     return q+"byte"+d;
-  else if(src.id()==ID_pointer && src.subtype()!=empty_typet()) // Allow "void*"
-    return convert_rec(src.subtype(),qualifiers,declarator);
   else if(src.id()==ID_array) // Java array types can't give a size except in new-array context.
     return convert_rec(src.subtype(),qualifiers,declarator+"[]");
   else if(src.id()==ID_symbol)
@@ -457,8 +455,6 @@ std::string expr2javat::convert(
     return convert_function(src, "VIRTUAL_FUNCTION", precedence=16);
   else if(src.id()==ID_java_string_literal)
     return '"'+id2string(src.get(ID_value))+'"'; // Todo: add escaping as needed
-  else if(src.id()==ID_address_of)
-    return convert(src.op0(),precedence);
   else if(src.id()==ID_constant && (type.id()==ID_bool || type.id()==ID_c_bool))
   {
     // Override expr2ct as Java booleans must be lowercase:
