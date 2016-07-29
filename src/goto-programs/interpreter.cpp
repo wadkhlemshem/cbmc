@@ -1676,8 +1676,11 @@ void interpretert::get_value_tree(const exprt& capture_expr,
   const input_varst& inputs, function_assignmentst& captured)
 {
   assert(capture_expr.type().id()==ID_pointer);
-  const auto& referee=to_symbol_expr(to_address_of_expr(capture_expr).object()).get_identifier();
-  get_value_tree(referee,inputs,captured);
+  if(capture_expr!=null_pointer_exprt(to_pointer_type(capture_expr.type())))
+  {
+    const auto& referee=to_symbol_expr(to_address_of_expr(capture_expr).object()).get_identifier();
+    get_value_tree(referee,inputs,captured);
+  }
 }
 
 static bool is_assign_step(const goto_trace_stept& step)
