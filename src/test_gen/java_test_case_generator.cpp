@@ -57,7 +57,7 @@ const irep_idt &get_entry_function_id(const goto_functionst &gf)
 typedef std::function<
   std::string(const symbol_tablet &, const irep_idt &, const inputst &, const interpretert::list_input_varst&, bool)> test_case_generatort;
 
-void generate_test_case(const optionst &options, const symbol_tablet &st,
+const std::string generate_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     const test_case_generatort generate, std::string property="")
 {
@@ -67,12 +67,14 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
   const inputst inputs(generate_inputs(st, gf, trace, opaque_function_returns));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns, options.get_bool_option("java-disable-mocks")));
+  const std::string empty("");
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
   {
-    if(!property.empty())
-      std::cout << "Test case: " << property << std::endl;
-    std::cout << source;
+    // if(!property.empty())
+    //   std::cout << "Test case: " << property << std::endl;
+    //std::cout << source << std::endl;
+    return source;
   }
   else
   {
@@ -82,6 +84,7 @@ void generate_test_case(const optionst &options, const symbol_tablet &st,
     out_file_name+=std::to_string(h);
 
     std::ofstream(out_file_name.c_str()) << source;
+    return empty;
   }
 }
 
@@ -89,7 +92,7 @@ int generate_test_case(optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, bmct &bmc, const test_case_generatort generate)
 {
   options.set_option("stop-on-fail", true);
-  switch (bmc(gf))
+  switch (bmc.run(gf))
   {
   case safety_checkert::SAFE:
     return TEST_CASE_FAIL;
@@ -106,12 +109,12 @@ int generate_test_case(optionst &options, const symbol_tablet &st,
 }
 }
 
-void generate_java_test_case(const optionst &options, const symbol_tablet &st,
+const std::string generate_java_test_case(const optionst &options, const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     const std::string &name)
 {
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-  generate_test_case(options, st, gf, trace, source_gen, name);
+  return generate_test_case(options, st, gf, trace, source_gen, name);
 }
 
 int generate_java_test_case(optionst &o, const symbol_tablet &st,

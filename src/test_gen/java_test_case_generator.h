@@ -18,6 +18,8 @@
 
 //static int out_file_no = 0;
 
+#include <util/options.h>
+
 /**
  * @brief
  *
@@ -47,11 +49,10 @@ int generate_java_test_case(
  * @param trace
  * @param name
  */
-void generate_java_test_case(
+const std::string generate_java_test_case(
     const optionst &options,
     const symbol_tablet &st,
     const goto_functionst &gf,
     const class goto_tracet &trace,
     const std::string &property);
-
 #endif /* JAVA_TEST_CASE_GENERATOR_H_ */
