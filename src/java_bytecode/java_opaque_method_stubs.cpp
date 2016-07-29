@@ -6,6 +6,7 @@
 #include <util/pointer_offset_size.h>
 #include <util/i2string.h>
 #include <util/namespace.h>
+#include <util/prefix.h>
 
 #include "java_object_factory.h"
 
@@ -106,6 +107,7 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
   const auto &expected_base=ns.follow(expected_type.subtype());
   if(expected_base.id()!=ID_struct)
     return;
+  bool is_array=has_prefix(id2string(to_struct_type(expected_base).get_tag()), "java::array[");
 
   const exprt cast_ptr=make_clean_pointer_cast(ptr,expected_type,ns);
   code_labelt set_null_label;
@@ -151,18 +153,27 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
       new_instructions.move_to_operands(null_check);
     }
 
-    // Note this allocates memory but doesn't call any constructor.
-    side_effect_exprt malloc_expr(ID_malloc);
-    malloc_expr.copy_to_operands(size_of_expr(expected_base,ns));
-    malloc_expr.type()=expected_type;
-    auto alloc_inst=code_assignt(cast_ptr,malloc_expr);
-    new_instructions.move_to_operands(alloc_inst);
+    if(is_array)
+    {
+      gen_nondet_init(cast_ptr,new_instructions,symbol_table,false,true);
+    }
+    else { 
+      // Note this allocates memory but doesn't call any constructor.
+      side_effect_exprt malloc_expr(ID_malloc);
+      malloc_expr.copy_to_operands(size_of_expr(expected_base,ns));
+      malloc_expr.type()=expected_type;
+      auto alloc_inst=code_assignt(cast_ptr,malloc_expr);
+      new_instructions.move_to_operands(alloc_inst);
+    }
   }
 
-  exprt derefd=clean_deref(cast_ptr);
-
-  gen_nondet_init(derefd,new_instructions,symbol_table,false,
-                  /*create_dynamic=*/true);
+  if(!is_array)
+  {
+    exprt derefd=clean_deref(cast_ptr);
+  
+    gen_nondet_init(derefd,new_instructions,symbol_table,false,
+                    /*create_dynamic=*/true);
+  }
 
   if((!is_constructor) && !assume_non_null)
   {

@@ -465,7 +465,7 @@ void goto_convertt::do_cpp_new(
 {
   if(lhs.is_nil())
     throw "do_cpp_new without lhs is yet to be implemented";
-  
+
   // build size expression
   exprt object_size=
     static_cast<const exprt &>(rhs.find(ID_sizeof));
@@ -712,22 +712,49 @@ void goto_convertt::do_java_new_array(
   goto_programt::targett t_s=dest.add_instruction(ASSIGN);
   t_s->code=code_assignt(length, rhs.op0());
   t_s->source_location=location;
-  
+
   // we also need to allocate space for the data
   member_exprt data(deref, struct_type.components()[2].get_name(), struct_type.components()[2].type());
-  side_effect_exprt data_cpp_new_expr(ID_cpp_new_array, data.type());
+
+  // Allocate a (struct realtype**) instead of a (void**) if possible,
+  // to avoid confusing the trace due to dynamic type aliasing.
+  const irept& given_element_type=rhs.find(ID_C_element_type);
+  typet allocate_data_type;
+  exprt cast_data_member;
+  if(given_element_type!=get_nil_irep())
+    allocate_data_type=pointer_typet(static_cast<const typet &>(given_element_type));
+  else
+    allocate_data_type=data.type();
+
+  side_effect_exprt data_cpp_new_expr(ID_cpp_new_array, allocate_data_type);
   data_cpp_new_expr.set(ID_size, rhs.op0());
+
+  // Grim hack here! Must directly assign the new array to a temporary
+  // because goto-symex will notice `x=side_effect_exprt` but not
+  // `x=typecast_exprt(side_effect_exprt(...))`
+  symbol_exprt new_array_data_symbol=
+    new_tmp_symbol(data_cpp_new_expr.type(), "new_array_data", dest, location).symbol_expr();
+  goto_programt::targett t_p2=dest.add_instruction(ASSIGN);
+  t_p2->code=code_assignt(new_array_data_symbol,data_cpp_new_expr);
+  t_p2->source_location=location;
+
   goto_programt::targett t_p=dest.add_instruction(ASSIGN);
-  t_p->code=code_assignt(data, data_cpp_new_expr);
+  exprt cast_cpp_new=new_array_data_symbol;
+  if(cast_cpp_new.type()!=data.type())
+    cast_cpp_new=typecast_exprt(cast_cpp_new,data.type());
+  t_p->code=code_assignt(data,cast_cpp_new);
   t_p->source_location=location;
   
   // zero-initialize the data
-  exprt zero_element=gen_zero(data.type().subtype());
-  codet array_set(ID_array_set);
-  array_set.copy_to_operands(data, zero_element);
-  goto_programt::targett t_d=dest.add_instruction(OTHER);
-  t_d->code=array_set;
-  t_d->source_location=location;
+  if(!rhs.get_bool("skip_initialise"))
+  {
+    exprt zero_element=gen_zero(data.type().subtype());
+    codet array_set(ID_array_set);
+    array_set.copy_to_operands(data, zero_element);
+    goto_programt::targett t_d=dest.add_instruction(OTHER);
+    t_d->code=array_set;
+    t_d->source_location=location;
+  }
 
   if(rhs.operands().size()>=2)
   {

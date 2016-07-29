@@ -17,6 +17,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/prefix.h>
 
 #include "java_object_factory.h"
+#include "java_types.h"
 
 /*******************************************************************\
 
@@ -99,8 +100,7 @@ exprt allocate_object(
 void gen_nondet_array_init(const exprt &expr,
   code_blockt &init_code,
   symbol_tablet &symbol_table,
-  std::set<irep_idt> &recursion_set,
-  bool create_dynamic_objects);
+  std::set<irep_idt> &recursion_set);
 
 // Override type says to ignore the LHS' real type, and init it with the given
 // type regardless. Used at the moment for reference arrays, which are implemented
@@ -142,15 +142,22 @@ void gen_nondet_init(
       }
     }
 
-    exprt allocated=allocate_object(expr,subtype,init_code,symbol_table,create_dynamic_objects);
+    if(subtype.id()==ID_struct &&
+       has_prefix(id2string(to_struct_type(subtype).get_tag()), "java::array["))
     {
-      exprt init_expr;
-      if(allocated.id()==ID_address_of)
-        init_expr=allocated.op0();
-      else
-        init_expr=dereference_exprt(allocated,allocated.type().subtype());
-      gen_nondet_init(init_expr,init_code,symbol_table,
-                      recursion_set,false,"",false,create_dynamic_objects);
+      gen_nondet_array_init(expr,init_code,symbol_table,recursion_set);
+    }
+    else {
+      exprt allocated=allocate_object(expr,subtype,init_code,symbol_table,create_dynamic_objects);
+      {
+        exprt init_expr;
+        if(allocated.id()==ID_address_of)
+          init_expr=allocated.op0();
+        else
+          init_expr=dereference_exprt(allocated,allocated.type().subtype());
+        gen_nondet_init(init_expr,init_code,symbol_table,
+                        recursion_set,false,"",false,create_dynamic_objects);
+      }
     }
   }
   else if(type.id()==ID_struct)
@@ -167,8 +174,6 @@ void gen_nondet_init(
     
     recursion_set.insert(struct_tag);
     assert(!recursion_set.empty());
-
-    bool is_array=has_prefix(id2string(struct_type.get_tag()),"java::array[");
 
     for(const auto & component : components)
     {
@@ -197,15 +202,10 @@ void gen_nondet_init(
           _is_sub?(class_identifier.empty()?struct_tag:class_identifier):"";
 #endif
 
-        if((!_is_sub) && is_array)
-          break;
-
         gen_nondet_init(me, init_code, symbol_table, recursion_set,
                         _is_sub, class_identifier, false, create_dynamic_objects);
       }
     }
-    if(is_array)
-      gen_nondet_array_init(expr,init_code,symbol_table,recursion_set,create_dynamic_objects);
     recursion_set.erase(struct_tag);
   }
   else
@@ -229,85 +229,62 @@ static constant_exprt as_number(const mp_integer value, const typet &type)
 void gen_nondet_array_init(const exprt &expr,
   code_blockt &init_code,
   symbol_tablet &symbol_table,
-  std::set<irep_idt> &recursion_set,
-  bool create_dynamic_objects)
+  std::set<irep_idt> &recursion_set)
 {
   namespacet ns(symbol_table);
-  const typet &type=ns.follow(expr.type());
-  
+  assert(expr.type().id()==ID_pointer);
+  const typet &type=ns.follow(expr.type().subtype());
   const struct_typet &struct_type=to_struct_type(type);
-  const auto &components=struct_type.components();
-
-  assert(expr.type().id() == ID_symbol);
-  const typet &element_type=static_cast<const typet &>(expr.type().find(ID_C_element_type));
-    
-  const struct_union_typet::componentt *clength=0, *cdata=0;
-  for(const auto & component : components)
-  {
-    if(component.get_name()=="length")
-      clength=&component;
-    else if(component.get_name()=="data")
-      cdata=&component;
-  }
-
-  assert(clength && cdata);
-
+  assert(expr.type().subtype().id() == ID_symbol);
+  const typet &element_type=static_cast<const typet &>(expr.type().subtype().find(ID_C_element_type));
+  
   const int max_nondet_array_length=5;
-  auto max_length_expr=as_number(5,clength->type());
+  auto max_length_expr=as_number(5,java_int_type());
 
   typet allocate_type;
-
   symbolt &length_sym=new_tmp_symbol(symbol_table,"nondet_array_length");
-  length_sym.type=clength->type();
+  length_sym.type=java_int_type();
   const auto &length_sym_expr=length_sym.symbol_expr();
-  if(create_dynamic_objects)
-  {
-    // Initialise array with some undetermined length:
-    gen_nondet_init(length_sym_expr,init_code,symbol_table,recursion_set,
-                    false,irep_idt(),false,false);
 
-    // Insert assumptions to bound its length:
-    binary_relation_exprt assume1(length_sym_expr,ID_ge,
-                                  as_number(0, clength->type()));
-    binary_relation_exprt assume2(length_sym_expr,ID_le,
-                                  max_length_expr);
-    code_assumet assume_inst1(assume1);
-    code_assumet assume_inst2(assume2);
-    init_code.move_to_operands(assume_inst1);
-    init_code.move_to_operands(assume_inst2);
+  // Initialise array with some undetermined length:
+  gen_nondet_init(length_sym_expr,init_code,symbol_table,recursion_set,
+                  false,irep_idt(),false,false);
 
-    allocate_type=array_typet(element_type,length_sym_expr);
-  }
-  else
-  {
-    // Initialise array to max length.
-    code_assignt assign_length(length_sym_expr,max_length_expr);
-    init_code.move_to_operands(assign_length);
-    allocate_type=array_typet(element_type,max_length_expr);    
-  }
+  // Insert assumptions to bound its length:
+  binary_relation_exprt assume1(length_sym_expr,ID_ge,
+                                as_number(0, java_int_type()));
+  binary_relation_exprt assume2(length_sym_expr,ID_le,
+                                max_length_expr);
+  code_assumet assume_inst1(assume1);
+  code_assumet assume_inst2(assume2);
+  init_code.move_to_operands(assume_inst1);
+  init_code.move_to_operands(assume_inst2);
 
-  exprt length_field_expr=member_exprt(expr,"length",clength->type());
-  code_assignt assign_length(length_field_expr,length_sym_expr);
-  init_code.move_to_operands(assign_length);
- 
-  // Allocate space for array elements:
+  side_effect_exprt java_new_array(ID_java_new_array,expr.type());
+  java_new_array.copy_to_operands(length_sym_expr);
+  java_new_array.set("skip_initialise",true);
+  java_new_array.set(ID_C_element_type,element_type);
+  init_code.copy_to_operands(code_assignt(expr,java_new_array));
 
-  symbolt &init_array_symbol=new_tmp_symbol(symbol_table,"nondet_array_data");
-  init_array_symbol.type=pointer_typet(element_type);
-  exprt init_array_symbol_expr=init_array_symbol.symbol_expr();
+  exprt init_array_expr=member_exprt(dereference_exprt(expr, expr.type().subtype()),
+                                     "data", struct_type.components()[2].type());
+  if(init_array_expr.type()!=pointer_typet(element_type))
+    init_array_expr=typecast_exprt(init_array_expr,pointer_typet(element_type));
 
-  exprt allocated=allocate_object(init_array_symbol_expr,allocate_type,init_code,
-                                  symbol_table,create_dynamic_objects);
-  assert(allocated!=exprt());
+  // Interpose a new symbol, as the goto-symex stage can't handle array indexing via a cast.
+  symbolt &array_init_symbol=new_tmp_symbol(symbol_table,"array_data_init");
+  array_init_symbol.type=init_array_expr.type();
+  const auto &array_init_symexpr=array_init_symbol.symbol_expr();
+  init_code.copy_to_operands(code_assignt(array_init_symexpr,init_array_expr));
 
   // Emit init loop for(array_init_iter=0; array_init_iter!=array.length; ++array_init_iter)
   //                  init(array[array_init_iter]);
   symbolt &counter=new_tmp_symbol(symbol_table,"array_init_iter");
-  counter.type=length_field_expr.type();
+  counter.type=length_sym_expr.type();
   exprt counter_expr=counter.symbol_expr();
 
   init_code.copy_to_operands(
-    code_assignt(counter_expr,as_number(0, clength->type())));
+    code_assignt(counter_expr,as_number(0, java_int_type())));
 
   std::string head_name=as_string(counter.base_name)+"_header";
   code_labelt init_head_label(head_name,code_skipt());
@@ -326,30 +303,20 @@ void gen_nondet_array_init(const exprt &expr,
   init_code.move_to_operands(done_test);
 
   exprt arraycellref=dereference_exprt(
-    plus_exprt(init_array_symbol_expr,counter_expr,init_array_symbol_expr.type()),
-    init_array_symbol_expr.type().subtype());
+    plus_exprt(array_init_symexpr,counter_expr,array_init_symexpr.type()),
+    array_init_symexpr.type().subtype());
 
-  bool must_dynamically_allocate=create_dynamic_objects ||
-    element_type.id()==ID_pointer;
   gen_nondet_init(arraycellref,init_code,symbol_table,recursion_set,
-                  false,irep_idt(),false,must_dynamically_allocate,
+                  false,irep_idt(),false,true,
                   /*override_type=*/&element_type);
 
   code_assignt incr(counter_expr,
                     plus_exprt(counter_expr,
-                               as_number(1, clength->type())));
+                               as_number(1, java_int_type())));
 
-  exprt data_field_expr=member_exprt(expr,"data",cdata->type());
-  if(ns.follow(init_array_symbol_expr.type().subtype()) !=
-     ns.follow(data_field_expr.type().subtype()))
-  {
-    init_array_symbol_expr=typecast_exprt(init_array_symbol_expr,data_field_expr.type());
-  }
-     
   init_code.move_to_operands(incr);
   init_code.move_to_operands(goto_head);
   init_code.move_to_operands(init_done_label);
-  init_code.copy_to_operands(code_assignt(data_field_expr,init_array_symbol_expr));
   
 }
 }
