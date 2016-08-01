@@ -368,10 +368,13 @@ bool bmc_covert::operator()()
                  << eom;
 
         if (bmc.options.get_bool_option("gen-java-test-case"))
-          status() << generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
-                                    goto_functions, goal.goto_trace,
-                                    id2string(goal.source_location.get_property_id()))
-                   << eom;
+          {
+            java_test_case_generatort gen(get_message_handler());
+            status() << gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
+                                                    goto_functions, goal.goto_trace,
+                                                    id2string(goal.source_location.get_property_id()))
+                     << eom;
+          }
       }
 
       status() << '\n';
@@ -463,9 +466,12 @@ bool bmc_covert::operator()()
             }
           }
           if (bmc.options.get_bool_option("gen-java-test-case"))
-            result["junit_test_case"]=json_stringt(generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
+            {
+              java_test_case_generatort gen(get_message_handler());
+              result["junit_test_case"]=json_stringt(gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
                                           goto_functions, goal.goto_trace,
                                           id2string(goal.source_location.get_property_id())));
+            }
         }
       }
       json_result["totalGoals"]=json_numbert(i2string(goal_map.size()));

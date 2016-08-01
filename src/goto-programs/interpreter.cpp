@@ -41,17 +41,17 @@ Function: interpretert::operator()
 void interpretert::operator()()
 {
   show=true;
-  message.status() << "Initialize:";
+  status() << "Initialize:" << eom;
   initialise(true);
   try
   {
     std::cout << "Type h for help" << std::endl;
     while(!done) command();
-    message.status() << "Program End." << messaget::endl << messaget::eom;
+    status() << "Program End." << messaget::endl << eom;
   }
   catch (const char *e)
   {
-    message.error() << e << messaget::endl << messaget::eom;
+    error() << e << messaget::endl << eom;
   }
   while(!done) command();
 }
@@ -119,19 +119,19 @@ Function: interpretert::show_state
 void interpretert::show_state()
 {
   if(!show) return;
-  message.status() << messaget::endl;
-  message.status() << "----------------------------------------------------"
-            << messaget::endl;
+  status() << messaget::endl << eom;
+  status() << "----------------------------------------------------"
+           << messaget::endl << eom;
 
   if(PC==function->second.body.instructions.end())
   {
-      message.status() << "End of function `"
+      status() << "End of function `"
               << function->first << "'" << messaget::endl;
   }
   else
-    function->second.body.output_instruction(ns, function->first, message.status(), PC);
+    function->second.body.output_instruction(ns, function->first, status(), PC);
 
-  message.status() << messaget::eom;
+  status() << eom;
 }
 
 /*******************************************************************\
@@ -210,7 +210,7 @@ void interpretert::command()
         return;
       }
     }
-    json_steps.output(message.result());
+    json_steps.output(result());
   }
   else if(ch=='m')
   {
@@ -231,7 +231,7 @@ void interpretert::command()
         return;
       }
     }
-    steps.output(ns, message.result());
+    steps.output(ns, result());
   }
   else if(ch=='r')
   {
@@ -470,8 +470,8 @@ void interpretert::execute_other()
     unsigned size=get_size(PC->code.op0().type());
     while(rhs.size()<size) rhs.insert(rhs.end(),tmp.begin(),tmp.end());
     if(size!=rhs.size())
-      message.error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
-                      << size << ")" << messaget::endl << messaget::eom;
+      error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
+                      << size << ")" << messaget::endl << eom;
     else
     {
       assign(address, rhs);
@@ -682,8 +682,8 @@ exprt interpretert::get_value(const typet &type, std::vector<mp_integer> &rhs,un
       index_exprt index_expr(symbol_expr,from_integer(cell.offset, integer_typet()));
       return index_expr;
     }
-    message.error() << "pointer out of memory " << rhs[offset] << ">"
-                    << memory.size() << messaget::endl << messaget::eom;
+    error() << "pointer out of memory " << rhs[offset] << ">"
+                    << memory.size() << messaget::endl << eom;
     throw "pointer out of memory";
   }
   return from_integer(rhs[offset], type);
@@ -715,8 +715,8 @@ void interpretert::execute_assign()
     unsigned size=get_size(code_assign.lhs().type());
 
     if(size!=rhs.size())
-      message.error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
-                      << size << ")" << messaget::endl << messaget::eom;
+      error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
+                      << size << ")" << messaget::endl << eom;
     else
     {
       goto_trace_stept &trace_step=steps.get_last_step();
@@ -770,8 +770,8 @@ void interpretert::assign(
     {
       memory_cellt &cell=memory[integer2unsigned(address)];
       if(show) {
-        message.status() << "** assigning " << cell.identifier << "["
-            << cell.offset << "]:=" << rhs[i] << messaget::endl << messaget::eom;
+        status() << "** assigning " << cell.identifier << "["
+            << cell.offset << "]:=" << rhs[i] << messaget::endl << eom;
       }
       cell.value=rhs[i];
       if(cell.initialised==0) cell.initialised=1;
@@ -816,7 +816,7 @@ void interpretert::execute_assert()
     if ((targetAssert==PC) || stop_on_assertion)
       throw "assertion failed";
     else if (show)
-      message.error() << "assertion failed" << messaget::endl << messaget::eom;
+      error() << "assertion failed" << messaget::endl << eom;
   }
 }
 
@@ -940,7 +940,7 @@ void interpretert::execute_function_call()
       return;
     }
     if (show)
-      message.error() << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
+      error() << "no body for "+id2string(identifier) << eom;//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
   }
 }
 
@@ -1154,13 +1154,13 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  message.result() << "non bodied varibles " << funcs << messaget::endl;
+  result() << "non bodied varibles " << funcs << messaget::endl << eom;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
 /*for(it=function_input_vars.begin(); it!=function_input_vars.end(); it++)
   {
     message.result() << it->first << "=" << it->second.front() << messaget::endl;
   }*/
-  message.result() << messaget::eom;
+  result() << eom;
 }
 
 char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &id)
@@ -1345,10 +1345,10 @@ void interpretert::print_inputs() {
     list_inputs();
   for(input_varst::iterator it=input_vars.begin();it!=input_vars.end();
       it++) {
-    message.result() << it->first << "=" << from_expr(ns, it->first, it->second)
-        << "[" << it->second.type().id() << "]" << messaget::endl;
+    result() << it->first << "=" << from_expr(ns, it->first, it->second)
+             << "[" << it->second.type().id() << "]" << messaget::endl << eom;
   }
-  message.result() << messaget::eom;
+  result() << eom;
 }
 
 /*******************************************************************
@@ -1365,10 +1365,10 @@ void interpretert::print_memory(bool input_flags) {
   for(unsigned i=0;i<memory.size();i++)
   {
     memory_cellt &cell=memory[i];
-    message.debug() << cell.identifier << "[" << cell.offset << "]"
-              << "=" << cell.value;
-    if(input_flags) message.debug() << "(" << (int)cell.initialised << ")";
-    message.debug() << messaget::endl;
+    debug() << cell.identifier << "[" << cell.offset << "]"
+            << "=" << cell.value << eom;
+    if(input_flags) debug() << "(" << (int)cell.initialised << ")" << eom;
+    debug() << messaget::endl << eom;
   }
 }
 
@@ -1447,7 +1447,7 @@ void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_i
     }
     catch (const char *e)
     {
-      message.error() << e << messaget::endl << messaget::eom;
+      error() << e << messaget::endl << eom;
     }
     list_inputs();
     list_inputs(inputs);
@@ -1667,8 +1667,8 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
   auto findit=inputs.find(capture_symbol);
   if(findit==inputs.end())
   {
-    message.error() << "Stub method returned without defining " << capture_symbol
-          << ". Did the program trace end inside a stub?\n";
+    error() << "Stub method returned without defining " << capture_symbol
+            << ". Did the program trace end inside a stub?\n" << eom;
     return;
   }
 
@@ -1840,8 +1840,9 @@ Function: interpreter
 
 void interpreter(
   const symbol_tablet &symbol_table,
-  const goto_functionst &goto_functions)
+  const goto_functionst &goto_functions,
+  message_handlert &message_handler)
 {
-  interpretert interpreter(symbol_table,goto_functions);
+  interpretert interpreter(symbol_table,goto_functions,message_handler);
   interpreter();
 }

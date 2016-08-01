@@ -15,17 +15,17 @@
 
 \*******************************************************************/
 
-class interpretert
+class interpretert:public messaget
 {
 public:
   interpretert(
     const symbol_tablet &_symbol_table,
-    const goto_functionst &_goto_functions):
-    symbol_table(_symbol_table),
-    ns(_symbol_table),
-    goto_functions(_goto_functions),
-	message_handler(std::cout),
-    message(message_handler)
+    const goto_functionst &_goto_functions,
+    message_handlert &_message_handler):
+  messaget(_message_handler),
+  symbol_table(_symbol_table),
+  ns(_symbol_table),
+  goto_functions(_goto_functions)
   {
   }
   
@@ -60,8 +60,6 @@ protected:
   const namespacet ns;
   const goto_functionst &goto_functions;
   typedef std::map<const irep_idt,const typet> dynamic_typest;
-  stream_message_handlert message_handler;
-  mutable messaget message;
   mutable dynamic_typest dynamic_types;
   mutable memory_mapt memory_map;
   
@@ -144,7 +142,7 @@ protected:
   int stack_depth;
   int thread_id;
 
-  bool evaluate_boolean(const exprt &expr) const
+  bool evaluate_boolean(const exprt &expr)
   {
     std::vector<mp_integer> v;
     evaluate(expr, v);
@@ -163,9 +161,9 @@ protected:
   
   void evaluate(
     const exprt &expr,
-    std::vector<mp_integer> &dest) const;
+    std::vector<mp_integer> &dest);
   
-  mp_integer evaluate_address(const exprt &expr) const;
+  mp_integer evaluate_address(const exprt &expr);
   
   void initialise(bool init);
   void show_state();
