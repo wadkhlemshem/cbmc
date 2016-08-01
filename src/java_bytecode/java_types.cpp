@@ -390,7 +390,8 @@ typet java_type_from_string(const std::string &src)
       if(src.size()<=1) return nil_typet();
       char subtype_letter=src[1];
       const typet subtype=java_type_from_string(src.substr(1, std::string::npos));
-      if(subtype_letter=='L') // [L denotes a reference array of some sort.
+      if(subtype_letter=='L' || // [L denotes a reference array of some sort.
+         subtype_letter=='[')   // Array-of-arrays
 	subtype_letter='A';
       typet tmp=java_array_type((char)tolower(subtype_letter));
       tmp.subtype().set(ID_C_element_type, subtype);
