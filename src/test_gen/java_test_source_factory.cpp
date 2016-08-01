@@ -326,6 +326,16 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   add_symbol(symbol_name, symbol);
   result+=symbol_name;
   result+='=';
+  namespacet ns(st);
+  const typet& realtype=ns.follow(symbol.type);
+  std::string printed_type;
+  add_decl_from_type(printed_type, st, symbol.type);
+  if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
+  {
+    result+='(';
+    result += printed_type;
+    result+=')';
+  }
   add_value(result, st, value, symbol_name);
   result+=";\n";
 }
@@ -362,11 +372,6 @@ void reference_factoryt::add_declare_and_assign_noarray(std::string &result, con
   add_assign_value(result, st, symbol, value);
 }
 
-typet array_symbol_to_array(const symbol_typet& st)
-{
-
-}
-  
 void reference_factoryt::add_declare_and_assign(std::string &result, const symbol_tablet &st,
                                                 const symbolt& symbol, const exprt& value,
                                                 bool should_declare)
