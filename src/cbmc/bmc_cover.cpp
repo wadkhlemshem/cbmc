@@ -366,6 +366,15 @@ bool bmc_covert::operator()()
 
         status() << ": " << (goal.satisfied?"SATISFIED":"FAILED")
                  << eom;
+
+        if (bmc.options.get_bool_option("gen-java-test-case"))
+          {
+            java_test_case_generatort gen(get_message_handler());
+            status() << gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
+                                                    goto_functions, goal.goto_trace,
+                                                    id2string(goal.source_location.get_property_id()))
+                     << eom;
+          }
       }
 
       status() << '\n';
@@ -455,8 +464,14 @@ bool bmc_covert::operator()()
                 json_test.push_back(json_input);
               }
             }
-            
           }
+          if (bmc.options.get_bool_option("gen-java-test-case"))
+            {
+              java_test_case_generatort gen(get_message_handler());
+              result["junit_test_case"]=json_stringt(gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
+                                          goto_functions, goal.goto_trace,
+                                          id2string(goal.source_location.get_property_id())));
+            }
         }
       }
       json_result["totalGoals"]=json_numbert(i2string(goal_map.size()));
@@ -491,18 +506,6 @@ bool bmc_covert::operator()()
       std::cout << t << '\n';
   }
 
-  const optionst &opt=bmc.options;
-  const symbol_tablet &st=bmc.ns.get_symbol_table();
-  const goto_functionst &gf=goto_functions;
-  if (opt.get_bool_option("gen-java-test-case"))
-    for (const goal_mapt::value_type &goal_entry : goal_map)
-    {
-      const goalt &goal=goal_entry.second;
-      if (goal.satisfied)
-        generate_java_test_case(opt, st, gf, goal.goto_trace, 
-				id2string(goal.source_location.get_property_id()));
-    }
-  
   return false;
 }
 

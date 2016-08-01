@@ -41,14 +41,17 @@ Function: interpretert::operator()
 void interpretert::operator()()
 {
   show=true;
-  std::cout << "Initialize:";
+  status() << "Initialize:" << eom;
   initialise(true);
-  try {
+  try
+  {
     std::cout << "Type h for help" << std::endl;
     while(!done) command();
-    std::cout << "Program End." << std::endl;
-  } catch (const char *e) {
-    std::cout << e << std::endl;
+    status() << "Program End." << messaget::endl << eom;
+  }
+  catch (const char *e)
+  {
+    error() << e << messaget::endl << eom;
   }
   while(!done) command();
 }
@@ -116,17 +119,19 @@ Function: interpretert::show_state
 void interpretert::show_state()
 {
   if(!show) return;
-  std::cout << std::endl;
-  std::cout << "----------------------------------------------------"
-            << std::endl;
+  status() << messaget::endl << eom;
+  status() << "----------------------------------------------------"
+           << messaget::endl << eom;
 
   if(PC==function->second.body.instructions.end())
   {
-    std::cout << "End of function `"
-              << function->first << "'" << std::endl;
+      status() << "End of function `"
+              << function->first << "'" << messaget::endl;
   }
   else
-    function->second.body.output_instruction(ns, function->first, std::cout, PC);
+    function->second.body.output_instruction(ns, function->first, status(), PC);
+
+  status() << eom;
 }
 
 /*******************************************************************\
@@ -205,7 +210,7 @@ void interpretert::command()
         return;
       }
     }
-    json_steps.output(std::cout);
+    json_steps.output(result());
   }
   else if(ch=='m')
   {
@@ -226,7 +231,7 @@ void interpretert::command()
         return;
       }
     }
-    steps.output(ns, std::cout);
+    steps.output(ns, result());
   }
   else if(ch=='r')
   {
@@ -379,6 +384,30 @@ void interpretert::step()
   case DEAD:
     trace_step.type=goto_trace_stept::DEAD;
     break;//throw "DEAD not yet implemented";
+  case THROW:
+    trace_step.type=goto_trace_stept::GOTO;
+    while(!done && (PC->type!=CATCH))
+    {
+      if(PC==function->second.body.instructions.end())
+      {
+        if(call_stack.empty())
+          done=true;
+        else
+        {
+          PC=call_stack.top().return_PC;
+          function=call_stack.top().return_function;
+          call_stack.pop();
+        }
+      }
+      else
+      {
+        next_PC=PC;
+        next_PC++;
+      }
+    }
+    break;
+  case CATCH:
+    break;
   default:
     throw "encountered instruction with undefined instruction type";
   }
@@ -434,7 +463,18 @@ void interpretert::execute_other()
   }
   else if(statement==ID_array_set)
   {
-    //TODO: need to fill the array with value
+    std::vector<mp_integer> tmp,rhs;
+    evaluate(PC->code.op1(), tmp);
+    mp_integer address=evaluate_address(PC->code.op0());
+    unsigned size=get_size(PC->code.op0().type());
+    while(rhs.size()<size) rhs.insert(rhs.end(),tmp.begin(),tmp.end());
+    if(size!=rhs.size())
+      error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
+                      << size << ")" << messaget::endl << eom;
+    else
+    {
+      assign(address, rhs);
+    }
   }
   else
     throw "unexpected OTHER statement: "+id2string(statement);
@@ -641,8 +681,8 @@ exprt interpretert::get_value(const typet &type, std::vector<mp_integer> &rhs,un
       index_exprt index_expr(symbol_expr,from_integer(cell.offset, integer_typet()));
       return index_expr;
     }
-    std::cout << "pointer out of memory " << rhs[offset] << ">"
-        << memory.size() << std::endl;
+    error() << "pointer out of memory " << rhs[offset] << ">"
+                    << memory.size() << messaget::endl << eom;
     throw "pointer out of memory";
   }
   return from_integer(rhs[offset], type);
@@ -674,9 +714,8 @@ void interpretert::execute_assign()
     unsigned size=get_size(code_assign.lhs().type());
 
     if(size!=rhs.size())
-      std::cout << "!! failed to obtain rhs ("
-                << rhs.size() << " vs. "
-                << size << ")" << std::endl;
+      error() << "!! failed to obtain rhs (" << rhs.size() << " vs. "
+                      << size << ")" << messaget::endl << eom;
     else
     {
       goto_trace_stept &trace_step=steps.get_last_step();
@@ -700,7 +739,7 @@ void interpretert::execute_assign()
     {
       unsigned address=integer2unsigned(evaluate_address(code_assign.lhs()));
       unsigned size=get_size(code_assign.lhs().type());
-      for (int i=0;i<size;i++,address++)
+      for (unsigned i=0;i<size;i++,address++)
       {
         memory[address].initialised=-1;
       }
@@ -730,8 +769,8 @@ void interpretert::assign(
     {
       memory_cellt &cell=memory[integer2unsigned(address)];
       if(show) {
-        std::cout << "** assigning " << cell.identifier << "["
-            << cell.offset << "]:=" << rhs[i] << std::endl;
+        status() << "** assigning " << cell.identifier << "["
+            << cell.offset << "]:=" << rhs[i] << messaget::endl << eom;
       }
       cell.value=rhs[i];
       if(cell.initialised==0) cell.initialised=1;
@@ -776,7 +815,7 @@ void interpretert::execute_assert()
     if ((targetAssert==PC) || stop_on_assertion)
       throw "assertion failed";
     else if (show)
-      std::cout << "assertion failed" << std::endl;
+      error() << "assertion failed" << messaget::endl << eom;
   }
 }
 
@@ -900,7 +939,7 @@ void interpretert::execute_function_call()
       return;
     }
     if (show)
-      std::cout << "no body for "+id2string(identifier);//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
+      error() << "no body for "+id2string(identifier) << eom;//TODO:used to be throw. need some better approach? need to check state of buffers (and by refs)
   }
 }
 
@@ -980,7 +1019,7 @@ void interpretert::build_memory_map(const symbolt &symbol)
   }
 }
 
-typet interpretert::concretise_type(const typet &type) const
+typet interpretert::concretise_type(const typet &type)
 {
   if(type.id()==ID_array)
   {
@@ -1011,7 +1050,7 @@ Function: interpretert::build_memory_map
  Purpose:
 
 \*******************************************************************/
-mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type) const
+mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type)
 {
   if (dynamic_types.find(id)!=dynamic_types.end()) return memory_map[id];
   typet alloc_type=concretise_type(type);
@@ -1135,12 +1174,13 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  std::cout << "non bodied varibles " << funcs << std::endl;
+  result() << "non bodied varibles " << funcs << messaget::endl << eom;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
 /*for(it=function_input_vars.begin(); it!=function_input_vars.end(); it++)
   {
-    std::cout << it->first << "=" << it->second.front() << std::endl;
+    message.result() << it->first << "=" << it->second.front() << messaget::endl;
   }*/
+  result() << eom;
 }
 
 char interpretert::is_opaque_function(const goto_programt::instructionst::const_iterator &it, irep_idt &id)
@@ -1182,9 +1222,9 @@ void interpretert::list_non_bodied(const goto_programt::instructionst &instructi
       unsigned return_address=integer2unsigned(evaluate_address(code_assign.lhs()));
       if((return_address > 0) && (return_address<memory.size()))
       {
-	function_assignmentt retval={irep_idt(), get_value(code_assign.lhs().type(),return_address)};
-	function_assignmentst defnlist={ retval };
-	// Add an actual calling context instead of a blank irep if our caller needs it.
+    function_assignmentt retval={irep_idt(), get_value(code_assign.lhs().type(),return_address)};
+    function_assignmentst defnlist={ retval };
+    // Add an actual calling context instead of a blank irep if our caller needs it.
         function_input_vars[f_id].push_back({irep_idt(), defnlist});
       }
     }
@@ -1325,9 +1365,10 @@ void interpretert::print_inputs() {
     list_inputs();
   for(input_varst::iterator it=input_vars.begin();it!=input_vars.end();
       it++) {
-    std::cout << it->first << "=" << from_expr(ns, it->first, it->second)
-        << "[" << it->second.type().id() << "]" << std::endl;
+    result() << it->first << "=" << from_expr(ns, it->first, it->second)
+             << "[" << it->second.type().id() << "]" << messaget::endl << eom;
   }
+  result() << eom;
 }
 
 /*******************************************************************
@@ -1344,10 +1385,10 @@ void interpretert::print_memory(bool input_flags) {
   for(unsigned i=0;i<memory.size();i++)
   {
     memory_cellt &cell=memory[i];
-    std::cout << cell.identifier << "[" << cell.offset << "]"
-              << "=" << cell.value;
-    if(input_flags) std::cout << "(" << (int)cell.initialised << ")";
-    std::cout << std::endl;
+    debug() << cell.identifier << "[" << cell.offset << "]"
+            << "=" << cell.value << eom;
+    if(input_flags) debug() << "(" << (int)cell.initialised << ")" << eom;
+    debug() << messaget::endl << eom;
   }
 }
 
@@ -1371,7 +1412,7 @@ goto_programt::const_targett interpretert::getPC(const unsigned location,bool &o
     if(f_it->second.body_available())
     {
       for(goto_programt::instructionst::const_iterator it =
-    	  f_it->second.body.instructions.begin();
+          f_it->second.body.instructions.begin();
           it!=f_it->second.body.instructions.end(); it++)
       {
         if (it->location_number==location)
@@ -1426,7 +1467,7 @@ void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_i
     }
     catch (const char *e)
     {
-      std::cout << e << std::endl;
+      error() << e << messaget::endl << eom;
     }
     list_inputs();
     list_inputs(inputs);
@@ -1451,7 +1492,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
   if(parse_json(filename,message_client.get_message_handler(),counter_example))
   {
-	bool ok;
+    bool ok;
     show=false;
     stop_on_assertion=false;
 
@@ -1484,7 +1525,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       if (val_object.kind==jsont::J_NULL) continue;
       if(pc->is_other() || pc->is_assign() || pc->is_function_call())
       {
-    	const code_assignt &code_assign=to_code_assign(PC->code);//TODO: the other and function_call may be different
+        const code_assignt &code_assign=to_code_assign(PC->code);//TODO: the other and function_call may be different
         mp_integer address;
         const exprt &lhs=code_assign.lhs();
         exprt value=to_expr(ns, id, val_object.value);
@@ -1510,7 +1551,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
         irep_idt f_id;
         if(is_opaque_function(pc,f_id)!=0)
         {
-	  // TODO: save/restore the full data structure?
+      // TODO: save/restore the full data structure?
           function_inputs[f_id].push_front({ irep_idt(), { { irep_idt(), inputs[id] } } });
         }
       }
@@ -1558,11 +1599,11 @@ static symbol_exprt get_assigned_symbol(const exprt& expr)
     if(op.type().id() == ID_pointer)
     {
       if(!unique_pointer)
-	unique_pointer = &op;
+    unique_pointer = &op;
       else
       {
-	unique_pointer = 0;
-	break;
+    unique_pointer = 0;
+    break;
       }
     }
   }
@@ -1646,8 +1687,8 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
   auto findit=inputs.find(capture_symbol);
   if(findit==inputs.end())
   {
-    std::cout << "Stub method returned without defining " << capture_symbol
-	      << ". Did the program trace end inside a stub?\n";
+    error() << "Stub method returned without defining " << capture_symbol
+            << ". Did the program trace end inside a stub?\n" << eom;
     return;
   }
 
@@ -1747,11 +1788,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     {
       irep_idt called, capture_symbol;
       switch(calls_opaque_stub(to_code_function_call(it->pc->code),
-			       symbol_table,called,capture_symbol))
+                   symbol_table,called,capture_symbol))
       {
-	
+    
       case NOT_OPAQUE_STUB:
-	break;
+    break;
       case SIMPLE_OPAQUE_STUB:
 	{
 	  // Simple opaque function that returns a primitive. The assignment after
@@ -1831,8 +1872,9 @@ Function: interpreter
 
 void interpreter(
   const symbol_tablet &symbol_table,
-  const goto_functionst &goto_functions)
+  const goto_functionst &goto_functions,
+  message_handlert &message_handler)
 {
-  interpretert interpreter(symbol_table,goto_functions);
+  interpretert interpreter(symbol_table,goto_functions,message_handler);
   interpreter();
 }

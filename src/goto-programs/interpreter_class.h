@@ -5,6 +5,7 @@
 #include "goto_functions.h"
 #include "goto_trace.h"
 #include "json_goto_trace.h"
+#include "util/message.h"
 
 /*******************************************************************\
 
@@ -14,15 +15,17 @@
 
 \*******************************************************************/
 
-class interpretert
+class interpretert:public messaget
 {
 public:
   interpretert(
     const symbol_tablet &_symbol_table,
-    const goto_functionst &_goto_functions):
-    symbol_table(_symbol_table),
-    ns(_symbol_table),
-    goto_functions(_goto_functions)
+    const goto_functionst &_goto_functions,
+    message_handlert &_message_handler):
+  messaget(_message_handler),
+  symbol_table(_symbol_table),
+  ns(_symbol_table),
+  goto_functions(_goto_functions)
   {
   }
   
@@ -59,7 +62,6 @@ protected:
   const namespacet ns;
   const goto_functionst &goto_functions;
   mutable dynamic_typest dynamic_types;
-
   mutable memory_mapt memory_map;
   
   class memory_cellt
@@ -78,8 +80,8 @@ protected:
   
   void build_memory_map();
   void build_memory_map(const symbolt &symbol);
-  mp_integer build_memory_map(const irep_idt &id,const typet &type) const;
-  typet concretise_type(const typet &type) const;
+  mp_integer build_memory_map(const irep_idt &id,const typet &type);
+  typet concretise_type(const typet &type);
   unsigned get_size(const typet &type) const;
 
   irep_idt get_component_id(const irep_idt &object,unsigned offset);
@@ -143,8 +145,8 @@ protected:
   mutable int num_dynamic_objects;
   int stack_depth;
   int thread_id;
-  
-  bool evaluate_boolean(const exprt &expr) const
+
+  bool evaluate_boolean(const exprt &expr)
   {
     std::vector<mp_integer> v;
     evaluate(expr, v);
@@ -163,9 +165,9 @@ protected:
   
   void evaluate(
     const exprt &expr,
-    std::vector<mp_integer> &dest) const;
+    std::vector<mp_integer> &dest);
   
-  mp_integer evaluate_address(const exprt &expr) const;
+  mp_integer evaluate_address(const exprt &expr);
   
   void initialise(bool init);
   void show_state();

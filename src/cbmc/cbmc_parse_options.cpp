@@ -578,7 +578,11 @@ int cbmc_parse_optionst::doit()
     return 7;
 
   if(options.get_bool_option("gen-java-test-case"))
-    return generate_java_test_case(options, symbol_table, goto_functions, bmc);
+    {
+      bmc.set_ui(get_ui());
+      java_test_case_generatort gen(ui_message_handler);
+      return gen.generate_java_test_case(options, symbol_table, goto_functions, bmc);
+    }
 
   // do actual BMC
   return do_bmc(bmc, goto_functions);
