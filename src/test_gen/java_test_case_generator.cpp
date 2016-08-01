@@ -110,7 +110,7 @@ int  java_test_case_generatort::generate_test_case(optionst &options, const symb
     default:
       {
         const goto_tracet &trace=bmc.safety_checkert::error_trace;
-        generate_test_case(options, st, gf, trace, generate);
+        status() << generate_test_case(options, st, gf, trace, generate) << eom;
         return TEST_CASE_SUCCESS;
       }
     }
