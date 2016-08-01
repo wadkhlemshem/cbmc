@@ -12,7 +12,6 @@ Author: Daniel Kroening, kroening@cs.cmu.edu
 #include <util/std_expr.h>
 #include <util/symbol.h>
 #include <util/hash_cont.h>
-#include <util/prefix.h>
 
 #include <ansi-c/expr2c_class.h>
 
@@ -254,16 +253,6 @@ std::string expr2javat::convert_rec(
     return q+"boolean"+d;
   else if(src==java_byte_type())
     return q+"byte"+d;
-  else if(src.id()==ID_array) // Java array types can't give a size except in new-array context.
-    return convert_rec(src.subtype(),qualifiers,declarator+"[]");
-  else if(src.id()==ID_symbol)
-  {
-    std::string ctype=expr2ct::convert_rec(src,qualifiers,declarator);
-    if(has_prefix(ctype,"struct "))
-      return ctype.substr(7);
-    else
-      return ctype;
-  }
   else if(src.id()==ID_code)
   {
     const code_typet &code_type=to_code_type(src);

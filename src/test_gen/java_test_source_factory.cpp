@@ -110,6 +110,15 @@ class expr2cleanjava:public expr2javat {
       const typet &element_type=static_cast<const typet&>(element_irep);
       return convert_rec(array_typet(element_type,nil_exprt()),qualifiers,declarator);
     }
+    // Write 'struct A' as 'A'
+    else if(src.id()==ID_symbol)
+    {
+      std::string ctype=expr2ct::convert_rec(src,qualifiers,declarator);
+      if(has_prefix(ctype,"struct "))
+        return ctype.substr(7);
+      else
+        return ctype;
+    }
     else if(src.id()==ID_struct && is_array_tag(to_struct_type(src).get_tag()))
     {
       // Can't get the true element type from here. Settle for Object[] if a reference type.
@@ -130,6 +139,9 @@ class expr2cleanjava:public expr2javat {
     else if(src.id()==ID_array && src.subtype()==pointer_typet(empty_typet()))
       return convert_rec(pointer_typet(symbol_typet("java::java.lang.Object"))
                          ,qualifiers,declarator+"[]");
+    // Never write Java types with an explicit array size
+    else if(src.id()==ID_array) 
+      return convert_rec(src.subtype(),qualifiers,declarator+"[]");
     // Write references without an explicit * operator
     else if(src.id()==ID_pointer)
       return convert_rec(src.subtype(),qualifiers,declarator);
