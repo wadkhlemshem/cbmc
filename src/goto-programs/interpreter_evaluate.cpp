@@ -759,7 +759,7 @@ void interpretert::evaluate(
           expr.id()==ID_symbol ||
           expr.id()==ID_member)
   {
-    mp_integer a=evaluate_address(expr);
+    mp_integer a=evaluate_address(expr, /*fail quietly=*/true);
     if(a.is_zero() && expr.id()==ID_index)
     {
       // Try reading from a constant array:
@@ -783,6 +783,7 @@ void interpretert::evaluate(
       read(a, dest);
       return;
     }
+    evaluate_address(expr); // Evaluate again to print error message.
   }
   else if(expr.id()==ID_typecast)
   {
@@ -867,7 +868,7 @@ Function: interpretert::evaluate_address
 
 \*******************************************************************/
 
-mp_integer interpretert::evaluate_address(const exprt &expr)
+mp_integer interpretert::evaluate_address(const exprt &expr, bool fail_quietly)
 {
   if(expr.id()==ID_symbol)
   {
@@ -916,7 +917,7 @@ mp_integer interpretert::evaluate_address(const exprt &expr)
 
     if(tmp1.size()==1)
     {
-      auto base=evaluate_address(expr.op0());
+      auto base=evaluate_address(expr.op0(),fail_quietly);
       if(!base.is_zero())
         return base+tmp1.front();
     }
@@ -948,7 +949,7 @@ mp_integer interpretert::evaluate_address(const exprt &expr)
       offset+=get_size(it->type());
     }    
 
-    auto base=evaluate_address(expr.op0());
+    auto base=evaluate_address(expr.op0(),fail_quietly);
     if(!base.is_zero())
       return base+offset;
   }
@@ -974,14 +975,17 @@ mp_integer interpretert::evaluate_address(const exprt &expr)
          && dest.size()!=0) {
         mp_integer walked_over_addresses=std::distance(extract_from.begin(),extract_from_iter);
         walked_over_addresses-=dest.size(); // Give address of first relevant cell.
-        return evaluate_address(expr.op0())+walked_over_addresses;
+        return evaluate_address(expr.op0(),fail_quietly)+walked_over_addresses;
       }
     }    
   }
-  
-  error() << "!! failed to evaluate address: "
-          << from_expr(ns, function->first, expr)
-          << messaget::endl << eom;
+
+  if(!fail_quietly)
+  {
+    error() << "!! failed to evaluate address: "
+            << from_expr(ns, function->first, expr)
+            << messaget::endl << eom;
+  }
 
   return 0;
 }

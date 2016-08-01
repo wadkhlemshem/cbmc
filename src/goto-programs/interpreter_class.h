@@ -167,7 +167,7 @@ protected:
     const exprt &expr,
     std::vector<mp_integer> &dest);
   
-  mp_integer evaluate_address(const exprt &expr);
+  mp_integer evaluate_address(const exprt &expr, bool fail_quietly=false);
   
   void initialise(bool init);
   void show_state();

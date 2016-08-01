@@ -339,7 +339,6 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   result+=symbol_name;
   result+='=';
   namespacet ns(st);
-  const typet& realtype=ns.follow(symbol.type);
   std::string printed_type;
   add_decl_from_type(printed_type, st, symbol.type);
   if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
@@ -367,13 +366,6 @@ symbol_exprt try_find_underlying_symbol_expr(exprt e)
   if(bangoff!=std::string::npos)
     symid=symid.substr(0,bangoff);
   return symbol_exprt(symid,e.type());
-}
-
-symbol_exprt find_underlying_symbol_expr(exprt e)
-{
-  symbol_exprt ret=try_find_underlying_symbol_expr(e);
-  assert(ret!=symbol_exprt());
-  return ret;
 }
 
 void reference_factoryt::add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
@@ -407,7 +399,6 @@ void reference_factoryt::add_declare_and_assign(std::string &result, const symbo
 bool is_input_struct(const symbolt &symbol, const symbol_tablet& st,
     const interpretert::input_var_functionst input_defn_functions)
 {
-  const irep_idt defn_fn=input_defn_functions.at(symbol.name);
   const irep_idt& symtype=namespacet(st).follow(symbol.type).id();
   return (symtype==ID_struct||symtype==ID_pointer||symtype==ID_array) &&
     input_defn_functions.at(symbol.name)=="_start";
