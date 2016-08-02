@@ -326,10 +326,10 @@ void interpretert::evaluate(
       if (show) error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::endl << eom;
       std::stringstream buffer;
       num_dynamic_objects++;
-      buffer <<"symex_dynamic::dynamic_object" << num_dynamic_objects;
+      buffer <<"interpreter::malloc_object" << num_dynamic_objects;
       irep_idt id(buffer.str().c_str());
       mp_integer address=build_memory_map(id,expr.type().subtype());//TODO: check array of type
-     dest.push_back(address);
+      dest.push_back(address);
       return;
     }
     if (show) error() << "side effect not implemented " << side_effect.get_statement() << messaget::endl << eom;
