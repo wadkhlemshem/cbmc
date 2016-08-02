@@ -35,6 +35,10 @@ public class TestGenTest
 {
   public static void f(B param0, C param1, int param2)
   {
+
+    if(param0 == null || param1 == null || param1.c_field_1 == null)
+      return;
+
     int a_field_0=param0.a_field_0;
     int a_field_1=param0.a_field_1;
     int b_field_0=param0.b_field_0;
