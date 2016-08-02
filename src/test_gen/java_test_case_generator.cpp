@@ -25,7 +25,7 @@ bool java_test_case_generatort::is_meta(const irep_idt &id)
 inputst java_test_case_generatort::generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
                         const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns)
 {
-  interpretert interpreter(st, gf, get_message_handler());
+  interpretert interpreter(st, gf, this);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);

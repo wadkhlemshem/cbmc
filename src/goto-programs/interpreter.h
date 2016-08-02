@@ -16,6 +16,6 @@ Author: Daniel Kroening, kroening@kroening.com
 void interpreter(
   const symbol_tablet &symbol_table,
   const goto_functionst &goto_functions,
-  message_handlert &message_handler);
+  messaget *);
 
 #endif
