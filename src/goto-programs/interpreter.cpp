@@ -1174,7 +1174,7 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  message->result() << "non bodied varibles " << funcs << messaget::endl << messaget::eom;
+  message->result() << "non bodied varibles " << funcs << messaget::eom;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
 /*for(it=function_input_vars.begin(); it!=function_input_vars.end(); it++)
   {
@@ -1366,7 +1366,7 @@ void interpretert::print_inputs() {
   for(input_varst::iterator it=input_vars.begin();it!=input_vars.end();
       it++) {
     message->result() << it->first << "=" << from_expr(ns, it->first, it->second)
-             << "[" << it->second.type().id() << "]" << messaget::endl << messaget::eom;
+             << "[" << it->second.type().id() << "]" << messaget::eom;
   }
   message->result() << messaget::eom;
 }
@@ -1388,7 +1388,7 @@ void interpretert::print_memory(bool input_flags) {
     message->debug() << cell.identifier << "[" << cell.offset << "]"
             << "=" << cell.value << messaget::eom;
     if(input_flags) message->debug() << "(" << (int)cell.initialised << ")" << messaget::eom;
-    message->debug() << messaget::endl << messaget::eom;
+    message->debug() << messaget::eom;
   }
 }
 
@@ -1467,7 +1467,7 @@ void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_i
     }
     catch (const char *e)
     {
-      message->error() << e << messaget::endl << messaget::eom;
+      message->error() << e << messaget::eom;
     }
     list_inputs();
     list_inputs(inputs);

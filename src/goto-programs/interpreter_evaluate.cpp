@@ -269,7 +269,7 @@ void interpretert::evaluate(
       irep_idt value=to_constant_expr(expr).get_value();
       const char *str=value.c_str();
       unsigned length=strlen(str)+1;
-      if (show) message->warning() << "string decoding not fully implemented " << length << messaget::endl << messaget::eom;
+      if (show) message->warning() << "string decoding not fully implemented " << length << messaget::eom;
       mp_integer tmp=value.get_no();
       dest.push_back(tmp);
       return;
@@ -318,12 +318,12 @@ void interpretert::evaluate(
     side_effect_exprt side_effect=to_side_effect_expr(expr);
     if(side_effect.get_statement()==ID_nondet)
     {
-      if (show) message->error() << "nondet not implemented" << messaget::endl << messaget::eom;
+      if (show) message->error() << "nondet not implemented" << messaget::eom;
       return;
     }
     else if(side_effect.get_statement()==ID_malloc)
     {
-      if (show) message->error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::endl << messaget::eom;
+      if (show) message->error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::eom;
       std::stringstream buffer;
       num_dynamic_objects++;
       buffer <<"interpreter::malloc_object" << num_dynamic_objects;
@@ -332,7 +332,7 @@ void interpretert::evaluate(
       dest.push_back(address);
       return;
     }
-    if (show) message->error() << "side effect not implemented " << side_effect.get_statement() << messaget::endl << messaget::eom;
+    if (show) message->error() << "side effect not implemented " << side_effect.get_statement() << messaget::eom;
   }
   else if(expr.id()==ID_bitor)
   {
@@ -852,8 +852,8 @@ void interpretert::evaluate(
 //  if (!show) return;
   message->error() << "!! failed to evaluate expression: "
             << from_expr(ns, function->first, expr)
-          << messaget::endl << messaget::eom;
-  message->error() << expr.id() << "[" << expr.type().id() << "]" << messaget::endl << messaget::eom;
+            << messaget::eom;
+  message->error() << expr.id() << "[" << expr.type().id() << "]" << messaget::eom;
 }
 
 /*******************************************************************\
