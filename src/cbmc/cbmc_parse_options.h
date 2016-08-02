@@ -53,7 +53,7 @@ class optionst;
   "(string-abstraction)(no-arch)(arch):" \
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(graphml-cex):" \
-  "(gen-java-test-case)(java-assume-opaque-returns-non-null)(java-disable-mocks)"\
+  "(gen-java-test-case)(java-assume-inputs-non-null)(java-disable-mocks)"\
   "(floatbv)(all-claims)(all-properties)(decide)" // legacy, and will eventually disappear
 
 class cbmc_parse_optionst:

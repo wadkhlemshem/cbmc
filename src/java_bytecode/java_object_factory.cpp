@@ -7,6 +7,7 @@ Author: Daniel Kroening, kroening@kroening.com
 \*******************************************************************/
 
 #include <set>
+#include <sstream>
 
 #include <util/std_types.h>
 #include <util/std_code.h>
@@ -100,7 +101,8 @@ exprt allocate_object(
 void gen_nondet_array_init(const exprt &expr,
   code_blockt &init_code,
   symbol_tablet &symbol_table,
-  std::set<irep_idt> &recursion_set);
+  std::set<irep_idt> &recursion_set,
+  bool assume_members_non_null);
 
 // Override type says to ignore the LHS' real type, and init it with the given
 // type regardless. Used at the moment for reference arrays, which are implemented
@@ -114,6 +116,7 @@ void gen_nondet_init(
   irep_idt class_identifier,
   bool skip_classid,
   bool create_dynamic_objects,
+  bool assume_non_null,
   const typet *override_type = 0)
 {
   namespacet ns(symbol_table);
@@ -142,10 +145,43 @@ void gen_nondet_init(
       }
     }
 
+    code_labelt set_null_label;
+    code_labelt init_done_label;
+
+    static unsigned long synthetic_constructor_count=0;
+
+    if(!assume_non_null)
+    {
+      auto returns_null_sym=
+          new_tmp_symbol(symbol_table,"opaque_returns_null");
+      returns_null_sym.type=c_bool_typet(1);
+      auto returns_null=returns_null_sym.symbol_expr();
+      auto assign_returns_null=
+          code_assignt(returns_null,get_nondet_bool(returns_null_sym.type));
+      init_code.move_to_operands(assign_returns_null);
+
+      auto set_null_inst=code_assignt(
+          expr,null_pointer_exprt(pointer_type));
+
+      std::ostringstream fresh_label_oss;
+      fresh_label_oss<<"post_synthetic_malloc_"
+          <<(++synthetic_constructor_count);
+      std::string fresh_label=fresh_label_oss.str();
+      set_null_label=code_labelt(fresh_label,set_null_inst);
+
+      init_done_label=code_labelt(fresh_label + "_init_done",code_skipt());
+
+      code_ifthenelset null_check;
+      null_check.cond()=notequal_exprt(
+          returns_null,constant_exprt("0",returns_null_sym.type));
+      null_check.then_case()=code_gotot(fresh_label);
+      init_code.move_to_operands(null_check);
+    }
+    
     if(subtype.id()==ID_struct &&
        has_prefix(id2string(to_struct_type(subtype).get_tag()), "java::array["))
     {
-      gen_nondet_array_init(expr,init_code,symbol_table,recursion_set);
+      gen_nondet_array_init(expr,init_code,symbol_table,recursion_set,assume_non_null);
     }
     else {
       exprt allocated=allocate_object(expr,subtype,init_code,symbol_table,create_dynamic_objects);
@@ -156,9 +192,18 @@ void gen_nondet_init(
         else
           init_expr=dereference_exprt(allocated,allocated.type().subtype());
         gen_nondet_init(init_expr,init_code,symbol_table,
-                        recursion_set,false,"",false,create_dynamic_objects);
+                        recursion_set,false,"",false,create_dynamic_objects,
+                        assume_non_null);
       }
     }
+
+    if(!assume_non_null)
+    {
+      init_code.copy_to_operands(code_gotot(init_done_label.get_label()));
+      init_code.move_to_operands(set_null_label);
+      init_code.move_to_operands(init_done_label);
+    }
+    
   }
   else if(type.id()==ID_struct)
   {
@@ -203,7 +248,8 @@ void gen_nondet_init(
 #endif
 
         gen_nondet_init(me, init_code, symbol_table, recursion_set,
-                        _is_sub, class_identifier, false, create_dynamic_objects);
+                        _is_sub, class_identifier, false, create_dynamic_objects,
+                        assume_non_null);
       }
     }
     recursion_set.erase(struct_tag);
@@ -229,7 +275,8 @@ static constant_exprt as_number(const mp_integer value, const typet &type)
 void gen_nondet_array_init(const exprt &expr,
   code_blockt &init_code,
   symbol_tablet &symbol_table,
-  std::set<irep_idt> &recursion_set)
+  std::set<irep_idt> &recursion_set,
+  bool assume_non_null)
 {
   namespacet ns(symbol_table);
   assert(expr.type().id()==ID_pointer);
@@ -239,7 +286,7 @@ void gen_nondet_array_init(const exprt &expr,
   const typet &element_type=static_cast<const typet &>(expr.type().subtype().find(ID_C_element_type));
   
   const int max_nondet_array_length=5;
-  auto max_length_expr=as_number(5,java_int_type());
+  auto max_length_expr=as_number(max_nondet_array_length,java_int_type());
 
   typet allocate_type;
   symbolt &length_sym=new_tmp_symbol(symbol_table,"nondet_array_length");
@@ -248,7 +295,7 @@ void gen_nondet_array_init(const exprt &expr,
 
   // Initialise array with some undetermined length:
   gen_nondet_init(length_sym_expr,init_code,symbol_table,recursion_set,
-                  false,irep_idt(),false,false);
+                  false,irep_idt(),false,false,false);
 
   // Insert assumptions to bound its length:
   binary_relation_exprt assume1(length_sym_expr,ID_ge,
@@ -307,7 +354,7 @@ void gen_nondet_array_init(const exprt &expr,
     array_init_symexpr.type().subtype());
 
   gen_nondet_init(arraycellref,init_code,symbol_table,recursion_set,
-                  false,irep_idt(),false,true,
+                  false,irep_idt(),false,true,assume_non_null,
                   /*override_type=*/&element_type);
 
   code_assignt incr(counter_expr,
@@ -338,10 +385,13 @@ void gen_nondet_init(
   code_blockt &init_code,
   symbol_tablet &symbol_table,
   bool skip_classid,
-  bool create_dynamic_objects)
+  bool create_dynamic_objects,
+  bool assume_non_null)
 {
   std::set<irep_idt> recursion_set;
-  gen_nondet_init(expr, init_code, symbol_table, recursion_set, false, "", skip_classid, create_dynamic_objects);
+  gen_nondet_init(expr, init_code, symbol_table, recursion_set,
+                  false, "", skip_classid, create_dynamic_objects,
+                  assume_non_null);
 }
 
 /*******************************************************************\
@@ -412,16 +462,16 @@ exprt object_factory(
   if(type.id()==ID_pointer)
   {
     symbolt &aux_symbol=new_tmp_symbol(symbol_table);
-    aux_symbol.type=type.subtype();
+    aux_symbol.type=type;
     aux_symbol.is_static_lifetime=true;
 
     exprt object=aux_symbol.symbol_expr();
     
     const namespacet ns(symbol_table);
-    gen_nondet_init(object, init_code, symbol_table);
+    gen_nondet_init(object, init_code, symbol_table,
+                    false, false, !allow_null);
 
-    // todo: need to pass null, possibly
-    return address_of_exprt(object);
+    return object;
   }
   else if(type.id()==ID_c_bool)
   {
