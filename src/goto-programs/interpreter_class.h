@@ -15,18 +15,19 @@
 
 \*******************************************************************/
 
-class interpretert:public messaget
+class interpretert
 {
 public:
   interpretert(
     const symbol_tablet &_symbol_table,
     const goto_functionst &_goto_functions,
-    message_handlert &_message_handler):
-  messaget(_message_handler),
+    messaget *_message_handler):
   symbol_table(_symbol_table),
   ns(_symbol_table),
-  goto_functions(_goto_functions)
+    goto_functions(_goto_functions)
   {
+        message = _message_handler;
+
   }
   
   void operator()();
@@ -61,6 +62,7 @@ protected:
   const symbol_tablet &symbol_table;
   const namespacet ns;
   const goto_functionst &goto_functions;
+  messaget *message;
   mutable dynamic_typest dynamic_types;
   mutable memory_mapt memory_map;
   
@@ -80,8 +82,8 @@ protected:
   
   void build_memory_map();
   void build_memory_map(const symbolt &symbol);
-  mp_integer build_memory_map(const irep_idt &id,const typet &type);
-  typet concretise_type(const typet &type);
+  mp_integer build_memory_map(const irep_idt &id,const typet &type) const;
+  typet concretise_type(const typet &type) const;
   unsigned get_size(const typet &type) const;
 
   irep_idt get_component_id(const irep_idt &object,unsigned offset);
@@ -146,7 +148,7 @@ protected:
   int stack_depth;
   int thread_id;
 
-  bool evaluate_boolean(const exprt &expr)
+  bool evaluate_boolean(const exprt &expr) const
   {
     std::vector<mp_integer> v;
     evaluate(expr, v);
@@ -165,9 +167,9 @@ protected:
   
   void evaluate(
     const exprt &expr,
-    std::vector<mp_integer> &dest);
+    std::vector<mp_integer> &dest) const;
   
-  mp_integer evaluate_address(const exprt &expr, bool fail_quietly=false);
+  mp_integer evaluate_address(const exprt &expr, bool fail_quietly=false) const;
   
   void initialise(bool init);
   void show_state();

@@ -197,7 +197,7 @@ Function: interpretert::evaluate
 
 void interpretert::evaluate(
   const exprt &expr,
-  std::vector<mp_integer> &dest)
+  std::vector<mp_integer> &dest) const
 {
   if(expr.id()==ID_constant)
   {
@@ -269,7 +269,7 @@ void interpretert::evaluate(
       irep_idt value=to_constant_expr(expr).get_value();
       const char *str=value.c_str();
       unsigned length=strlen(str)+1;
-      if (show) warning() << "string decoding not fully implemented " << length << messaget::endl << eom;
+      if (show) message->warning() << "string decoding not fully implemented " << length << messaget::endl << messaget::eom;
       mp_integer tmp=value.get_no();
       dest.push_back(tmp);
       return;
@@ -318,12 +318,12 @@ void interpretert::evaluate(
     side_effect_exprt side_effect=to_side_effect_expr(expr);
     if(side_effect.get_statement()==ID_nondet)
     {
-      if (show) error() << "nondet not implemented" << messaget::endl << eom;
+      if (show) message->error() << "nondet not implemented" << messaget::endl << messaget::eom;
       return;
     }
     else if(side_effect.get_statement()==ID_malloc)
     {
-      if (show) error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::endl << eom;
+      if (show) message->error() << "malloc not fully implemented " << expr.type().subtype().pretty() << messaget::endl << messaget::eom;
       std::stringstream buffer;
       num_dynamic_objects++;
       buffer <<"interpreter::malloc_object" << num_dynamic_objects;
@@ -332,7 +332,7 @@ void interpretert::evaluate(
       dest.push_back(address);
       return;
     }
-    if (show) error() << "side effect not implemented " << side_effect.get_statement() << messaget::endl << eom;
+    if (show) message->error() << "side effect not implemented " << side_effect.get_statement() << messaget::endl << messaget::eom;
   }
   else if(expr.id()==ID_bitor)
   {
@@ -850,10 +850,10 @@ void interpretert::evaluate(
     return;
   }
 //  if (!show) return;
-  error() << "!! failed to evaluate expression: "
+  message->error() << "!! failed to evaluate expression: "
             << from_expr(ns, function->first, expr)
-          << messaget::endl << eom;
-  error() << expr.id() << "[" << expr.type().id() << "]" << messaget::endl << eom;
+          << messaget::endl << messaget::eom;
+  message->error() << expr.id() << "[" << expr.type().id() << "]" << messaget::endl << messaget::eom;
 }
 
 /*******************************************************************\
@@ -868,7 +868,7 @@ Function: interpretert::evaluate_address
 
 \*******************************************************************/
 
-mp_integer interpretert::evaluate_address(const exprt &expr, bool fail_quietly)
+mp_integer interpretert::evaluate_address(const exprt &expr, bool fail_quietly) const
 {
   if(expr.id()==ID_symbol)
   {
@@ -982,9 +982,9 @@ mp_integer interpretert::evaluate_address(const exprt &expr, bool fail_quietly)
 
   if(!fail_quietly)
   {
-    error() << "!! failed to evaluate address: "
-            << from_expr(ns, function->first, expr)
-            << messaget::endl << eom;
+    message->error() << "!! failed to evaluate address: "
+              << from_expr(ns, function->first, expr)
+              << messaget::eom;
   }
 
   return 0;
