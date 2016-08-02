@@ -433,8 +433,7 @@ void reference_factoryt::gather_referenced_symbols(const exprt& rhs, inputst& in
 {
   forall_operands(op_iter,rhs)
   {
-    if(op_iter->type().id()==ID_pointer ||
-       (op_iter->type().id()==ID_struct && rhs.id()==ID_address_of))
+    if(op_iter->type().id()==ID_pointer || rhs.id()==ID_address_of)
     {
       symbol_exprt underlying=try_find_underlying_symbol_expr(*op_iter);
       if(underlying!=symbol_exprt())
