@@ -1759,6 +1759,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
   // First walk the trace forwards to initialise variable-length arrays
   // whose size-expressions depend on context (e.g. int x = 5; int[] y = new int[x];)
+  // We also take the opportunity to save the results of evaluate_address and evaluate
+  // such that any non-constant expressions (e.g. the occasional byte_extract(..., i, ...)
+  // creeps in that needs the current value of local 'i') will be evaluated correctly.
+
+  std::vector<std::pair<mp_integer, std::vector<mp_integer> > > trace_eval;
 
   for(const auto& step : trace.steps)
   {
@@ -1776,11 +1781,14 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       std::vector<mp_integer> rhs;
       evaluate(step.full_lhs_value,rhs);
       assign(address,rhs);
+
+      trace_eval.push_back(std::make_pair(address, rhs));
     }
   }
 
   // Now walk backwards to find object states at their origin points.
-  
+
+  auto trace_eval_iter=trace_eval.rbegin();
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
   for(;it!=trace.steps.rend();++it) {
@@ -1822,17 +1830,18 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     } // End if-is-function-call
     else if(is_assign_step(*it))
     {
-   
-      mp_integer address;
+
+      assert(trace_eval_iter!=trace_eval.rend() &&
+             "Assign steps failed to line up between fw and bw passes?");
+      const auto& eval_result=*(trace_eval_iter++);
+      const auto& address=eval_result.first;
+      const auto& rhs=eval_result.second;
+
+      assert(address!=0);
+      assign(address,rhs);
 
       symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
-
-      address=evaluate_address(it->full_lhs);
-      assert(address!=0);
-      std::vector<mp_integer> rhs;
-      evaluate(it->full_lhs_value,rhs);
-      assign(address,rhs);
 
       mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
       // The dynamic type and the static symbol type may differ for VLAs,
@@ -1851,6 +1860,10 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       
     }
   }
+
+  assert(trace_eval_iter==trace_eval.rend() &&
+         "Backward interpreter walk didn't consume all eval entries?");
+  
   prune_inputs(inputs,function_inputs,filtered);
   print_inputs();
   show=true;
