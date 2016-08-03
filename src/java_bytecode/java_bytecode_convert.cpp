@@ -1207,7 +1207,7 @@ codet java_bytecode_convertt::convert_instructions(
       const typecast_exprt lhs(op[0], target);
       const typecast_exprt rhs(op[1], target);
 
-      results[0]=lshr_exprt(lhs, rhs);
+      results[0]=typecast_exprt(lshr_exprt(lhs, rhs),op[0].type());
     }
     else if(statement==patternt("?add"))
     {
