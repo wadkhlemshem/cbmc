@@ -6,6 +6,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <iostream>
 #include <cassert>
 
 #include <util/i2string.h>
@@ -675,7 +676,7 @@ void goto_convertt::do_java_new_array(
 {
   if(lhs.is_nil())
     throw "do_java_new_array without lhs is yet to be implemented";
-    
+
   source_locationt location=rhs.source_location();
 
   assert(rhs.operands().size()>=1); // one per dimension
@@ -718,7 +719,7 @@ void goto_convertt::do_java_new_array(
 
   // Allocate a (struct realtype**) instead of a (void**) if possible,
   // to avoid confusing the trace due to dynamic type aliasing.
-  const irept& given_element_type=rhs.find(ID_C_element_type);
+  const irept& given_element_type=object_type.find(ID_C_element_type);
   typet allocate_data_type;
   exprt cast_data_member;
   if(given_element_type!=get_nil_irep())
@@ -745,22 +746,16 @@ void goto_convertt::do_java_new_array(
   t_p->code=code_assignt(data,cast_cpp_new);
   t_p->source_location=location;
   
-  // zero-initialize the data
+  // zero-initialize the data, or create subarrays if specified:
   if(!rhs.get_bool("skip_initialise"))
   {
-    exprt zero_element=gen_zero(data.type().subtype());
-    codet array_set(ID_array_set);
-    array_set.copy_to_operands(data, zero_element);
-    goto_programt::targett t_d=dest.add_instruction(OTHER);
-    t_d->code=array_set;
-    t_d->source_location=location;
-  }
-
-  if(rhs.operands().size()>=2)
-  {
     // produce
-    // for(int i=0; i<size; i++) tmp[i]=java_new(dim-1);
+    // for(int i=0; i<size; i++) { init=java_new(dim-1); tmp[i]=init; }
+    // or init=0 if this is the last dimension.
     // This will be converted recursively.
+
+    // Since reference arrays carry void*, init using a local variable
+    // before assigning to the array.
     
     goto_programt tmp;
 
@@ -769,21 +764,38 @@ void goto_convertt::do_java_new_array(
 
     code_fort for_loop;
     
-    side_effect_exprt sub_java_new=rhs;
-    sub_java_new.operands().erase(sub_java_new.operands().begin());
-    
     side_effect_exprt inc(ID_assign);
     inc.operands().resize(2);
     inc.op0()=tmp_i;
     inc.op1()=plus_exprt(tmp_i, gen_one(tmp_i.type()));
     
-    dereference_exprt deref_expr(plus_exprt(data, tmp_i), data.type().subtype());
-    
     for_loop.init()=code_assignt(tmp_i, gen_zero(tmp_i.type()));
     for_loop.cond()=binary_relation_exprt(tmp_i, ID_lt, rhs.op0());
     for_loop.iter()=inc;
-    for_loop.body()=code_skipt();
-    for_loop.body()=code_assignt(deref_expr, sub_java_new);
+
+    code_blockt for_body;
+    dereference_exprt deref_expr(plus_exprt(data, tmp_i), data.type().subtype());
+    
+    if(rhs.operands().size() >= 2)
+    {
+      side_effect_exprt sub_java_new=rhs;
+      sub_java_new.operands().erase(sub_java_new.operands().begin());
+      sub_java_new.type()=static_cast<const typet &>(given_element_type);
+      exprt next_array_init=
+        new_tmp_symbol(sub_java_new.type(), "multiarray_init", tmp, location).symbol_expr();
+      for_body.copy_to_operands(code_assignt(next_array_init, sub_java_new));
+
+      if(deref_expr.type()!=next_array_init.type())
+        next_array_init=typecast_exprt(next_array_init, deref_expr.type());
+      for_body.copy_to_operands(code_assignt(deref_expr, next_array_init));
+    }
+    else
+    {
+      exprt zero_element=gen_zero(deref_expr.type());
+      for_body.copy_to_operands(code_assignt(deref_expr,zero_element));
+    }
+      
+    for_loop.body()=for_body;
 
     convert(for_loop, tmp);
     dest.destructive_append(tmp);

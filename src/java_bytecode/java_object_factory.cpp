@@ -310,7 +310,7 @@ void gen_nondet_array_init(const exprt &expr,
   side_effect_exprt java_new_array(ID_java_new_array,expr.type());
   java_new_array.copy_to_operands(length_sym_expr);
   java_new_array.set("skip_initialise",true);
-  java_new_array.set(ID_C_element_type,element_type);
+  java_new_array.type().subtype().set(ID_C_element_type,element_type);
   init_code.copy_to_operands(code_assignt(expr,java_new_array));
 
   exprt init_array_expr=member_exprt(dereference_exprt(expr, expr.type().subtype()),

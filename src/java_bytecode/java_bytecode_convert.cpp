@@ -1448,7 +1448,7 @@ codet java_bytecode_convertt::convert_instructions(
     }
     else if(statement=="multianewarray")
     {
-      // The first argument is the type, the second argument is the dimension.
+      // The first argument is the type, the second argument is the number of dimensions.
       // The size of each dimension is on the stack.
       irep_idt number=to_constant_expr(arg1).get_value();
       unsigned dimension=safe_c_str2unsigned(number.c_str());
@@ -1456,8 +1456,7 @@ codet java_bytecode_convertt::convert_instructions(
       op=pop(dimension);
       assert(results.size()==1);
 
-      // arg0.type()
-      const pointer_typet ref_type=java_array_type('a');
+      const pointer_typet ref_type=pointer_typet(arg0.type());
 
       side_effect_exprt java_new_array(ID_java_new_array, ref_type);
       java_new_array.operands()=op;
