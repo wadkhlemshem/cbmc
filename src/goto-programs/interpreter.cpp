@@ -846,7 +846,7 @@ void interpretert::execute_function_call()
     throw "out-of-range function call";
 
   goto_trace_stept &trace_step=steps.get_last_step();
-  const memory_cellt &cell=memory[integer2long(a)];
+  const memory_cellt &cell=memory[integer2size_t(a)];
   const irep_idt &identifier=cell.identifier;
   trace_step.identifier=identifier;
 

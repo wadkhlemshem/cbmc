@@ -40,7 +40,7 @@ void interpretert::read(
     mp_integer value;
     
     if(address<memory.size()) {
-      const memory_cellt &cell=memory[integer2long(address)];
+      const memory_cellt &cell=memory[integer2size_t(address)];
       value=cell.value;
       if (cell.initialised==0) cell.initialised=-1;
     }
@@ -71,7 +71,7 @@ void interpretert::allocate(
   for(unsigned i=0; i<size; i++, ++address)
   {
     if(address<memory.size()) {
-      memory_cellt &cell= memory[integer2long(address)];
+      memory_cellt &cell= memory[integer2size_t(address)];
       cell.value=0;
       cell.initialised=0;
     }
