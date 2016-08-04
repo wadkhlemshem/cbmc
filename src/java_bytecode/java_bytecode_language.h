@@ -68,7 +68,7 @@ public:
 protected:
   irep_idt main_class;
   java_class_loadert java_class_loader;
-  bool assume_opaque_returns_non_null;
+  bool assume_inputs_non_null;
 };
  
 languaget *new_java_bytecode_language();

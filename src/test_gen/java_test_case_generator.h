@@ -24,10 +24,12 @@
 
 #include <util/options.h>
 
-typedef std::function<std::string(const symbol_tablet &,
-                                  const irep_idt &, const inputst &,
-                                  const interpretert::list_input_varst&, bool)>
-  test_case_generatort;
+typedef std::function<
+  std::string(const symbol_tablet &, const irep_idt &, const inputst &,
+              const interpretert::list_input_varst&,
+              const interpretert::input_var_functionst&,
+              const interpretert::dynamic_typest&,
+              bool)> test_case_generatort;
 
 class java_test_case_generatort:public messaget
 {
@@ -40,7 +42,9 @@ class java_test_case_generatort:public messaget
   bool contains(const std::string &, const char * const);
   bool is_meta(const irep_idt &);
   inputst generate_inputs(const symbol_tablet &, const goto_functionst &,
-                          const goto_tracet &, interpretert::list_input_varst&);
+                          const goto_tracet &, interpretert::list_input_varst&,
+                          interpretert::input_var_functionst&,
+                          interpretert::dynamic_typest&);
   const irep_idt &get_entry_function_id(const goto_functionst &gf);
 
  public:

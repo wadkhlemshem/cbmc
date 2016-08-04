@@ -12,7 +12,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/cmdline.h>
 
 #include "java_bytecode_language.h"
-#include "java_bytecode_convert.h"
+#include "java_bytecode_convert_class.h"
 #include "java_bytecode_internal_additions.h"
 #include "java_bytecode_typecheck.h"
 #include "java_entry_point.h"
@@ -36,7 +36,7 @@ Function: java_bytecode_languaget::get_language_options
 
 void java_bytecode_languaget::get_language_options(const cmdlinet& cmd)
 {
-  assume_opaque_returns_non_null=cmd.isset("java-assume-opaque-returns-non-null");
+  assume_inputs_non_null=cmd.isset("java-assume-inputs-non-null");
 }
 
 /*******************************************************************\
@@ -190,7 +190,7 @@ bool java_bytecode_languaget::typecheck(
 
     debug() << "Converting class " << c_it->first << eom;
 
-    if(java_bytecode_convert(
+    if(java_bytecode_convert_class(
          c_it->second, symbol_table, get_message_handler()))
       return true;
   }
@@ -222,9 +222,9 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_generate_opaque_method_stubs(symbol_table,assume_opaque_returns_non_null);
+  java_generate_opaque_method_stubs(symbol_table,assume_inputs_non_null);
 
-  if(java_entry_point(symbol_table, main_class, get_message_handler()))
+  if(java_entry_point(symbol_table,main_class,get_message_handler(),assume_inputs_non_null))
     return true;
   
   return false;

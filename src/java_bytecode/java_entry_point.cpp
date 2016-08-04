@@ -147,7 +147,8 @@ Function: java_entry_point
 bool java_entry_point(
   symbol_tablet &symbol_table,
   const irep_idt &main_class,
-  message_handlert &message_handler)
+  message_handlert &message_handler,
+  bool assume_init_pointers_not_null)
 {
   // check if the entry point is already there
   if(symbol_table.symbols.find(goto_functionst::entry_point())!=
@@ -334,7 +335,7 @@ bool java_entry_point(
   {
     bool is_this=param_number==0 &&
                  parameters[param_number].get_this();
-    bool allow_null=config.main!="" && !is_this;
+    bool allow_null=config.main!="" && (!is_this) && !assume_init_pointers_not_null;
     
     main_arguments[param_number]=
       object_factory(parameters[param_number].type(), 

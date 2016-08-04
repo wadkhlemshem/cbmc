@@ -411,7 +411,6 @@ void interpretert::step()
   default:
     throw "encountered instruction with undefined instruction type";
   }
-  
   PC=next_PC;
 }
 
@@ -725,7 +724,7 @@ void interpretert::execute_assign()
 
       // TODO: need to look at other cases on ssa_exprt (derference should be handled on ssa
       const exprt &expr=trace_step.full_lhs;
-      if((expr.id()==ID_member && to_member_expr(expr).struct_op().id()!=ID_dereference) || (expr.id()==ID_index) ||(expr.id()==ID_symbol))
+      if(ssa_exprt::can_build_identifier(trace_step.full_lhs))
       {
         trace_step.lhs_object=ssa_exprt(trace_step.full_lhs);
       }
@@ -846,7 +845,7 @@ void interpretert::execute_function_call()
     throw "out-of-range function call";
 
   goto_trace_stept &trace_step=steps.get_last_step();
-  const memory_cellt &cell=memory[integer2long(a)];
+  const memory_cellt &cell=memory[integer2size_t(a)];
   const irep_idt &identifier=cell.identifier;
   trace_step.identifier=identifier;
 
@@ -1020,6 +1019,26 @@ void interpretert::build_memory_map(const symbolt &symbol)
   }
 }
 
+typet interpretert::concretise_type(const typet &type) const
+{
+  if(type.id()==ID_array)
+  {
+    const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
+    std::vector<mp_integer> computed_size;
+    evaluate(size_expr,computed_size);
+    if(computed_size.size()==1 && computed_size[0]!=0)
+    {
+      std::cout << "Concretised array with size " << computed_size[0] << "\n";
+      return array_typet(type.subtype(),
+                         constant_exprt::integer_constant(computed_size[0].to_ulong()));
+    }
+    else {
+      std::cout << "Failed to concretise variable array\n";
+    }
+  }
+  return type;
+}
+
 /*******************************************************************\
 
 Function: interpretert::build_memory_map
@@ -1034,14 +1053,15 @@ Function: interpretert::build_memory_map
 mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type) const
 {
   if (dynamic_types.find(id)!=dynamic_types.end()) return memory_map[id];
-  unsigned size=get_size(type);
+  typet alloc_type=concretise_type(type);
+  unsigned size=get_size(alloc_type);
 
   if(size!=0)
   {
     unsigned address=memory.size();
     memory.resize(address+size);
     memory_map[id]=address;
-    dynamic_types.insert(std::pair<const irep_idt,typet>(id,type));
+    dynamic_types.insert(std::pair<const irep_idt,typet>(id,alloc_type));
 
     for(unsigned i=0;i<size;i++)
     {
@@ -1154,7 +1174,7 @@ void interpretert::list_non_bodied() {
     }
   }
 
-  message->result() << "non bodied varibles " << funcs << messaget::endl << messaget::eom;
+  message->result() << "non bodied varibles " << funcs << messaget::eom;
   std::map<const irep_idt,const irep_idt>::const_iterator it;
 /*for(it=function_input_vars.begin(); it!=function_input_vars.end(); it++)
   {
@@ -1346,7 +1366,7 @@ void interpretert::print_inputs() {
   for(input_varst::iterator it=input_vars.begin();it!=input_vars.end();
       it++) {
     message->result() << it->first << "=" << from_expr(ns, it->first, it->second)
-             << "[" << it->second.type().id() << "]" << messaget::endl << messaget::eom;
+             << "[" << it->second.type().id() << "]" << messaget::eom;
   }
   message->result() << messaget::eom;
 }
@@ -1368,7 +1388,7 @@ void interpretert::print_memory(bool input_flags) {
     message->debug() << cell.identifier << "[" << cell.offset << "]"
             << "=" << cell.value << messaget::eom;
     if(input_flags) message->debug() << "(" << (int)cell.initialised << ")" << messaget::eom;
-    message->debug() << messaget::endl << messaget::eom;
+    message->debug() << messaget::eom;
   }
 }
 
@@ -1447,7 +1467,7 @@ void interpretert::prune_inputs(input_varst &inputs,list_input_varst& function_i
     }
     catch (const char *e)
     {
-      message->error() << e << messaget::endl << messaget::eom;
+      message->error() << e << messaget::eom;
     }
     list_inputs();
     list_inputs(inputs);
@@ -1673,54 +1693,42 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
   }
 
   exprt defined=findit->second;
-
-  bool isnull=false;
-  
   if(defined.type().id()==ID_pointer)
   {
-  
-    auto struct_ty=defined.type().subtype();
-    assert(struct_ty.id()==ID_struct);
-
-    std::vector<mp_integer> pointer_as_bytes;
-    evaluate(defined, pointer_as_bytes);
-    isnull=true;
-    for(auto b : pointer_as_bytes)
-      if(!b.is_zero())
-    isnull=false;
-
-    if(!isnull)
-    {
-    std::vector<mp_integer> struct_as_bytes;
-    evaluate(dereference_exprt(defined, struct_ty), struct_as_bytes);
-    defined=get_value(struct_ty, struct_as_bytes);
-    }
-
+    get_value_tree(defined,inputs,captured);
   }
-
-  if(!isnull)
+  else
   {
-  
-    const auto& defined_struct=to_struct_expr(defined);
-    const auto& struct_type=to_struct_type(defined.type());
-    const auto& members=struct_type.components();
-    unsigned idx=0;
-    assert(defined_struct.operands().size()==members.size());
+    assert(defined.type().id()==ID_struct ||
+           defined.type().id()==ID_array);
     // Assumption: all object trees captured this way refer directly to particular
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
-    forall_operands(opit, defined_struct) {
-      if(members[idx].type().id()==ID_pointer)
-    {
-      const auto& referee=to_symbol_expr(to_address_of_expr(*opit).object()).get_identifier();
-      get_value_tree(referee, inputs, captured);
+    forall_operands(opit, defined) {
+      if(opit->type().id()==ID_pointer)
+        get_value_tree(*opit,inputs,captured);
     }
-      ++idx;
-    }
-
   }
 
   captured.push_back({capture_symbol, defined});
 
+}
+
+void interpretert::get_value_tree(const exprt& capture_expr,
+  const input_varst& inputs, function_assignmentst& captured)
+{
+  assert(capture_expr.type().id()==ID_pointer);
+  if(capture_expr!=null_pointer_exprt(to_pointer_type(capture_expr.type())))
+  {
+    const auto& referee=to_symbol_expr(to_address_of_expr(capture_expr).object()).get_identifier();
+    get_value_tree(referee,inputs,captured);
+  }
+}
+
+static bool is_assign_step(const goto_trace_stept& step)
+{
+  return goto_trace_stept::ASSIGNMENT==step.type
+    && (step.pc->is_other() || step.pc->is_assign()
+        || step.pc->is_function_call());
 }
 
 /*******************************************************************
@@ -1748,6 +1756,39 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   irep_idt previous_assigned_symbol;
  
   initialise(true);
+
+  // First walk the trace forwards to initialise variable-length arrays
+  // whose size-expressions depend on context (e.g. int x = 5; int[] y = new int[x];)
+  // We also take the opportunity to save the results of evaluate_address and evaluate
+  // such that any non-constant expressions (e.g. the occasional byte_extract(..., i, ...)
+  // creeps in that needs the current value of local 'i') will be evaluated correctly.
+
+  std::vector<std::pair<mp_integer, std::vector<mp_integer> > > trace_eval;
+
+  for(const auto& step : trace.steps)
+  {
+    if(is_assign_step(step))
+    {
+      mp_integer address;
+
+      symbol_exprt symbol_expr=get_assigned_symbol(step);
+      irep_idt id=symbol_expr.get_identifier();
+
+      address=evaluate_address(step.full_lhs);
+      if(address==0)
+        address=build_memory_map(id,symbol_expr.type());
+
+      std::vector<mp_integer> rhs;
+      evaluate(step.full_lhs_value,rhs);
+      assign(address,rhs);
+
+      trace_eval.push_back(std::make_pair(address, rhs));
+    }
+  }
+
+  // Now walk backwards to find object states at their origin points.
+
+  auto trace_eval_iter=trace_eval.rbegin();
   goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
   if(it!=trace.steps.rend()) targetAssert=it->pc;
   for(;it!=trace.steps.rend();++it) {
@@ -1761,64 +1802,68 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       case NOT_OPAQUE_STUB:
     break;
       case SIMPLE_OPAQUE_STUB:
-    {
-      // Simple opaque function that returns a primitive. The assignment after
-      // this (before it in trace order) will have given the value
-      // assigned to its return nondet.
-      if(previous_assigned_symbol!=irep_idt())
-      {
-        function_assignmentst single_defn=
-          { { previous_assigned_symbol,inputs[previous_assigned_symbol] } };
-        function_inputs[called].push_front({ function->first,single_defn });
-      }
-      break;
-    }
+	{
+	  // Simple opaque function that returns a primitive. The assignment after
+	  // this (before it in trace order) will have given the value
+	  // assigned to its return nondet.
+	  if(previous_assigned_symbol!=irep_idt())
+	  {
+	    function_assignmentst single_defn=
+	      { { previous_assigned_symbol,inputs[previous_assigned_symbol] } };
+	    function_inputs[called].push_front({ it->pc->function,single_defn });
+	  }
+	  break;
+	}
       case COMPLEX_OPAQUE_STUB:
-    {
-      // Complex stub: capture the value of capture_symbol instead of whatever happened
-      // to have been defined most recently. Also capture any other referenced objects.
-      function_assignmentst defined;
-      get_value_tree(capture_symbol,inputs,defined);
-      if(defined.size()!=0) // Definition found?
-        function_inputs[called].push_front({ function->first,defined });
-      break;
-    }
-    
+	{
+	  // Complex stub: capture the value of capture_symbol instead of whatever happened
+	  // to have been defined most recently. Also capture any other referenced objects.
+	  function_assignmentst defined;
+	  get_value_tree(capture_symbol,inputs,defined);
+	  if(defined.size()!=0) // Definition found?
+	    function_inputs[called].push_front({ it->pc->function,defined });
+	  break;
+	}
+	
       } // End switch on stub type
 
     } // End if-is-function-call
-    else if(goto_trace_stept::ASSIGNMENT==it->type
-        && (it->pc->is_other() || it->pc->is_assign()
-        || it->pc->is_function_call()))
+    else if(is_assign_step(*it))
     {
-   
-      mp_integer address;
+
+      assert(trace_eval_iter!=trace_eval.rend() &&
+             "Assign steps failed to line up between fw and bw passes?");
+      const auto& eval_result=*(trace_eval_iter++);
+      const auto& address=eval_result.first;
+      const auto& rhs=eval_result.second;
+
+      assert(address!=0);
+      assign(address,rhs);
 
       symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
 
-      address=evaluate_address(it->full_lhs);
-      if(address==0) {
-        address=build_memory_map(id,symbol_expr.type());
-      }
-      std::vector<mp_integer> rhs;
-      evaluate(it->full_lhs_value,rhs);
-      assign(address,rhs);
-
-      if(it->full_lhs.id()==ID_member)
-      {
-        address=evaluate_address(symbol_expr);
-        inputs[id]=get_value(symbol_expr.type(),integer2unsigned(address));
-      }
+      mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
+      // The dynamic type and the static symbol type may differ for VLAs,
+      // where the symbol carries a size expression and the dynamic type
+      // registry contains its actual length.
+      auto findit=dynamic_types.find(symbol_expr.get_identifier());
+      typet get_type;
+      if(findit!=dynamic_types.end())
+        get_type=findit->second;
       else
-      {
-        inputs[id]=it->full_lhs_value;
-      }
+        get_type=symbol_expr.type();
+      inputs[id]=get_value(get_type,integer2unsigned(whole_lhs_object_address));
+      input_first_assignments[id]=it->pc->function;
 
       previous_assigned_symbol=id;
       
     }
   }
+
+  assert(trace_eval_iter==trace_eval.rend() &&
+         "Backward interpreter walk didn't consume all eval entries?");
+  
   prune_inputs(inputs,function_inputs,filtered);
   print_inputs();
   show=true;

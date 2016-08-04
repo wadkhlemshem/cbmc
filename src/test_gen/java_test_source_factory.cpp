@@ -10,6 +10,7 @@
 #include <util/std_expr.h>
 #include <util/symbol_table.h>
 #include <util/namespace.h>
+#include <util/prefix.h>
 
 #include <java_bytecode/expr2java.h>
 
@@ -33,24 +34,151 @@ public:
 
   std::set<std::string> mock_classes;
   mock_environment_builder mockenv_builder;
+  const symbol_tablet& symbol_table;
+  const interpretert::dynamic_typest& dynamic_types;
 
-  reference_factoryt(int indent) : mockenv_builder(indent) {}
+  reference_factoryt(int indent, const symbol_tablet& st,
+                     const interpretert::dynamic_typest& dt) :
+    mockenv_builder(indent),
+    symbol_table(st),
+    dynamic_types(dt) {}
+
+  const typet& get_symbol_type(const irep_idt&);
+  const symbolt& get_or_fake_symbol(const irep_idt&, symbolt& fake);
   void add_value(std::string &result, const symbol_tablet &st,
 		 const exprt &value, const std::string var_name="");
   void add_value(std::string &result, const symbol_tablet &st,
 		 const struct_exprt &value, const std::string &this_name);
+  void add_array_value(std::string &result, const symbol_tablet &st,
+		 const struct_exprt &value, const std::string &this_name);  
   void add_assign_value(std::string &result, const symbol_tablet &st,
 			const symbolt &symbol, const exprt &value);
+  void add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
+                                      const symbolt& symbol, const exprt& value,
+                                      bool should_declare);
+  void add_declare_and_assign(std::string &result, const symbol_tablet &st,
+                              const symbolt& symbol, const exprt& value,
+                              bool should_declare);
   void add_global_state_assignments(std::string &result, const symbol_tablet &st,
-				    inputst &in);
+				    inputst &in, const interpretert::input_var_functionst&);
   bool add_func_call_parameters(std::string &result, const symbol_tablet &st,
 				const irep_idt &func_id, inputst &inputs);
   void add_mock_call(const interpretert::function_assignments_contextt,
 		     const java_call_descriptor& desc, const symbol_tablet&);
   void add_mock_objects(const symbol_tablet &st,
 			const interpretert::list_input_varst& opaque_function_returns);
+  void gather_referenced_symbols(const exprt& rhs, inputst& in, const symbol_tablet&,
+                                 std::vector<symbolt>& needed);
+  void gather_referenced_symbols(const symbolt& symbol, inputst& in, const symbol_tablet&,
+                                 std::vector<symbolt>& needed);
   
 };
+
+bool is_array_tag(const irep_idt& tag)
+{
+  return has_prefix(id2string(tag),"java::array[");
+}
+  
+// Various overrides to produce valid Java rather than expr2java's Java-with-explicit-pointers.
+// Also a good opportunity to convert array structures appropriately.
+class expr2cleanjava:public expr2javat {
+
+  virtual std::string convert(const exprt &src, unsigned &precedence)
+  {
+    if(src.id()==ID_symbol)
+    {
+      std::string result=expr2javat::convert(src,precedence);
+      return result.substr(0,result.rfind('!'));
+    }
+    // Address-of should be implicit
+    else if(src.id()==ID_address_of)
+      return convert(src.op0(),precedence);
+    else {
+      return expr2javat::convert(src,precedence);
+    }
+  }
+
+  virtual std::string convert_rec(const typet& src, const c_qualifierst& qualifiers,
+                                  const std::string& declarator)
+  {
+    // Write java::array[x] as x[]
+    if(src.id()==ID_symbol && is_array_tag(to_symbol_type(src).get_identifier()))
+    {
+      const auto& st=to_symbol_type(src);
+      const irept &element_irep=st.find(ID_C_element_type);
+      assert(element_irep!=irept());
+      const typet &element_type=static_cast<const typet&>(element_irep);
+      return convert_rec(array_typet(element_type,nil_exprt()),qualifiers,declarator);
+    }
+    // Write 'struct A' as 'A'
+    else if(src.id()==ID_symbol)
+    {
+      std::string ctype=expr2ct::convert_rec(src,qualifiers,declarator);
+      if(has_prefix(ctype,"struct "))
+        return ctype.substr(7);
+      else
+        return ctype;
+    }
+    else if(src.id()==ID_struct && is_array_tag(to_struct_type(src).get_tag()))
+    {
+      // Can't get the true element type from here. Settle for Object[] if a reference type.
+      const auto& st=to_struct_type(src);
+      array_typet datamem(st.get_component("data").type().subtype(),nil_exprt());
+      return convert_rec(datamem,qualifiers,declarator);
+    }
+    // Write struct literals in brief form:
+    else if(src.id()==ID_struct)
+    {
+      std::string tag=id2string(to_struct_type(src).get_tag());
+      // Structs appear to be inconsistently tagged with and without namespace just now.
+      if(!has_prefix(tag,"java::"))
+        tag = "java::"+tag;
+      return convert_rec(symbol_typet(tag),qualifiers,declarator);
+    }
+    // Write void*[] as Object[]
+    else if(src.id()==ID_array && src.subtype()==pointer_typet(empty_typet()))
+      return convert_rec(pointer_typet(symbol_typet("java::java.lang.Object"))
+                         ,qualifiers,declarator+"[]");
+    // Never write Java types with an explicit array size
+    else if(src.id()==ID_array) 
+      return convert_rec(src.subtype(),qualifiers,declarator+"[]");
+    // Write references without an explicit * operator
+    else if(src.id()==ID_pointer)
+      return convert_rec(src.subtype(),qualifiers,declarator);
+    
+    return expr2javat::convert_rec(src,qualifiers,declarator);
+  }
+
+public:
+ 
+  virtual std::string convert(const exprt &src)
+  {
+    return expr2javat::convert(src);
+  }
+
+  virtual std::string convert(const typet &src)
+  {
+    return expr2javat::convert(src);
+  }  
+
+  expr2cleanjava(const namespacet& ns) : expr2javat(ns) {}
+  
+};
+
+void expr2java(std::string &result, const exprt &value, const namespacet &ns)
+{
+  expr2cleanjava e2j(ns);
+  e2j.get_shorthands(value);
+  std::string item=e2j.convert(value);
+  result+=item;
+}
+
+void type2java(std::string &result, const typet &type, const namespacet &ns)
+{
+  expr2cleanjava e2j(ns);
+  std::string item=e2j.convert(type);
+  result+=item;
+}
   
 std::string &indent(std::string &result, const size_t num_indent=1u)
 {
@@ -76,33 +204,17 @@ void add_symbol(std::string &result, const symbolt &s)
   result+=id2string(n);
 }
 
-void add_qualified_class_name(std::string &result, const namespacet &ns,
-    const typet &type)
+void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive=0)
 {
-  if (ID_symbol == type.id())
-  {
-    const std::string &id=id2string(to_symbol_type(type).get_identifier());
-    assert(id.size() >= JAVA_NS_PREFIX_LEN);
-    result+=id.substr(JAVA_NS_PREFIX_LEN);
-  } else result+=id2string(to_struct_type(type).get_tag());
-}
-
-void add_decl_from_type(std::string& result, const symbol_tablet &st, const typet &type, bool* out_is_primitive = 0)
-{
-  if(out_is_primitive)
-    *out_is_primitive = false;
-  
   const namespacet ns(st);
-  const typet &subt=type.subtype();
   const irep_idt &type_id=type.id();
-  if (ID_symbol == type_id || ID_struct == type_id) add_qualified_class_name(
-      result, ns, type);
-  else if (ID_pointer == type_id) add_qualified_class_name(result, ns, subt);
-  else {
-    if(out_is_primitive)
-      *out_is_primitive = true;
-    result+=type2java(type, ns);
-  }
+  if(out_is_primitive)
+    *out_is_primitive=
+      type_id!=ID_symbol &&
+      type_id!=ID_struct &&
+      type_id!=ID_pointer &&
+      type_id!=ID_array;
+  type2java(result,type,ns);
 }
 
 void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
@@ -110,12 +222,6 @@ void add_decl_with_init_prefix(std::string &result, const symbol_tablet &st,
 {
   add_decl_from_type(result, st, symbol.type);
   result+=' ';
-}
-
-void expr2java(std::string &result, const exprt &value, const namespacet &ns)
-{
-  std::string item=expr2java(value, ns);
-  result+=item.substr(0, item.find('!', 0));
 }
 
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st, const exprt &value,
@@ -190,6 +296,15 @@ public:
   }
 };
 
+const typet& reference_factoryt::get_symbol_type(const irep_idt& id)
+{
+  auto findit=dynamic_types.find(id);
+  if(findit==dynamic_types.end())
+    return symbol_table.lookup(id).type;
+  else
+    return findit->second;
+}
+  
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
 {
@@ -197,7 +312,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   const typet &type=value.type();
 
   std::string qualified_class_name;
-  add_qualified_class_name(qualified_class_name, ns, type);  
+  type2java(qualified_class_name,type,ns);
 
   std::string instance_expr;
   bool should_mock = mock_classes.count(qualified_class_name);
@@ -223,25 +338,146 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   add_symbol(symbol_name, symbol);
   result+=symbol_name;
   result+='=';
+  namespacet ns(st);
+  std::string printed_type;
+  add_decl_from_type(printed_type, st, symbol.type);
+  if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
+  {
+    result+='(';
+    result += printed_type;
+    result+=')';
+  }
   add_value(result, st, value, symbol_name);
   result+=";\n";
 }
 
-bool is_input_struct(const symbolt &symbol)
+symbol_exprt try_find_underlying_symbol_expr(exprt e)
 {
-  return std::string::npos != id2string(symbol.name).find("tmp_object_factory");
+  while(e.id()!=ID_symbol)
+  {
+    assert(e.operands().size()<=1);
+    if(e.operands().size()==0)
+      return symbol_exprt();
+    e=e.op0();
+  }
+  // Make up a symbol with name of 'symbol' but type of the 'data' member:
+  std::string symid=id2string(to_symbol_expr(e).get_identifier());
+  size_t bangoff=symid.rfind('!');
+  if(bangoff!=std::string::npos)
+    symid=symid.substr(0,bangoff);
+  return symbol_exprt(symid,e.type());
 }
 
-void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
-    inputst &in)
+void reference_factoryt::add_declare_and_assign_noarray(std::string &result, const symbol_tablet &st,
+                                                        const symbolt& symbol, const exprt& value,
+                                                        bool should_declare)
 {
+  if (should_declare) add_decl_with_init_prefix(result, st, symbol);
+  add_assign_value(result, st, symbol, value);
+}
+
+void reference_factoryt::add_declare_and_assign(std::string &result, const symbol_tablet &st,
+                                                const symbolt& symbol, const exprt& value,
+                                                bool should_declare)
+{
+  // Special case arrays, which are internally represented as
+  // structs with length and data members but need to turn back into simple arrays.
+  namespacet ns(st);
+  const typet& underlying=ns.follow(symbol.type);
+  if(underlying.id()==ID_struct && is_array_tag(to_struct_type(underlying).get_tag()))
+  {
+    // No need to worry about the type; our custom expr2java will write that correctly;
+    // just use the data-member (op2) value directly instead of writing .length=x, .data=y.
+    add_declare_and_assign_noarray(result,st,symbol,value.op2(),should_declare);
+  }
+  else
+  {
+    add_declare_and_assign_noarray(result,st,symbol,value,should_declare);
+  }
+}
+  
+bool is_input_struct(const symbolt &symbol, const symbol_tablet& st,
+    const interpretert::input_var_functionst input_defn_functions)
+{
+  const irep_idt& symtype=namespacet(st).follow(symbol.type).id();
+  return (symtype==ID_struct||symtype==ID_pointer||symtype==ID_array) &&
+    input_defn_functions.at(symbol.name)=="_start";
+}
+
+const symbolt& reference_factoryt::get_or_fake_symbol(const irep_idt& id, symbolt& fake_symbol)
+{
+  auto findit=symbol_table.symbols.find(id);
+  if(findit==symbol_table.symbols.end())
+  {
+    // Dynamic object names are not in the symtab at the moment.
+    fake_symbol.type=get_symbol_type(id);
+    fake_symbol.name=id;
+    std::string namestr=as_string(id);
+    size_t findidx=namestr.find("::");
+    if(findidx==std::string::npos)
+      fake_symbol.base_name=fake_symbol.name;
+    else
+    {
+      assert(namestr.size() >= findidx + 3);
+      fake_symbol.base_name=namestr.substr(findidx + 2);
+    }
+    return fake_symbol;
+  }
+  else
+    return findit->second;
+}
+
+void reference_factoryt::gather_referenced_symbols(const exprt& rhs, inputst& in,
+                                                   const symbol_tablet& st,
+                                                   std::vector<symbolt>& needed)
+{
+  forall_operands(op_iter,rhs)
+  {
+    if(op_iter->type().id()==ID_pointer || rhs.id()==ID_address_of)
+    {
+      symbol_exprt underlying=try_find_underlying_symbol_expr(*op_iter);
+      if(underlying!=symbol_exprt())
+      {
+        symbolt fake_symbol;
+        const symbolt &op_symbol=get_or_fake_symbol(underlying.get_identifier(),fake_symbol);
+        gather_referenced_symbols(op_symbol,in,st,needed);
+      }
+    }
+    else if(op_iter->type().id()==ID_struct)
+    {
+      gather_referenced_symbols(*op_iter,in,st,needed);
+    }
+  }
+}
+  
+void reference_factoryt::gather_referenced_symbols(const symbolt& symbol, inputst& in,
+                                                   const symbol_tablet& st,
+                                                   std::vector<symbolt>& needed)
+{
+  const exprt& rhs=in[symbol.name];
+  gather_referenced_symbols(rhs,in,st,needed);
+  needed.push_back(symbol);
+}
+  
+void reference_factoryt::add_global_state_assignments(std::string &result, const symbol_tablet &st,
+    inputst &in, const interpretert::input_var_functionst &input_defn_functions)
+{
+  std::vector<symbolt> needed;
   for (inputst::const_reverse_iterator it=in.rbegin(); it != in.rend(); ++it)
   {
-    const symbolt &symbol=st.lookup(it->first);
+    symbolt fake_symbol;
+    const symbolt &symbol=get_or_fake_symbol(it->first,fake_symbol);
     if (!symbol.is_static_lifetime) continue;
+    if (!is_input_struct(symbol,st,input_defn_functions)) continue;
+    gather_referenced_symbols(symbol,in,st,needed);
+  }
+  std::set<irep_idt> already_done;
+  for(const auto& symbol : needed)
+  {
+    if(!already_done.insert(symbol.name).second)
+      continue;
     indent(result, 2u);
-    if (is_input_struct(symbol)) add_decl_with_init_prefix(result, st, symbol);
-    add_assign_value(result, st, symbol, it->second);
+    add_declare_and_assign(result,st,symbol,in[symbol.name],true);
   }
 }
 
@@ -255,7 +491,21 @@ std::set<irep_idt> get_parameters(const symbolt &func)
   return result;
 }
 
-  bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
+bool is_instance_method(const symbol_tablet &st, const irep_idt &func_id)
+{
+  const symbolt &func=st.lookup(func_id);
+  const std::set<irep_idt> params(get_parameters(func));
+  if(params.size() > 0)
+    for (const irep_idt &param : params)
+      {
+        const symbolt &symbol=st.lookup(param);
+        if (symbol.base_name=="this")
+          return true;
+      }
+  return false;
+}
+
+bool reference_factoryt::add_func_call_parameters(std::string &result, const symbol_tablet &st,
     const irep_idt &func_id, inputst &inputs)
 {
   const symbolt &func=st.lookup(func_id);
@@ -270,36 +520,49 @@ std::set<irep_idt> get_parameters(const symbolt &func)
     }
     else
     {
-      add_decl_with_init_prefix(indent(result, 2u), st, symbol);
-      add_assign_value(result, st, symbol, value->second);
+      if(symbol.base_name=="this")
+        // do not declare "this" variable  for instance method
+        continue;
+      else
+        add_declare_and_assign(indent(result,2u),st,symbol,value->second,true);
     }
   }
   return true;
 }
 
-std::string symbol_to_function_name(const symbolt &s) {
-
-  const std::string func_name_with_brackets(id2string(s.pretty_name));
-  const size_t sz=func_name_with_brackets.size();
-  assert(sz >= 2u);
-  return func_name_with_brackets.substr(0, sz - 2);
-
+std::string symbol_to_function_name(const symbolt &s, bool instance_method=false) {
+  if(instance_method)
+    return id2string(s.base_name);
+  else
+    {
+      const std::string func_name_with_brackets(id2string(s.pretty_name));
+      const size_t sz=func_name_with_brackets.size();
+      assert(sz >= 2u);
+      return func_name_with_brackets.substr(0, sz - 2);
+    }
 }
   
 void add_func_call(std::string &result, const symbol_tablet &st,
-    const irep_idt &func_id)
+                   const irep_idt &func_id, bool instance_method=false)
 {
   // XXX: Should be expr2java(...) once functional.
   const symbolt &s=st.lookup(func_id);
-  indent(result, 2u) += symbol_to_function_name(s);
+  if(instance_method)
+    result += '.' + symbol_to_function_name(s, instance_method);
+  else
+    indent(result, 2u) += symbol_to_function_name(s, instance_method);
   result+='(';
   const std::set<irep_idt> params(get_parameters(s));
   unsigned nparams = 0;
   for (const irep_idt &param : params)
   {
+    const symbolt &symbol=st.lookup(param);
+    if(symbol.base_name=="this")
+      // skip "this" parameter
+      continue;
     if(nparams++ != 0)
       result+=", ";
-    add_symbol(result, st.lookup(param));
+    add_symbol(result, symbol);
   }
   result+=");\n";
 }
@@ -318,33 +581,6 @@ bool shouldnt_mock_class(const std::string& classname)
   // Should make a proper black/whitelist in due time; for now just avoid
   // mocking things like Exceptions.
   return classname.find("java.") == 0;
-}
-
-const symbolt& get_or_fake_symbol(const symbol_tablet& st, const irep_idt& id,
-  const typet& expected_type, symbolt& fake_symbol)
-{
-
-  auto findit=st.symbols.find(id);
-
-  if(findit==st.symbols.end())
-  {
-    // Dynamic object names are not in the symtab at the moment.
-    fake_symbol.type=expected_type;
-    fake_symbol.name=id;
-    std::string namestr=as_string(id);
-    size_t findidx=namestr.find("::");
-    if(findidx==std::string::npos)
-      fake_symbol.base_name=fake_symbol.name;
-    else
-    {
-      assert(namestr.size() >= findidx + 3);
-      fake_symbol.base_name=namestr.substr(findidx + 2);
-    }
-    return fake_symbol;
-  }
-  else
-    return findit->second;
-
 }
 
 void string_to_statements(const std::string& instring,
@@ -445,13 +681,11 @@ void reference_factoryt::add_mock_call(
     for(auto defined : defined_symbols)
     {
       symbolt fake_symbol;
-      const symbolt& use_symbol=get_or_fake_symbol(st, defined.id,
-				  defined.value.type(), fake_symbol);
+      const symbolt& use_symbol=get_or_fake_symbol(defined.id,fake_symbol);
 
       // Initial empty statement makes the loop below easier.
-      std::string this_object_init=";"; 
-      add_decl_with_init_prefix(this_object_init, st, use_symbol);
-      add_assign_value(this_object_init, st, use_symbol, defined.value);
+      std::string this_object_init=";";
+      add_declare_and_assign(this_object_init,st,use_symbol,defined.value,true);
 
       string_to_statements(this_object_init, init_statements);
     }
@@ -537,7 +771,10 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 
 } // End of anonymous namespace
 
-std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id, inputst inputs, const interpretert::list_input_varst& opaque_function_returns, bool disable_mocks)
+std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
+    inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
+    const interpretert::input_var_functionst& input_defn_functions,
+    const interpretert::dynamic_typest& dynamic_types, bool disable_mocks)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
@@ -545,7 +782,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
 
   // Do this first since the mock object creation can require annotations on the test class.
   // Parameter is the indent level on generated code.
-  reference_factoryt ref_factory(4);
+  reference_factoryt ref_factory(4,st,dynamic_types);
 
   if(!disable_mocks)
     ref_factory.add_mock_objects(st, opaque_function_returns);
@@ -555,7 +792,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
 
   std::string post_mock_setup_result;
   
-  ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs);
+  ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs, input_defn_functions);
   bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
@@ -564,7 +801,22 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
-    add_func_call(result,st,func_id);
+    if(is_instance_method(st, func_id))
+      {
+        for (const irep_idt &param : get_parameters(st.lookup(func_id)))
+          {
+            const symbolt &symbol=st.lookup(param);
+            if (symbol.base_name=="this")
+              {
+                const inputst::iterator value=inputs.find(param);
+                const namespacet ns(st);
+                expr2java(result, value->second, ns);
+              }
+          }
+        add_func_call(result,st,func_id,true);
+      }
+    else
+      add_func_call(result,st,func_id);
   }
 
   indent(result)+="}\n";

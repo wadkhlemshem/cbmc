@@ -18,18 +18,22 @@ bool java_test_case_generatort::contains(const std::string &id, const char * con
 bool java_test_case_generatort::is_meta(const irep_idt &id)
 {
   const std::string &str=id2string(id);
-  return contains(str, "$assertionsDisabled")
-    || contains(str, "symex_dynamic::");
+  return contains(str, "$assertionsDisabled");
 }
 
-inputst java_test_case_generatort::generate_inputs(const symbol_tablet &st, const goto_functionst &gf,
-                        const goto_tracet &trace, interpretert::list_input_varst& opaque_function_returns)
+inputst java_test_case_generatort::generate_inputs(const symbol_tablet &st,
+    const goto_functionst &gf, const goto_tracet &trace,
+    interpretert::list_input_varst& opaque_function_returns,
+    interpretert::input_var_functionst& first_assignments,
+    interpretert::dynamic_typest& dynamic_types)
 {
   interpretert interpreter(st, gf, this);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);
     else ++it;
+  first_assignments=interpreter.get_input_first_assignments();
+  dynamic_types=interpreter.get_dynamic_types();
   return res;
 }
 
@@ -42,26 +46,35 @@ const irep_idt &java_test_case_generatort::get_entry_function_id(const goto_func
   assert(fm.end() != entry_func);
   const goto_programt::instructionst &in=entry_func->second.body.instructions;
   typedef goto_programt::instructionst::const_reverse_iterator reverse_target;
-  const reverse_target last=in.rbegin();
+  reverse_target codeit=in.rbegin();
   const reverse_target end=in.rend();
-  assert(end != last);
-  const reverse_target call=std::next(last);
-  assert(end != call);
+  assert(end != codeit);
+  // Tolerate 'dead' statements at the end of _start.
+  while(end!=codeit && codeit->code.get_statement()!=ID_function_call)
+    ++codeit;
+  assert(end != codeit);
+  const reverse_target call=codeit;
   const code_function_callt &func_call=to_code_function_call(call->code);
   const exprt &func_expr=func_call.function();
   return to_symbol_expr(func_expr).get_identifier();
 }
 
-const std::string java_test_case_generatort::generate_test_case(const optionst &options, const symbol_tablet &st,
-                                                                const goto_functionst &gf, const goto_tracet &trace,
-                                                                const test_case_generatort generate, std::string property)
+const std::string java_test_case_generatort::generate_test_case(
+  const optionst &options, const symbol_tablet &st,
+  const goto_functionst &gf, const goto_tracet &trace,
+  const test_case_generatort generate, std::string property)
 {
 
   interpretert::list_input_varst opaque_function_returns;
-
-  const inputst inputs(generate_inputs(st, gf, trace, opaque_function_returns));
+  interpretert::input_var_functionst input_defn_functions;
+  interpretert::dynamic_typest dynamic_types;
+  
+  const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
+                                       input_defn_functions,dynamic_types));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st, entry_func_id, inputs, opaque_function_returns, options.get_bool_option("java-disable-mocks")));
+  const std::string source(generate(st,entry_func_id,inputs,opaque_function_returns,
+                                    input_defn_functions,dynamic_types,
+                                    options.get_bool_option("java-disable-mocks")));
   const std::string empty("");
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
@@ -97,7 +110,7 @@ int  java_test_case_generatort::generate_test_case(optionst &options, const symb
     default:
       {
         const goto_tracet &trace=bmc.safety_checkert::error_trace;
-        generate_test_case(options, st, gf, trace, generate);
+        status() << generate_test_case(options, st, gf, trace, generate) << eom;
         return TEST_CASE_SUCCESS;
       }
     }
