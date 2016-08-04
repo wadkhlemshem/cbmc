@@ -93,9 +93,12 @@ protected:
   {
   public:
     symbol_exprt symbol_expr;
+    bool is_parameter;
+    variablet() : symbol_expr(), is_parameter(false) {}
   };
   
   expanding_vector<variablet> variables;
+  std::set<symbol_exprt> used_local_names;
   
   bool method_has_this;
 
@@ -115,12 +118,14 @@ protected:
 
       symbol_exprt result(identifier, t);
       result.set(ID_C_base_name, base_name);
-
+      used_local_names.insert(result);
       return result;
     }
     else
     {
       exprt result=variables[number_int].symbol_expr;
+      if(!variables[number_int].is_parameter)
+        used_local_names.insert(to_symbol_expr(result));      
       if(t!=result.type()) result=typecast_exprt(result, t);
       return result;
     }
@@ -453,6 +458,7 @@ void java_bytecode_convertt::convert(
     // add as a JVM variable
     unsigned slots=get_variable_slots(parameters[i]);
     variables[param_index].symbol_expr=parameter_symbol.symbol_expr();
+    variables[param_index].is_parameter=true;
     param_index+=slots;
   }
 
@@ -1625,7 +1631,23 @@ codet java_bytecode_convertt::convert_instructions(
   // TODO: add exception handlers from exception table
   // review successor computation of athrow!
   code_blockt code;
-  
+
+  // locals
+  for(const auto & var : used_local_names)
+  {
+    code.add(code_declt(var));
+    symbolt new_symbol;
+    new_symbol.name=var.get_identifier();
+    new_symbol.type=var.type();
+    new_symbol.base_name=var.get(ID_C_base_name);
+    new_symbol.pretty_name=id2string(var.get_identifier()).substr(6, std::string::npos);
+    new_symbol.mode=ID_java;
+    new_symbol.is_type=false;
+    new_symbol.is_file_local=true;
+    new_symbol.is_thread_local=true;
+    new_symbol.is_lvalue=true;
+    symbol_table.add(new_symbol);
+  }
   // temporaries
   for(const auto & var : tmp_vars)
   {
