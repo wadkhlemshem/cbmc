@@ -1,11 +1,10 @@
 
-#include <sstream>
-
 #include <util/std_expr.h>
 #include <util/std_code.h>
 #include <util/pointer_offset_size.h>
 #include <util/i2string.h>
 #include <util/namespace.h>
+#include <util/prefix.h>
 
 #include "java_object_factory.h"
 
@@ -108,68 +107,15 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
     return;
 
   const exprt cast_ptr=make_clean_pointer_cast(ptr,expected_type,ns);
-  code_labelt set_null_label;
-  code_labelt init_done_label;
-
   code_blockt new_instructions;
 
-  if(!is_constructor)
-  {
+  exprt to_init=cast_ptr;
+  // If it's a constructor the thing we're constructing has already
+  // been allocated by this point.
+  if(is_constructor)
+    to_init=dereference_exprt(to_init,expected_base);
 
-    // Per default CBMC would suppose this to be any conceivable pointer.
-    // For now,insist that it is either fresh or null. In future we will
-    // want to consider the possiblity that it aliases other objects.
-
-    static unsigned long synthetic_constructor_count=0;
-
-    if(!assume_non_null)
-    {
-
-      auto returns_null_sym=
-          new_tmp_symbol(symbol_table,"opaque_returns_null");
-      returns_null_sym.type=c_bool_typet(1);
-      auto returns_null=returns_null_sym.symbol_expr();
-      auto assign_returns_null=
-          code_assignt(returns_null,get_nondet_bool(returns_null_sym.type));
-      new_instructions.move_to_operands(assign_returns_null);
-
-      auto set_null_inst=code_assignt(
-          cast_ptr,null_pointer_exprt(to_pointer_type(cast_ptr.type())));
-
-      std::ostringstream fresh_label_oss;
-      fresh_label_oss<<"post_synthetic_malloc_"
-          <<(++synthetic_constructor_count);
-      std::string fresh_label=fresh_label_oss.str();
-      set_null_label=code_labelt(fresh_label,set_null_inst);
-
-      init_done_label=code_labelt(fresh_label + "_init_done",code_skipt());
-
-      code_ifthenelset null_check;
-      null_check.cond()=notequal_exprt(
-          returns_null,constant_exprt("0",returns_null_sym.type));
-      null_check.then_case()=code_gotot(fresh_label);
-      new_instructions.move_to_operands(null_check);
-    }
-
-    // Note this allocates memory but doesn't call any constructor.
-    side_effect_exprt malloc_expr(ID_malloc);
-    malloc_expr.copy_to_operands(size_of_expr(expected_base,ns));
-    malloc_expr.type()=expected_type;
-    auto alloc_inst=code_assignt(cast_ptr,malloc_expr);
-    new_instructions.move_to_operands(alloc_inst);
-  }
-
-  exprt derefd=clean_deref(cast_ptr);
-
-  gen_nondet_init(derefd,new_instructions,symbol_table,is_constructor,
-                  /*create_dynamic=*/true);
-
-  if((!is_constructor) && !assume_non_null)
-  {
-    new_instructions.copy_to_operands(code_gotot(init_done_label.get_label()));
-    new_instructions.move_to_operands(set_null_label);
-    new_instructions.move_to_operands(init_done_label);
-  }
+  gen_nondet_init(to_init,new_instructions,symbol_table,false,true);
 
   if(new_instructions.operands().size()!=0)
   {

@@ -14,9 +14,7 @@ Author: Daniel Kroening, kroening@kroening.com
 bool java_entry_point(
   class symbol_tablet &symbol_table,
   const irep_idt &main_class,
-  class message_handlert &message_handler);
-
-void java_generate_opaque_method_stubs(symbol_tablet &symbol_table,
-				       bool assume_opaque_objects_non_null);
+  class message_handlert &message_handler,
+  bool assume_init_pointers_not_null);
 
 #endif

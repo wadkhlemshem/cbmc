@@ -36,7 +36,7 @@ Function: java_bytecode_languaget::get_language_options
 
 void java_bytecode_languaget::get_language_options(const cmdlinet& cmd)
 {
-  assume_opaque_returns_non_null=cmd.isset("java-assume-opaque-returns-non-null");
+  assume_inputs_non_null=cmd.isset("java-assume-inputs-non-null");
 }
 
 /*******************************************************************\
@@ -222,9 +222,9 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_generate_opaque_method_stubs(symbol_table,assume_opaque_returns_non_null);
+  java_generate_opaque_method_stubs(symbol_table,assume_inputs_non_null);
 
-  if(java_entry_point(symbol_table, main_class, get_message_handler()))
+  if(java_entry_point(symbol_table,main_class,get_message_handler(),assume_inputs_non_null))
     return true;
   
   return false;

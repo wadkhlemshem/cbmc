@@ -91,10 +91,13 @@ protected:
     symbol_exprt symbol_expr;
     size_t start_pc;
     size_t length;
+    bool is_parameter;
+    variablet() : symbol_expr(), is_parameter(false) {}      
   };
 
   typedef std::vector<variablet> variablest;
   expanding_vector<variablest> variables;
+  std::set<symbol_exprt> used_local_names;
   
   bool method_has_this;
 
@@ -158,12 +161,14 @@ protected:
 
       symbol_exprt result(identifier, t);
       result.set(ID_C_base_name, base_name);
-
+      used_local_names.insert(result);
       return result;
     }
     else
     {
       exprt result=var.symbol_expr;
+      if(!var.is_parameter)
+        used_local_names.insert(to_symbol_expr(result));      
       if(t!=result.type()) result=typecast_exprt(result, t);
       return result;
     }
@@ -386,6 +391,7 @@ void java_bytecode_convert_methodt::convert(
     // add as a JVM variable
     unsigned slots=get_variable_slots(parameters[i]);
     variables[param_index][0].symbol_expr=parameter_symbol.symbol_expr();
+    variables[param_index][0].is_parameter=true;    
     param_index+=slots;
   }
 
@@ -685,7 +691,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
     }
     else if(statement=="invokedynamic")
     {
-      // not used in Java
+      // TODO: Java 8 lambdas use this.
       code_typet &code_type=to_code_type(arg0.type());
       const code_typet::parameterst &parameters(code_type.parameters());
 
@@ -743,6 +749,8 @@ codet java_bytecode_convert_methodt::convert_instructions(
       
       // do some type adjustment for the arguments,
       // as Java promotes arguments
+      // Also cast pointers since intermediate locals
+      // can be void*.
 
       for(unsigned i=0; i<parameters.size(); i++)
       {
@@ -750,10 +758,12 @@ codet java_bytecode_convert_methodt::convert_instructions(
         if(type==java_boolean_type() ||
            type==java_char_type() ||
            type==java_byte_type() ||
-           type==java_short_type())
+           type==java_short_type() ||
+           type.id()==ID_pointer)
         {
           assert(i<call.arguments().size());
-          call.arguments()[i].make_typecast(type);
+          if(type!=call.arguments()[i].type())
+            call.arguments()[i].make_typecast(type);
         }
       }
       
@@ -845,13 +855,12 @@ codet java_bytecode_convert_methodt::convert_instructions(
       assert(op.size()==1 && results.empty());
 
       exprt var=variable(arg0, statement[0], i_it->address, INST_INDEX);
-      
-      const bool is_array('a' == statement[0]);
-      
-      if(is_array)
-        var.type()=op[0].type();
 
-      c=code_assignt(var, op[0]);
+      exprt toassign=op[0];
+      if('a'==statement[0] && toassign.type()!=var.type())
+        toassign=typecast_exprt(toassign,var.type());
+
+      c=code_assignt(var,toassign);
     }
     else if(statement==patternt("?aload"))
     {
@@ -1012,7 +1021,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       irep_idt number=to_constant_expr(arg0).get_value();
       assert(op.size()==1 && results.empty());
       code_ifthenelset code_branch;
-      const typecast_exprt lhs(op[0], pointer_typet());
+      const typecast_exprt lhs(op[0], pointer_typet(empty_typet()));
       const exprt rhs(gen_zero(lhs.type()));
       code_branch.cond()=binary_relation_exprt(lhs, ID_notequal, rhs);
       code_branch.then_case()=code_gotot(label(number));
@@ -1080,7 +1089,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       const typecast_exprt lhs(op[0], target);
       const typecast_exprt rhs(op[1], target);
 
-      results[0]=lshr_exprt(lhs, rhs);
+      results[0]=typecast_exprt(lshr_exprt(lhs, rhs),op[0].type());
     }
     else if(statement==patternt("?add"))
     {
@@ -1321,7 +1330,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
     }
     else if(statement=="multianewarray")
     {
-      // The first argument is the type, the second argument is the dimension.
+      // The first argument is the type, the second argument is the number of dimensions.
       // The size of each dimension is on the stack.
       irep_idt number=to_constant_expr(arg1).get_value();
       unsigned dimension=safe_c_str2unsigned(number.c_str());
@@ -1329,8 +1338,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       op=pop(dimension);
       assert(results.size()==1);
 
-      // arg0.type()
-      const pointer_typet ref_type=java_array_type('a');
+      const pointer_typet ref_type=pointer_typet(arg0.type());
 
       side_effect_exprt java_new_array(ID_java_new_array, ref_type);
       java_new_array.operands()=op;
@@ -1506,7 +1514,23 @@ codet java_bytecode_convert_methodt::convert_instructions(
   // TODO: add exception handlers from exception table
   // review successor computation of athrow!
   code_blockt code;
-  
+
+  // locals
+  for(const auto & var : used_local_names)
+  {
+    code.add(code_declt(var));
+    symbolt new_symbol;
+    new_symbol.name=var.get_identifier();
+    new_symbol.type=var.type();
+    new_symbol.base_name=var.get(ID_C_base_name);
+    new_symbol.pretty_name=id2string(var.get_identifier()).substr(6, std::string::npos);
+    new_symbol.mode=ID_java;
+    new_symbol.is_type=false;
+    new_symbol.is_file_local=true;
+    new_symbol.is_thread_local=true;
+    new_symbol.is_lvalue=true;
+    symbol_table.add(new_symbol);
+  }
   // temporaries
   for(const auto & var : tmp_vars)
   {

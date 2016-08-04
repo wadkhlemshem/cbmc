@@ -35,6 +35,8 @@ public:
   friend class simplify_evaluatet;
 
   typedef std::map<const irep_idt,exprt> input_varst;
+  typedef std::map<const irep_idt,irep_idt> input_var_functionst;
+  typedef std::map<const irep_idt,const typet> dynamic_typest;
 
   // An assertion that identifier 'id' carries value 'value' in some particular context.
   struct function_assignmentt {
@@ -60,7 +62,6 @@ protected:
   const symbol_tablet &symbol_table;
   const namespacet ns;
   const goto_functionst &goto_functions;
-  typedef std::map<const irep_idt,const typet> dynamic_typest;
   messaget *message;
   mutable dynamic_typest dynamic_types;
   mutable memory_mapt memory_map;
@@ -82,6 +83,7 @@ protected:
   void build_memory_map();
   void build_memory_map(const symbolt &symbol);
   mp_integer build_memory_map(const irep_idt &id,const typet &type) const;
+  typet concretise_type(const typet &type) const;
   unsigned get_size(const typet &type) const;
 
   irep_idt get_component_id(const irep_idt &object,unsigned offset);
@@ -89,6 +91,7 @@ protected:
   exprt get_value(const typet &type,unsigned offset=0,bool use_non_det = false);
   exprt get_value(const typet &type,std::vector<mp_integer> &rhs,unsigned offset=0);
   void get_value_tree(const irep_idt& capture_symbol, const input_varst& inputs, function_assignmentst& captured);
+  void get_value_tree(const exprt& capture_expr, const input_varst& inputs, function_assignmentst& captured);
   char is_opaque_function(const goto_programt::instructionst::const_iterator &it,irep_idt &function_id);
 
 
@@ -131,6 +134,7 @@ protected:
   
   call_stackt call_stack;  
   input_varst input_vars;
+  input_var_functionst input_first_assignments;
   list_input_varst function_input_vars;
   
   goto_functionst::function_mapt::const_iterator function;
@@ -165,7 +169,7 @@ protected:
     const exprt &expr,
     std::vector<mp_integer> &dest) const;
   
-  mp_integer evaluate_address(const exprt &expr) const;
+  mp_integer evaluate_address(const exprt &expr, bool fail_quietly=false) const;
   
   void initialise(bool init);
   void show_state();
@@ -184,5 +188,6 @@ protected:
  public:
   input_varst& load_counter_example_inputs(const std::string &filename);
   input_varst& load_counter_example_inputs(const goto_tracet &trace, list_input_varst& opaque_function_returns, const bool filtered=false);
-
+  const input_var_functionst& get_input_first_assignments() { return input_first_assignments; }
+  const dynamic_typest& get_dynamic_types() { return dynamic_types; }
 };
