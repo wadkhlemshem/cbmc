@@ -760,7 +760,7 @@ void goto_convertt::do_java_new_array(
     goto_programt tmp;
 
     symbol_exprt tmp_i=
-      new_tmp_symbol(index_type(), "index", tmp, location).symbol_expr();
+      new_tmp_symbol(rhs.op0().type(), "index", tmp, location).symbol_expr();
 
     code_fort for_loop;
     
