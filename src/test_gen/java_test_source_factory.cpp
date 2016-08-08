@@ -401,6 +401,7 @@ bool is_input_struct(const symbolt &symbol, const symbol_tablet& st,
 {
   const irep_idt& symtype=namespacet(st).follow(symbol.type).id();
   return (symtype==ID_struct||symtype==ID_pointer||symtype==ID_array) &&
+    input_defn_functions.find(symbol.name)!=input_defn_functions.end() &&
     input_defn_functions.at(symbol.name)=="_start";
 }
 
