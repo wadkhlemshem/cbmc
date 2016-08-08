@@ -482,20 +482,20 @@ void reference_factoryt::add_global_state_assignments(std::string &result, const
   }
 }
 
-std::set<irep_idt> get_parameters(const symbolt &func)
+std::vector<irep_idt> get_parameters(const symbolt &func)
 {
-  std::set<irep_idt> result;
+  std::vector<irep_idt> result;
   const code_typet &code_type=to_code_type(func.type);
   const code_typet::parameterst &params=code_type.parameters();
   for (const code_typet::parametert &param : params)
-    result.insert(param.get_identifier());
+    result.push_back(param.get_identifier());
   return result;
 }
 
 bool is_instance_method(const symbol_tablet &st, const irep_idt &func_id)
 {
   const symbolt &func=st.lookup(func_id);
-  const std::set<irep_idt> params(get_parameters(func));
+  const std::vector<irep_idt> params(get_parameters(func));
   if(params.size() > 0)
     for (const irep_idt &param : params)
       {
@@ -510,7 +510,7 @@ bool reference_factoryt::add_func_call_parameters(std::string &result, const sym
     const irep_idt &func_id, inputst &inputs)
 {
   const symbolt &func=st.lookup(func_id);
-  const std::set<irep_idt> params(get_parameters(func));
+  const std::vector<irep_idt> params(get_parameters(func));
   for (const irep_idt &param : params)
   {
     const symbolt &symbol=st.lookup(param);
@@ -553,7 +553,7 @@ void add_func_call(std::string &result, const symbol_tablet &st,
   else
     indent(result, 2u) += symbol_to_function_name(s, instance_method);
   result+='(';
-  const std::set<irep_idt> params(get_parameters(s));
+  const std::vector<irep_idt> params(get_parameters(s));
   unsigned nparams = 0;
   for (const irep_idt &param : params)
   {
