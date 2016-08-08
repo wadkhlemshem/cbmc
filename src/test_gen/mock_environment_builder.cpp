@@ -387,7 +387,7 @@ void mock_environment_builder::add_to_prelude(
       mock_prelude << prelude_newline;
       break;
     case init_statement::SCOPE_CLOSE:
-      mock_prelude << "\b\b";
+      //mock_prelude << "\b\b";
       if(prelude_newline.length()>=3)
         prelude_newline.erase(prelude_newline.length() - 2,2);
       mock_prelude << '}' << prelude_newline;

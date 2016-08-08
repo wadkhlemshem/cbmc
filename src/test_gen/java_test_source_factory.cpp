@@ -802,20 +802,30 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
+      // const namespacet ns(st);
+    const code_typet &t = to_code_type(func.type);
+    const typet ret_type = t.return_type();
+    add_decl_from_type(result, st, ret_type);
+      // std::string type_name;
+      // type2java(type_name, ret_type, ns);
+      // int retval_number = 0;
+    result+= // " " + type_name +
+      " prefix_??? =  ";
+
     if(is_instance_method(st, func_id))
+    {
+      for (const irep_idt &param : get_parameters(st.lookup(func_id)))
       {
-        for (const irep_idt &param : get_parameters(st.lookup(func_id)))
-          {
-            const symbolt &symbol=st.lookup(param);
-            if (symbol.base_name=="this")
-              {
-                const inputst::iterator value=inputs.find(param);
-                const namespacet ns(st);
-                expr2java(result, value->second, ns);
-              }
-          }
-        add_func_call(result,st,func_id,true);
+        const symbolt &symbol=st.lookup(param);
+        if (symbol.base_name=="this")
+        {
+          const inputst::iterator value=inputs.find(param);
+          const namespacet ns(st);
+          expr2java(result, value->second, ns);
+        }
       }
+      add_func_call(result,st,func_id,true);
+    }
     else
       add_func_call(result,st,func_id);
   }
