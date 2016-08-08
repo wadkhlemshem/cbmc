@@ -1052,9 +1052,27 @@ Function: interpretert::build_memory_map
 \*******************************************************************/
 mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type) const
 {
-  if (dynamic_types.find(id)!=dynamic_types.end()) return memory_map[id];
   typet alloc_type=concretise_type(type);
   unsigned size=get_size(alloc_type);
+  std::map<const irep_idt,const typet>::iterator it = dynamic_types.find(id);
+
+  if (it!=dynamic_types.end()) {
+    int offset=1;
+
+    unsigned address = memory_map[id];
+
+    while (memory[address+offset].offset>0) offset++;
+
+    // current size <= size already recorded
+    if(size<=offset) 
+      return memory_map[id];
+
+  }
+
+  // the current size is bigger then the one previously recorded in the memory map
+
+  // TODO: this is a hack to create existence
+  if(size==0) size=1;
 
   if(size!=0)
   {
@@ -1073,7 +1091,7 @@ mp_integer interpretert::build_memory_map(const irep_idt &id,const typet &type) 
     }
     return address;
   }
-  else throw "zero size dynamic object";
+
   return 0;
 }
 
