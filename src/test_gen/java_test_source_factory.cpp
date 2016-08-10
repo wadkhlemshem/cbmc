@@ -72,7 +72,9 @@ public:
                                  std::vector<symbolt>& needed);
   void gather_referenced_symbols(const symbolt& symbol, inputst& in, const symbol_tablet&,
                                  std::vector<symbolt>& needed);
-  
+
+private:
+  std::set<std::string> existing_object_instances;
 };
 
 bool is_array_tag(const irep_idt& tag)
@@ -232,8 +234,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   const irep_idt &id=value.id();
   if (ID_address_of == id) add_value(result, st,
       to_address_of_expr(value).object());
-  else if (ID_struct == id) add_value(result, st, to_struct_expr(value),
-      var_name);
+  else if (ID_struct == id) add_value(result, st, to_struct_expr(value), var_name);
   else if (ID_constant == id && !value.operands().empty()) add_value(result, st,
       value.op0(), var_name);
   else expr2java(result, value, ns);
@@ -342,7 +343,14 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   namespacet ns(st);
   std::string printed_type;
   add_decl_from_type(printed_type, st, symbol.type);
-  if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
+  if(value.id()==ID_struct)
+    existing_object_instances.insert(symbol_name);
+  if(existing_object_instances.find(symbol_name)==existing_object_instances.end())
+  {
+    result += "new " + printed_type;
+    existing_object_instances.insert(symbol_name);
+  }
+  else if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
   {
     result+='(';
     result += printed_type;
