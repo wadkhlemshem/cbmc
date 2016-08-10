@@ -13,6 +13,7 @@
 #include <util/prefix.h>
 
 #include <java_bytecode/expr2java.h>
+#include <java_bytecode/java_types.h>
 
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/mock_environment_builder.h>
@@ -802,20 +803,36 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
+      // const namespacet ns(st);
+    const code_typet &t = to_code_type(func.type);
+    std::ostringstream func_name;
+    func_name << func.name;
+    std::string fname = func_name.str();
+
+    // search begin of return value
+    std::size_t e_pos=fname.rfind(')');
+    typet ret_type =
+        java_type_from_string(std::string(fname, e_pos+1, std::string::npos));
+
+    add_decl_from_type(result, st, ret_type);
+
+    result+= // " " + type_name +
+      " retval = ";
+
     if(is_instance_method(st, func_id))
+    {
+      for (const irep_idt &param : get_parameters(st.lookup(func_id)))
       {
-        for (const irep_idt &param : get_parameters(st.lookup(func_id)))
-          {
-            const symbolt &symbol=st.lookup(param);
-            if (symbol.base_name=="this")
-              {
-                const inputst::iterator value=inputs.find(param);
-                const namespacet ns(st);
-                expr2java(result, value->second, ns);
-              }
-          }
-        add_func_call(result,st,func_id,true);
+        const symbolt &symbol=st.lookup(param);
+        if (symbol.base_name=="this")
+        {
+          const inputst::iterator value=inputs.find(param);
+          const namespacet ns(st);
+          expr2java(result, value->second, ns);
+        }
       }
+      add_func_call(result,st,func_id,true);
+    }
     else
       add_func_call(result,st,func_id);
   }
