@@ -495,7 +495,7 @@ void instrument_cover_goals(
         i_it->source_location.set_function(i_it->function);
       }
       break;
-      
+
     case coverage_criteriont::COVER:
       // turn __CPROVER_cover(x) into 'assert(!x)'
       if(i_it->is_function_call()&&cover_curr_function)
@@ -572,11 +572,11 @@ void instrument_cover_goals(
         t->source_location=source_location;
         t->source_location.set_comment(comment);
         t->source_location.set_property_class("coverage");
-	t->source_location.set_function(i_it->function);
+        t->source_location.set_function(i_it->function);
       }
     
       if(i_it->is_goto() && !i_it->guard.is_true()&&
-	   cover_curr_function)
+        cover_curr_function)
       {
         std::string b=i2string(basic_blocks[i_it]);
         std::string true_comment=
@@ -586,7 +586,7 @@ void instrument_cover_goals(
 
         exprt guard=i_it->guard;
         source_locationt source_location=i_it->source_location;
-	source_location.set_function(i_it->function);
+        source_location.set_function(i_it->function);
 
         goto_program.insert_before_swap(i_it);
         i_it->make_assertion(not_exprt(guard));
