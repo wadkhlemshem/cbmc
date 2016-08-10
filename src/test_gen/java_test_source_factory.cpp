@@ -73,8 +73,6 @@ public:
   void gather_referenced_symbols(const symbolt& symbol, inputst& in, const symbol_tablet&,
                                  std::vector<symbolt>& needed);
 
-private:
-  std::set<std::string> existing_object_instances;
 };
 
 bool is_array_tag(const irep_idt& tag)
@@ -343,13 +341,10 @@ void reference_factoryt::add_assign_value(std::string &result, const symbol_tabl
   namespacet ns(st);
   std::string printed_type;
   add_decl_from_type(printed_type, st, symbol.type);
-  if(value.id()==ID_struct)
-    existing_object_instances.insert(symbol_name);
-  if(existing_object_instances.find(symbol_name)==existing_object_instances.end())
-  {
+  if(value.id()==ID_array)
+    // if value is an array, create new object array instance
+    // elements names are created in add_value below
     result += "new " + printed_type;
-    existing_object_instances.insert(symbol_name);
-  }
   else if(printed_type.size() >= 2 && printed_type.substr(printed_type.size()-2) == "[]")
   {
     result+='(';
