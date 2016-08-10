@@ -41,13 +41,13 @@ Function: interpretert::operator()
 void interpretert::operator()()
 {
   show=true;
-  message->status() << "Initialize:" << messaget::eom;
+  message->status() << "0- Initialize:" << messaget::eom;
   initialise(true);
   try
   {
     std::cout << "Type h for help" << std::endl;
     while(!done) command();
-    message->status() << "Program End." << messaget::endl << messaget::eom;
+    message->status() << total_steps << "- Program End." << messaget::endl << messaget::eom;
   }
   catch (const char *e)
   {
@@ -71,6 +71,7 @@ Function: interpretert::initialise
 void interpretert::initialise(bool init) {
   build_memory_map();
   
+  total_steps=0;
   const goto_functionst::function_mapt::const_iterator
     main_it=goto_functions.function_map.find(goto_functionst::entry_point());
 
@@ -119,9 +120,9 @@ Function: interpretert::show_state
 void interpretert::show_state()
 {
   if(!show) return;
-  message->status() << messaget::endl << messaget::eom;
-  message->status() << "----------------------------------------------------"
-           << messaget::endl << messaget::eom;
+  message->status() << messaget::endl;
+  message->status() << total_steps+1 << " ----------------------------------------------------"
+           << messaget::endl;
 
   if(PC==function->second.body.instructions.end())
   {
@@ -283,6 +284,7 @@ Function: interpretert::step
 
 void interpretert::step()
 {
+  total_steps++;
   if(PC==function->second.body.instructions.end())
   {
     if(call_stack.empty())
@@ -769,7 +771,7 @@ void interpretert::assign(
     {
       memory_cellt &cell=memory[integer2unsigned(address)];
       if(show) {
-        message->status() << "** assigning " << cell.identifier << "["
+        message->status() << total_steps << " ** assigning " << cell.identifier << "["
             << cell.offset << "]:=" << rhs[i] << messaget::endl << messaget::eom;
       }
       cell.value=rhs[i];

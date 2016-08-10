@@ -144,6 +144,7 @@ protected:
   bool show;
   bool stop_on_assertion;
   int num_steps;
+  int total_steps;
   mutable int num_dynamic_objects;
   int stack_depth;
   int thread_id;
