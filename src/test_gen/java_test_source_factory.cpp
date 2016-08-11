@@ -75,6 +75,13 @@ public:
 
 };
 
+void qualified2identifier(std::string &s,
+                          const char search='.',
+                          const char replace='_')
+{
+  std::replace(s.begin(), s.end(), search, replace);
+}
+
 bool is_array_tag(const irep_idt& tag)
 {
   return has_prefix(id2string(tag),"java::array[");
@@ -178,6 +185,7 @@ void type2java(std::string &result, const typet &type, const namespacet &ns)
 {
   expr2cleanjava e2j(ns);
   std::string item=e2j.convert(type);
+  qualified2identifier(item,'$','.');
   result+=item;
 }
   
