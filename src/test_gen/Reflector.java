@@ -3,6 +3,7 @@ package com.diffblue.java_testcase;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -28,7 +29,8 @@ public final class Reflector
 {
   private Reflector() {}
 
-  private static <T> void setInstanceField(Class<T> c, Object o, String fieldName, Object newVal) throws NoSuchFieldException, IllegalArgumentException
+  private static <T> void setInstanceField(Class<T> c, Object o, String fieldName, Object newVal)
+    throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException
   {
     if (c == null) throw new NoSuchFieldException();
     Optional<Field> field = Arrays.stream(c.getDeclaredFields()).filter(f -> f.getName().equals(fieldName)).findAny();
@@ -37,6 +39,12 @@ public final class Reflector
     {
       Field property = field.get();
       property.setAccessible(true);
+
+      // remove final modifier
+      Field modifiersField = Field.class.getDeclaredField("modifiers");
+      modifiersField.setAccessible(true);
+      modifiersField.setInt(property, property.getModifiers() & ~Modifier.FINAL);
+
       try {
         property.set(o, newVal);
       } catch (IllegalAccessException e) {
@@ -56,7 +64,7 @@ public final class Reflector
    * @throws NoSuchFieldException if a field with the specified name is not found.
    * @throws IllegalArgumentException if the specified object is not an instance of the class or interface declaring the underlying field (or a subclass or implementor thereof), or if an unwrapping conversion fails.
    */
-  public static void setInstanceField(Object o, String fieldName, Object newVal) throws NoSuchFieldException, IllegalArgumentException
+  public static void setInstanceField(Object o, String fieldName, Object newVal) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException
   {
     setInstanceField(o.getClass(), o, fieldName, newVal);
   }
