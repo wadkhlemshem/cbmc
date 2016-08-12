@@ -6,6 +6,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.CtBehavior;
+import javassist.CtClass;
+import javassist.CtMethod;
+import javassist.NotFoundException;
+import javassist.bytecode.BadBytecode;
+import javassist.bytecode.SignatureAttribute;
+import javassist.bytecode.SignatureAttribute.MethodSignature;
+
 import org.objenesis.ObjenesisStd;
 
 /**
@@ -59,9 +69,93 @@ public final class Reflector
    * @throws ClassNotFoundException if the class cannot be found in the
    * classpath
    */
-  public static Object forceInstance(String className) throws ClassNotFoundException
+  public static Object forceInstance(String className)
+    throws ClassNotFoundException, NotFoundException,
+    CannotCompileException, InstantiationException, IllegalAccessException,
+    BadBytecode
   {
-    return forceInstance(Class.forName(className));
+    ClassPool pool = ClassPool.getDefault();
+    CtClass c = pool.get(className);
+
+    if(isAbstract(c))
+    {
+      CtClass implementation = pool.makeClass(className + "_implementation");
+      implementation.setSuperclass(c);
+
+      System.out.println("------------------\n");
+
+      // declared methods or only methods ?
+      for(CtMethod m : c.getDeclaredMethods())
+      {
+        if(m.isEmpty())
+        {
+          String methodBody = getDefaultBody(m.getReturnType());
+          String prefix = "param_";
+          int number = 0;
+          boolean first = true;
+          String parameter = "";
+          for(CtClass param : m.getParameterTypes())
+          {
+            if(!first)
+              parameter +=", ";
+            else
+              first = false;
+            parameter += param.getName() + " " + prefix + number;
+            number++;
+          }
+
+          String methodSignature = "public " + m.getReturnType().getName() + " "
+            + m.getName() + "(" + parameter + ")";
+
+          System.out.println("creating:\n" +
+                             methodSignature + methodBody);
+          CtMethod.make(methodSignature + methodBody, implementation);
+        }
+      }
+      int modifiers = implementation.getModifiers();
+      System.out.println("modifiers 0x" + Integer.toHexString(modifiers));
+      return forceInstance(implementation.toClass());
+    }
+    else
+      return forceInstance(Class.forName(className));
+  }
+
+  private static boolean isAbstract(CtClass c)
+  {
+    for(CtMethod m : c.getDeclaredMethods())
+      if(m.isEmpty())
+        return true;
+    return false;
+  }
+
+  private static String getDefaultBody(CtClass returnType)
+    throws CannotCompileException, NotFoundException
+  {
+    if(returnType == CtClass.booleanType)
+      return "{ boolean b; return b;}";
+    else if (returnType == CtClass.byteType)
+      return "{ byte b; return b;}";
+    else if (returnType == CtClass.charType)
+      return "{ char c; return c;}";
+    else if (returnType == CtClass.doubleType)
+      return "{ double d; return d;}";
+    else if (returnType == CtClass.floatType)
+      return "{ float f; return f;}";
+    else if (returnType == CtClass.intType)
+      return "{ int i; return i;}";
+    else if (returnType == CtClass.longType)
+      return "{ long l; return l;}";
+    else if (returnType == CtClass.shortType)
+      return "{ short s; return s;}";
+      // do nothing
+    else if (returnType == CtClass.voidType)
+      return "{ return; }";
+      // return null for all non-atomic types
+    else
+      {
+        System.out.println("ret_type: " + returnType);
+        return "{ return null; }";
+      }
   }
 
   private static Optional<Constructor<?>> getDefaultConstructor(Class<?> c)
@@ -80,6 +174,7 @@ public final class Reflector
   @SuppressWarnings("unchecked")
   public static <T> T forceInstance(Class<T> c)
   {
+
     Optional<Constructor<?>> ctor = getDefaultConstructor(c);
     if (ctor.isPresent())
     {
