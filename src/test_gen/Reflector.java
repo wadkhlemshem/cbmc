@@ -12,6 +12,7 @@ import javassist.ClassPool;
 import javassist.CtBehavior;
 import javassist.CtClass;
 import javassist.CtMethod;
+import javassist.CtConstructor;
 import javassist.NotFoundException;
 import javassist.bytecode.BadBytecode;
 import javassist.bytecode.SignatureAttribute;
@@ -60,13 +61,22 @@ public final class Reflector
    * @param o an <code>Object</code> instance to change
    * @param fieldName a <code>String</code> the name of the field to change
    * @param newVal an <code>Object</code> the new value for the field
-   * 
+   *
    * @throws NoSuchFieldException if a field with the specified name is not found.
    * @throws IllegalArgumentException if the specified object is not an instance of the class or interface declaring the underlying field (or a subclass or implementor thereof), or if an unwrapping conversion fails.
    */
   public static void setInstanceField(Object o, String fieldName, Object newVal) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException
   {
     setInstanceField(o.getClass(), o, fieldName, newVal);
+  }
+
+  public static String removePackageFromName(String className)
+  {
+    int lastSeparator = className.lastIndexOf('.');
+    if(lastSeparator != -1)
+      return className.substring(lastSeparator + 1);
+    else
+      return className;
   }
 
   /**
@@ -85,12 +95,27 @@ public final class Reflector
     ClassPool pool = ClassPool.getDefault();
     CtClass c = pool.get(className);
 
-    if(isAbstract(c))
+    // we consider a class abstract if any method has no body
+    if(isAbstract(c) || c.isInterface())
     {
-      CtClass implementation = pool.makeClass(className + "_implementation");
-      implementation.setSuperclass(c);
+      String packageName = "com.diffblue.test_gen.";
+      String newClassName = packageName + removePackageFromName(className);
 
-      System.out.println("------------------\n");
+      CtClass implementation = pool.makeClass(newClassName + "_implementation");
+
+      if(c.isInterface())
+        implementation.setInterfaces(new CtClass[]{ c });
+      else
+        implementation.setSuperclass(c);
+
+      // look for constructor
+      // create default constructor if none exists
+      if(c.isInterface())
+      {
+        CtConstructor ctor = new CtConstructor(new CtClass[]{ }, implementation);
+        ctor.setBody("{}");
+        implementation.addConstructor(ctor);
+      }
 
       // declared methods or only methods ?
       for(CtMethod m : c.getDeclaredMethods())
@@ -114,14 +139,11 @@ public final class Reflector
 
           String methodSignature = "public " + m.getReturnType().getName() + " "
             + m.getName() + "(" + parameter + ")";
-
-          System.out.println("creating:\n" +
-                             methodSignature + methodBody);
           CtMethod.make(methodSignature + methodBody, implementation);
         }
       }
       int modifiers = implementation.getModifiers();
-      System.out.println("modifiers 0x" + Integer.toHexString(modifiers));
+
       return forceInstance(implementation.toClass());
     }
     else
@@ -160,10 +182,7 @@ public final class Reflector
       return "{ return; }";
       // return null for all non-atomic types
     else
-      {
-        System.out.println("ret_type: " + returnType);
-        return "{ return null; }";
-      }
+      return "{ return null; }";
   }
 
   private static Optional<Constructor<?>> getDefaultConstructor(Class<?> c)
