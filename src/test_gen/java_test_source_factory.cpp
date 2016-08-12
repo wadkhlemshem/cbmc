@@ -181,11 +181,14 @@ void expr2java(std::string &result, const exprt &value, const namespacet &ns)
   result+=item;
 }
 
-void type2java(std::string &result, const typet &type, const namespacet &ns)
+void type2java(std::string &result, const typet &type, const namespacet &ns, bool javaSourceSep=true)
 {
   expr2cleanjava e2j(ns);
   std::string item=e2j.convert(type);
-  qualified2identifier(item,'$','.');
+  // replace '$' in java source code
+  // has to remain for class file loading, e.g., via Reflector
+  if(javaSourceSep)
+    qualified2identifier(item,'$','.');
   result+=item;
 }
   
@@ -322,12 +325,15 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   std::string qualified_class_name;
   type2java(qualified_class_name,type,ns);
 
+  std::string qualified_class_file_name;
+  type2java(qualified_class_file_name,type,ns,false);
+
   std::string instance_expr;
   bool should_mock = mock_classes.count(qualified_class_name);
   if(should_mock)
     instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
   else
-    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_name + "\")";
+    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_file_name + "\")";
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
 
