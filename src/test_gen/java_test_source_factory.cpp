@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
+#include <string>
 
 #include <util/substitute.h>
 #include <util/std_types.h>
@@ -181,13 +182,25 @@ void expr2java(std::string &result, const exprt &value, const namespacet &ns)
   result+=item;
 }
 
+// true if type is anonymous, i.e., declared within a class and ends on
+// "$NUMBER"
+bool is_anonymous_type(std::string &typeName)
+{
+  size_t index = typeName.find('$');
+  if(index==std::string::npos)
+    return false;
+
+  return (typeName.substr(index + 1, std::string::npos)
+          .find_first_not_of("0123456789")==std::string::npos);
+}
+
 void type2java(std::string &result, const typet &type, const namespacet &ns, bool javaSourceSep=true)
 {
   expr2cleanjava e2j(ns);
   std::string item=e2j.convert(type);
   // replace '$' in java source code
   // has to remain for class file loading, e.g., via Reflector
-  if(javaSourceSep)
+  if(javaSourceSep && !is_anonymous_type(item))
     qualified2identifier(item,'$','.');
   result+=item;
 }
