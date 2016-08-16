@@ -11,8 +11,9 @@ import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtBehavior;
 import javassist.CtClass;
-import javassist.CtMethod;
 import javassist.CtConstructor;
+import javassist.CtMethod;
+import javassist.CtNewMethod;
 import javassist.NotFoundException;
 import javassist.bytecode.BadBytecode;
 import javassist.bytecode.SignatureAttribute;
@@ -87,7 +88,7 @@ public final class Reflector
    * @throws ClassNotFoundException if the class cannot be found in the
    * classpath
    */
-  public static Object forceInstance(String className)
+  public static <T> Object forceInstance(String className)
     throws ClassNotFoundException, NotFoundException,
     CannotCompileException, InstantiationException, IllegalAccessException,
     BadBytecode
@@ -110,79 +111,56 @@ public final class Reflector
 
       // look for constructor
       // create default constructor if none exists
-      if(c.isInterface())
+      boolean foundDefault = false;
+      if(!c.isInterface())
+        for(CtConstructor ctor : c.getConstructors())
+          if(ctor.getParameterTypes().length == 0 &&
+             (ctor.getModifiers() & javassist.Modifier.ABSTRACT) == 0 &&
+             !ctor.isEmpty())
+            {
+              foundDefault = true;
+              break;
+            }
+      if(!foundDefault)
       {
-        CtConstructor ctor = new CtConstructor(new CtClass[]{ }, implementation);
-        ctor.setBody("{}");
-        implementation.addConstructor(ctor);
+        CtConstructor newCtor = new CtConstructor(new CtClass[]{ }, implementation);
+        newCtor.setBody("{}");
+        implementation.addConstructor(newCtor);
       }
 
       // declared methods or only methods ?
       for(CtMethod m : c.getDeclaredMethods())
       {
-        if(m.isEmpty())
+        if(isAbstract(m))
         {
-          String methodBody = getDefaultBody(m.getReturnType());
-          String prefix = "param_";
-          int number = 0;
-          boolean first = true;
-          String parameter = "";
-          for(CtClass param : m.getParameterTypes())
-          {
-            if(!first)
-              parameter +=", ";
-            else
-              first = false;
-            parameter += param.getName() + " " + prefix + number;
-            number++;
-          }
-
-          String methodSignature = "public " + m.getReturnType().getName() + " "
-            + m.getName() + "(" + parameter + ")";
-          CtMethod.make(methodSignature + methodBody, implementation);
+          CtMethod method = CtNewMethod.make(javassist.Modifier.PUBLIC,
+                                             m.getReturnType(),
+                                             m.getName(),
+                                             m.getParameterTypes(),
+                                             m.getExceptionTypes(),
+                                             null,
+                                             implementation);
+          implementation.addMethod(method);
         }
       }
-      int modifiers = implementation.getModifiers();
-
-      return forceInstance(implementation.toClass());
+      Class<?> ic = pool.toClass(implementation);
+      return forceInstance(ic);
     }
     else
       return forceInstance(Class.forName(className));
   }
 
+  private static boolean isAbstract(CtMethod m)
+  {
+    return ((m.getModifiers() & javassist.Modifier.ABSTRACT) != 0);
+  }
+
   private static boolean isAbstract(CtClass c)
   {
     for(CtMethod m : c.getDeclaredMethods())
-      if(m.isEmpty())
+      if(isAbstract(m))
         return true;
     return false;
-  }
-
-  private static String getDefaultBody(CtClass returnType)
-    throws CannotCompileException, NotFoundException
-  {
-    if(returnType == CtClass.booleanType)
-      return "{ boolean b; return b;}";
-    else if (returnType == CtClass.byteType)
-      return "{ byte b; return b;}";
-    else if (returnType == CtClass.charType)
-      return "{ char c; return c;}";
-    else if (returnType == CtClass.doubleType)
-      return "{ double d; return d;}";
-    else if (returnType == CtClass.floatType)
-      return "{ float f; return f;}";
-    else if (returnType == CtClass.intType)
-      return "{ int i; return i;}";
-    else if (returnType == CtClass.longType)
-      return "{ long l; return l;}";
-    else if (returnType == CtClass.shortType)
-      return "{ short s; return s;}";
-      // do nothing
-    else if (returnType == CtClass.voidType)
-      return "{ return; }";
-      // return null for all non-atomic types
-    else
-      return "{ return null; }";
   }
 
   private static Optional<Constructor<?>> getDefaultConstructor(Class<?> c)
