@@ -412,7 +412,7 @@ Function: arith_left_shift
 mp_integer arith_left_shift(const mp_integer &a, const mp_integer &b,unsigned true_size)
 {
   ullong_t shift=b.to_ulong();
-  if (shift>true_size) throw "shift value out of range"; 
+  if (shift>true_size && a!=mp_zero) throw "shift value out of range";
   ullong_t result=a.to_ulong()<<shift;
   return result;
 }
@@ -434,7 +434,7 @@ mp_integer arith_right_shift(const mp_integer &a, const mp_integer &b,unsigned t
 {
   ullong_t number=a.to_ulong();
   ullong_t shift=b.to_ulong();
-  if (shift>true_size) throw "shift value out of range"; 
+  if (shift>true_size) throw "shift value out of range";
   ullong_t sign=(1<<(true_size-1))&number;
   ullong_t pad=(sign==0) ? 0 : ~(1<<(true_size-shift)-1);
   ullong_t result=(number>>shift)|pad;
@@ -457,7 +457,7 @@ Function: logic_left_shift
 mp_integer logic_left_shift(const mp_integer &a, const mp_integer &b,unsigned true_size)
 {
   ullong_t shift=b.to_ulong();
-  if (shift>true_size) throw "shift value out of range"; 
+  if (shift>true_size && a!=mp_zero) throw "shift value out of range";
   ullong_t result=a.to_ulong()<<shift;
   return result;
 }
