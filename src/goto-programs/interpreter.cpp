@@ -1775,7 +1775,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 
   irep_idt previous_assigned_symbol;
  
-  initialise(true);
+  initialise(false);
 
   // First walk the trace forwards to initialise variable-length arrays
   // whose size-expressions depend on context (e.g. int x = 5; int[] y = new int[x];)
