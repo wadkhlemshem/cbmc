@@ -349,6 +349,13 @@ void gen_nondet_array_init(const exprt &expr,
 
   init_code.move_to_operands(done_test);
 
+  // Add a redundant if(counter == max_length) break that is easier for the unwinder to understand.
+  code_ifthenelset max_test;
+  max_test.cond()=equal_exprt(counter_expr,max_length_expr);
+  max_test.then_case()=goto_done;
+
+  init_code.move_to_operands(max_test);
+
   exprt arraycellref=dereference_exprt(
     plus_exprt(array_init_symexpr,counter_expr,array_init_symexpr.type()),
     array_init_symexpr.type().subtype());
