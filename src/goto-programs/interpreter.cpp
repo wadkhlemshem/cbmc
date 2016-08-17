@@ -1847,6 +1847,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	
       } // End switch on stub type
 
+      previous_assigned_symbol=irep_idt();
+
     } // End if-is-function-call
     else if(is_assign_step(*it))
     {
@@ -1879,6 +1881,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       previous_assigned_symbol=id;
       
     }
+    else
+    {
+      previous_assigned_symbol=irep_idt();
+    }
+
   }
 
   assert(trace_eval_iter==trace_eval.rend() &&
