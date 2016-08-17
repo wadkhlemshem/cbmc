@@ -1881,7 +1881,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       previous_assigned_symbol=id;
       
     }
-    else
+    else if(!it->is_function_return())
     {
       previous_assigned_symbol=irep_idt();
     }
