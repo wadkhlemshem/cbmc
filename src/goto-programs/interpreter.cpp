@@ -1751,6 +1751,36 @@ static bool is_assign_step(const goto_trace_stept& step)
         || step.pc->is_function_call());
 }
 
+static bool is_constructor_call(const goto_trace_stept& step,
+				const symbol_tablet& st)
+{
+  const auto& call=to_code_function_call(step.pc->code);
+  auto callee_type=st.lookup(call.function().get(ID_identifier)).type;
+  return callee_type.get_bool(ID_constructor);
+}
+
+static goto_tracet::stepst::const_reverse_iterator
+find_super_constructor_call(goto_tracet::stepst::const_reverse_iterator it,
+			    const goto_tracet::stepst::const_reverse_iterator& itend,
+			    const symbol_tablet& st)
+{
+  auto this_step=*it;
+  if(!is_constructor_call(this_step,st))
+    return itend;
+
+  // Find out if this is the first call our parent makes,
+  // the signature of a super-constructor call.
+  for(++it; it!=itend && (!it->is_function_return()) && (!it->is_function_call()); ++it)
+  { }
+
+  if(it==itend || it->is_function_return())
+    return itend;
+  if(!is_constructor_call(*it,st))
+    return itend;
+
+  return it;
+}
+
 /*******************************************************************
  Function: load_counter_example_inputs
 
@@ -1841,7 +1871,29 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	  function_assignmentst defined;
 	  get_value_tree(capture_symbol,inputs,defined);
 	  if(defined.size()!=0) // Definition found?
+	  {
+	    while(it!=trace.steps.rend())
+	    {
+	      // If a superclass constructor was opaque, attribute the constructed
+	      // object to the outermost constructor, thus matching the actual type
+	      // of the dynamic object constructed.
+	      auto parent_constructor_it=find_super_constructor_call(it,trace.steps.rend(),
+								     symbol_table);
+	      if(parent_constructor_it!=trace.steps.rend())
+	      {
+		// Skip forwards in the trace -- there should only be parameter
+		// assignments and declarations between the two call entry trace items.
+		for(auto it2=it; it2!=parent_constructor_it; ++it2)
+		  if(is_assign_step(*it2))
+		    ++trace_eval_iter;
+		it=parent_constructor_it;
+		called=to_code_function_call(it->pc->code).function().get(ID_identifier);
+	      }
+	      else
+		break;
+	    }
 	    function_inputs[called].push_front({ it->pc->function,defined });
+	  }
 	  break;
 	}
 	

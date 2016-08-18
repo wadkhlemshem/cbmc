@@ -433,6 +433,8 @@ void java_bytecode_convert_methodt::convert(
                               id2string(method.get_base_name())+"()";
 
   method_symbol.type=member_type;
+  if(is_contructor(method))
+    method_symbol.type.set(ID_constructor,true);
   current_method=method_symbol.name;
   method_has_this=code_type.has_this();
 
