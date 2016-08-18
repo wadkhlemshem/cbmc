@@ -160,13 +160,7 @@ bool interpretert::extract_member_at(
       offset-=elem_size;
     }
   }
-  else if(source_type.id()==ID_signedbv ||
-          source_type.id()==ID_unsignedbv ||
-          source_type.id()==ID_fixedbv ||
-          source_type.id()==ID_floatbv ||
-          source_type.id()==ID_bv ||
-          source_type.id()==ID_c_bool ||
-          source_type.id()==ID_pointer)
+  else
   {
     if(return_this)
     {
@@ -174,9 +168,6 @@ bool interpretert::extract_member_at(
       dest.push_back(*source_iter);
     }
     ++source_iter;
-  }
-  else {
-    return false;
   }
 
   return true;
@@ -713,6 +704,8 @@ void interpretert::evaluate(
     {
       result=compute_pointer_offset(symbolic_ptr.op0(),ns);
     }
+    else if(symbolic_ptr.id()==ID_symbol)
+      result=0;
     else if(symbolic_ptr.id()==ID_plus)
     {
       // TODO: factor this into compute_pointer_offset?
