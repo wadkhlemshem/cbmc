@@ -281,12 +281,14 @@ bool value_set_dereferencet::dereference_type_compare(
       return true; // ok, dt is a prefix of ot
   }
 
+#if 0
   if(ot_base.id()==ID_struct)
   {
     const auto& otcomp = to_struct_type(ot_base).components();
     if(otcomp.size()!=0 && dereference_type_compare(otcomp[0].type(),dereference_type))
       return true; // dt is a prefix (specifically the first field) of ot
   }
+#endif
   
   // we are generous about code pointers
   if(dereference_type.id()==ID_code &&
