@@ -136,7 +136,7 @@ bool interpretert::extract_member_at(
     const auto& st=to_struct_type(source_type);
     const struct_typet::componentst &components=st.components();
     member_offset_iterator offsets(st,ns);
-    while(offsets->second!=-1 && offsets->second<=offset)
+    while(offsets->first<components.size() && offsets->second!=-1 && offsets->second<=offset)
     {
       if(!extract_member_at(source_iter,source_end,components[offsets->first].type(),
                             offset-offsets->second,target_type,dest,return_this))
