@@ -1661,20 +1661,18 @@ static symbol_exprt get_assigned_symbol(const goto_trace_stept& step)
 
  \*******************************************************************/
 
-enum calls_opaque_stub_ret { NOT_OPAQUE_STUB, SIMPLE_OPAQUE_STUB, COMPLEX_OPAQUE_STUB };
 
-calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst,
+
+bool calls_opaque_stub(const code_function_callt& callinst,
   const symbol_tablet& symbol_table, irep_idt& f_id, irep_idt& capture_symbol)
 {
   f_id=callinst.function().get(ID_identifier);
   const symbolt& called_func=symbol_table.lookup(f_id);
   capture_symbol=called_func.type.get("opaque_method_capture_symbol");
   if(capture_symbol!=irep_idt())
-    return COMPLEX_OPAQUE_STUB;
-  else if(called_func.value.id()==ID_nil)
-    return SIMPLE_OPAQUE_STUB;
+    return true;
   else
-    return NOT_OPAQUE_STUB;
+    return false;
 }
 
 /*******************************************************************
@@ -1708,16 +1706,19 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
   {
     get_value_tree(defined,captured);
   }
-  else
+  else if(defined.type().id()==ID_struct ||
+	  defined.type().id()==ID_array)
   {
-    assert(defined.type().id()==ID_struct ||
-           defined.type().id()==ID_array);
     // Assumption: all object trees captured this way refer directly to particular
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
     forall_operands(opit, defined) {
       if(opit->type().id()==ID_pointer)
         get_value_tree(*opit,captured);
     }
+  }
+  else
+  {
+    // Primitive, just capture this.
   }
 
   captured.push_back({capture_symbol, defined});
@@ -1846,46 +1847,31 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       auto is_stub = calls_opaque_stub(to_code_function_call(step.pc->code),
 				       symbol_table,called,capture_symbol);
       trace_stack.push_back(std::make_pair(called,irep_idt()));
-      switch(is_stub)
+      if(!is_stub)
       {
-      case NOT_OPAQUE_STUB:
+	if(is_constructor_call(step,symbol_table))
 	{
-	  if(is_constructor_call(step,symbol_table))
-	  {
-	    if(outermost_constructor_depth==-1)
-	      outermost_constructor_depth=trace_stack.size()-1;
-	  }
-	  else
-	    outermost_constructor_depth=-1;
-	  break;
+	  if(outermost_constructor_depth==-1)
+	    outermost_constructor_depth=trace_stack.size()-1;
 	}
-      case SIMPLE_OPAQUE_STUB:
-	{
-	  // Simple opaque function that returns a primitive. The assignment after
-	  // this will have given the value assigned to its return nondet.
-	  capture_next_assignment_id=called;
+	else
 	  outermost_constructor_depth=-1;
-	  break;
-	}
-      case COMPLEX_OPAQUE_STUB:
+      }
+      else
+      {
+	// Capture the value of capture_symbol instead of whatever happened
+	// to have been defined most recently. Also capture any other referenced objects.
+	// Capture after the stub finishes, or in the particular case of a constructor
+	// that makes opaque super-calls, after the outermost constructor finishes.
+	if(is_constructor_call(step,symbol_table) && outermost_constructor_depth!=-1)
 	{
-	  // Complex stub: capture the value of capture_symbol instead of whatever happened
-	  // to have been defined most recently. Also capture any other referenced objects.
-	  // Capture after the stub finishes, or in the particular case of a constructor
-	  // that makes opaque super-calls, after the outermost constructor finishes.
-	  if(is_constructor_call(step,symbol_table) && outermost_constructor_depth!=-1)
-	  {
-	    assert(outermost_constructor_depth < trace_stack.size());
-	    trace_stack[outermost_constructor_depth].second=capture_symbol;
-	  }
-	  else
-	    trace_stack.back().second=capture_symbol;
-	  outermost_constructor_depth=-1;
-	  break;
+	  assert(outermost_constructor_depth < trace_stack.size());
+	  trace_stack[outermost_constructor_depth].second=capture_symbol;
 	}
-	
-      } // End switch on stub type
-
+	else
+	  trace_stack.back().second=capture_symbol;
+	outermost_constructor_depth=-1;
+      }
     }
     else if(step.is_function_return())
     {

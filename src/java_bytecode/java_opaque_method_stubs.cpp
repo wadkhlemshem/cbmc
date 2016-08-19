@@ -105,8 +105,8 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     const auto &needed=required_type.return_type();
     if(needed.id()!=ID_pointer)
     {
-      // Returning a primitive -- no point generating a stub.
-      return;
+      // Simple primitive stub:
+      
     }
   }
 
@@ -131,9 +131,14 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     auto &toreturn_symbol=new_tmp_symbol(symbol_table,"to_return");
     toreturn_symbol.type=required_type.return_type();
     auto toreturn_symexpr=toreturn_symbol.symbol_expr();
-    insert_nondet_opaque_fields_at(
-        required_type.return_type(),toreturn_symexpr,symbol_table,
-        &new_instructions,0,false,assume_non_null);
+    if(toreturn_symbol.type.id()!=ID_pointer)
+    {
+      gen_nondet_init(toreturn_symexpr,new_instructions,symbol_table,false,false);
+    }
+    else
+      insert_nondet_opaque_fields_at(
+	required_type.return_type(),toreturn_symexpr,symbol_table,
+	&new_instructions,0,false,assume_non_null);
     new_instructions.copy_to_operands(code_returnt(toreturn_symexpr));
     sym.type.set("opaque_method_capture_symbol",toreturn_symbol.name);
   }

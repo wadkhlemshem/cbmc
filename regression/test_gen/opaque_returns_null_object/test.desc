@@ -4,4 +4,4 @@ TestGenTest.class
 ^EXIT=0$
 ^SIGNAL=0$
 ^.*Reflector\.setInstanceField(dynamic_object.,"x",2).*$
-^.*to_return$1=null.*$
+^.*to_return$.=null.*$
