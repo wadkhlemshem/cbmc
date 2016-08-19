@@ -54,6 +54,7 @@ class optionst;
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(graphml-cex):" \
   "(gen-java-test-case)(java-assume-inputs-non-null)(java-disable-mocks)"\
+  "(java-max-input-array-length):"\
   "(floatbv)(all-claims)(all-properties)(decide)" // legacy, and will eventually disappear
 
 class cbmc_parse_optionst:

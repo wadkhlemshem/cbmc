@@ -433,11 +433,14 @@ void java_bytecode_convert_methodt::convert(
                               id2string(method.get_base_name())+"()";
 
   method_symbol.type=member_type;
+  if(is_contructor(method))
+    method_symbol.type.set(ID_constructor,true);
   current_method=method_symbol.name;
   method_has_this=code_type.has_this();
 
   tmp_vars.clear();
-  method_symbol.value=convert_instructions(m.instructions, code_type);
+  if(!m.is_abstract)
+    method_symbol.value=convert_instructions(m.instructions, code_type);
 
   // do we have the method symbol already?
   const auto s_it=symbol_table.symbols.find(method.get_name());
@@ -722,11 +725,18 @@ codet java_bytecode_convert_methodt::convert_instructions(
         if(parameters.empty() || !parameters[0].get_this())
         {
 	  typet thistype = empty_typet();
-	  if(statement == "invokespecial") {
-	    // Constructor -- infer the "this" type must match the type implied by the name.
-	    irep_idt classname = arg0.get(ID_C_class);
-	    thistype = symbol_typet(classname);
-	    code_type.set(ID_constructor, true);
+	  // Note invokespecial is used for super-method calls as well as constructors.
+	  if(statement=="invokespecial")
+	  {
+	    if(as_string(arg0.get(ID_identifier)).find("<init>")!=std::string::npos)
+	    {
+	      // Constructor -- infer the "this" type must match the type implied by the name.
+	      irep_idt classname = arg0.get(ID_C_class);
+	      thistype = symbol_typet(classname);
+	      code_type.set(ID_constructor, true);
+	    }
+	    else
+	      code_type.set("java_super_method_call", true);
 	  }
           pointer_typet object_ref_type(thistype);
           code_typet::parametert this_p(object_ref_type);

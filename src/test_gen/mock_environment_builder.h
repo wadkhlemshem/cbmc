@@ -99,7 +99,14 @@ class mock_environment_builder {
   std::unordered_map<method_signature,instance_method_answer> instance_method_answers;
 
   // Build up a set of classes that need PowerMock setup (those whose constructors and/or static methods we need to intercept)
-  std::set<std::string> powermock_classes;  // Accumulate mock object setup statements that will precede the test case entry point
+  std::set<std::string> powermock_classes;
+
+  // Track classes that have already had mockStatic executed:
+  std::set<std::string> static_mocked_classes;
+
+  // List of instance methods with known bodies:
+  std::vector<struct method_signature> elaborated_instance_methods;
+
   std::ostringstream mock_prelude;
 
   // Newline character plus indenting for the prelude:
@@ -135,6 +142,12 @@ class mock_environment_builder {
   
   // Return the mock setup code that should directly precede the test entry point.
   std::string get_mock_prelude() { return mock_prelude.str(); }
+
+  void note_elaborated_instance_method(const std::string& cn,
+				       const std::string& mn,
+				       const std::vector<java_type>& ats) {
+    elaborated_instance_methods.push_back(method_signature(cn,mn,ats));
+  }
   
 };
 

@@ -136,7 +136,7 @@ bool interpretert::extract_member_at(
     const auto& st=to_struct_type(source_type);
     const struct_typet::componentst &components=st.components();
     member_offset_iterator offsets(st,ns);
-    while(offsets->second!=-1 && offsets->second<=offset)
+    while(offsets->first<components.size() && offsets->second!=-1 && offsets->second<=offset)
     {
       if(!extract_member_at(source_iter,source_end,components[offsets->first].type(),
                             offset-offsets->second,target_type,dest,return_this))
@@ -160,13 +160,7 @@ bool interpretert::extract_member_at(
       offset-=elem_size;
     }
   }
-  else if(source_type.id()==ID_signedbv ||
-          source_type.id()==ID_unsignedbv ||
-          source_type.id()==ID_fixedbv ||
-          source_type.id()==ID_floatbv ||
-          source_type.id()==ID_bv ||
-          source_type.id()==ID_c_bool ||
-          source_type.id()==ID_pointer)
+  else
   {
     if(return_this)
     {
@@ -174,9 +168,6 @@ bool interpretert::extract_member_at(
       dest.push_back(*source_iter);
     }
     ++source_iter;
-  }
-  else {
-    return false;
   }
 
   return true;
@@ -713,6 +704,8 @@ void interpretert::evaluate(
     {
       result=compute_pointer_offset(symbolic_ptr.op0(),ns);
     }
+    else if(symbolic_ptr.id()==ID_symbol)
+      result=0;
     else if(symbolic_ptr.id()==ID_plus)
     {
       // TODO: factor this into compute_pointer_offset?

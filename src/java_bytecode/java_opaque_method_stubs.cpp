@@ -7,87 +7,19 @@
 #include <util/prefix.h>
 
 #include "java_object_factory.h"
+#include "java_pointer_casts.h"
 
 namespace
 { // Anon namespace for insert-nondet support functions
-
-exprt clean_deref(const exprt ptr)
-{
-
-  return ptr.id()==ID_address_of
-             ? ptr.op0()
-             : dereference_exprt(ptr,ptr.type().subtype());
-}
-
-bool find_superclass_with_type(exprt &ptr,const typet &target_type,
-                               const namespacet &ns)
-{
-
-  while(true)
-  {
-
-    const typet ptr_base=ns.follow(ptr.type().subtype());
-
-    if(ptr_base.id()!=ID_struct)
-      return false;
-
-    const struct_typet &base_struct=to_struct_type(ptr_base);
-
-    if(base_struct.components().size()==0)
-      return false;
-
-    const typet &first_field_type=
-        ns.follow(base_struct.components()[0].type());
-    ptr=clean_deref(ptr);
-    ptr=member_exprt(ptr,base_struct.components()[0].get_name(),
-                      first_field_type);
-    ptr=address_of_exprt(ptr);
-
-    if(first_field_type==target_type)
-      return true;
-  }
-}
-
-exprt make_clean_pointer_cast(const exprt ptr,const typet &target_type,
-                              const namespacet &ns)
-{
-
-  assert(target_type.id()==ID_pointer &&
-         "Non-pointer target in make_clean_pointer_cast?");
-
-  if(ptr.type()==target_type)
-    return ptr;
-
-  const typet &target_base=ns.follow(target_type.subtype());
-
-  exprt bare_ptr=ptr;
-  while(bare_ptr.id()==ID_typecast)
-  {
-    assert(bare_ptr.type().id()==ID_pointer &&
-           "Non-pointer in make_clean_pointer_cast?");
-    if(bare_ptr.type().subtype()==empty_typet())
-      bare_ptr=bare_ptr.op0();
-  }
-
-  assert(bare_ptr.type().id()==ID_pointer &&
-         "Non-pointer in make_clean_pointer_cast?");
-
-  if(bare_ptr.type()==target_type)
-    return bare_ptr;
-
-  exprt superclass_ptr=bare_ptr;
-  if(find_superclass_with_type(superclass_ptr,target_base,ns))
-    return superclass_ptr;
-
-  return typecast_exprt(bare_ptr,target_type);
-}
 
 void insert_nondet_opaque_fields_at(const typet &expected_type,
                                     const exprt &ptr,
                                     symbol_tablet &symbol_table,
                                     code_blockt *parent_block,
                                     unsigned insert_before_index,
-                                    bool is_constructor,bool assume_non_null)
+                                    bool is_constructor,
+				    bool assume_non_null,
+				    int max_nondet_array_length)
 {
 
   // At this point we know 'ptr' points to an opaque-typed object. We should
@@ -115,7 +47,8 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
   if(is_constructor)
     to_init=dereference_exprt(to_init,expected_base);
 
-  gen_nondet_init(to_init,new_instructions,symbol_table,false,true);
+  gen_nondet_init(to_init,new_instructions,symbol_table,false,true,
+		  assume_non_null,max_nondet_array_length);
 
   if(new_instructions.operands().size()!=0)
   {
@@ -161,7 +94,7 @@ void assign_parameter_names(code_typet &ftype,const irep_idt &name_prefix,
 
 void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
                                  code_blockt *parent,unsigned parent_index,
-                                 bool assume_non_null)
+                                 bool assume_non_null,int max_nondet_array_length)
 {
 
   code_blockt new_instructions;
@@ -175,8 +108,8 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     const auto &needed=required_type.return_type();
     if(needed.id()!=ID_pointer)
     {
-      // Returning a primitive -- no point generating a stub.
-      return;
+      // Simple primitive stub:
+      
     }
   }
 
@@ -193,7 +126,8 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
         code_assignt(init_symexpr,symbol_exprt(thisarg.get_identifier()));
     new_instructions.copy_to_operands(getarg);
     insert_nondet_opaque_fields_at(thistype,init_symexpr,symbol_table,
-                                   &new_instructions,1,true,assume_non_null);
+                                   &new_instructions,1,true,assume_non_null,
+				   max_nondet_array_length);
     sym.type.set("opaque_method_capture_symbol",init_symbol.name);
   }
   else
@@ -201,9 +135,14 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     auto &toreturn_symbol=new_tmp_symbol(symbol_table,"to_return");
     toreturn_symbol.type=required_type.return_type();
     auto toreturn_symexpr=toreturn_symbol.symbol_expr();
-    insert_nondet_opaque_fields_at(
-        required_type.return_type(),toreturn_symexpr,symbol_table,
-        &new_instructions,0,false,assume_non_null);
+    if(toreturn_symbol.type.id()!=ID_pointer)
+    {
+      gen_nondet_init(toreturn_symexpr,new_instructions,symbol_table,false,false);
+    }
+    else
+      insert_nondet_opaque_fields_at(
+	required_type.return_type(),toreturn_symexpr,symbol_table,
+	&new_instructions,0,false,assume_non_null,max_nondet_array_length);
     new_instructions.copy_to_operands(code_returnt(toreturn_symexpr));
     sym.type.set("opaque_method_capture_symbol",toreturn_symbol.name);
   }
@@ -212,7 +151,7 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
 }
 
 void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
-                                 bool assume_non_null)
+                                 bool assume_non_null, int max_nondet_array_length)
 {
 
   if(sym.is_type)
@@ -222,13 +161,14 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
   if(sym.type.id()!=ID_code)
     return;
 
-  insert_nondet_opaque_fields(sym,symbol_table,0,0,assume_non_null);
+  insert_nondet_opaque_fields(sym,symbol_table,0,0,assume_non_null,max_nondet_array_length);
 }
 
 } // End anon namespace for insert-nondet support functions
 
 void java_generate_opaque_method_stubs(symbol_tablet &symbol_table,
-                                       bool assume_non_null)
+                                       bool assume_non_null,
+				       int max_nondet_array_length)
 {
 
   std::vector<irep_idt>identifiers;
@@ -237,5 +177,5 @@ void java_generate_opaque_method_stubs(symbol_tablet &symbol_table,
 
   for(auto &id : identifiers)
     insert_nondet_opaque_fields(symbol_table.symbols[id],symbol_table,
-                                assume_non_null);
+                                assume_non_null, max_nondet_array_length);
 }

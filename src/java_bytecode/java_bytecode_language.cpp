@@ -10,6 +10,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/suffix.h>
 #include <util/config.h>
 #include <util/cmdline.h>
+#include <util/string2int.h>
 
 #include "java_bytecode_language.h"
 #include "java_bytecode_convert_class.h"
@@ -37,6 +38,8 @@ Function: java_bytecode_languaget::get_language_options
 void java_bytecode_languaget::get_language_options(const cmdlinet& cmd)
 {
   assume_inputs_non_null=cmd.isset("java-assume-inputs-non-null");
+  if(cmd.isset("java-max-input-array-length"))
+    max_nondet_array_length=safe_string2int(cmd.get_value("java-max-input-array-length"));
 }
 
 /*******************************************************************\
@@ -222,9 +225,11 @@ bool java_bytecode_languaget::final(symbol_tablet &symbol_table)
   */
   java_internal_additions(symbol_table);
 
-  java_generate_opaque_method_stubs(symbol_table,assume_inputs_non_null);
+  java_generate_opaque_method_stubs(symbol_table,assume_inputs_non_null,
+				    max_nondet_array_length);
 
-  if(java_entry_point(symbol_table,main_class,get_message_handler(),assume_inputs_non_null))
+  if(java_entry_point(symbol_table,main_class,get_message_handler(),
+		      assume_inputs_non_null,max_nondet_array_length))
     return true;
   
   return false;
