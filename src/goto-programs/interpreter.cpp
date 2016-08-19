@@ -25,6 +25,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "interpreter.h"
 #include "interpreter_class.h"
+#include "remove_returns.h"
 
 /*******************************************************************\
 
@@ -1757,6 +1758,15 @@ static bool is_constructor_call(const goto_trace_stept& step,
   return callee_type.get_bool(ID_constructor);
 }
 
+static bool is_super_call(const goto_trace_stept& step,
+			  const symbol_tablet& st)
+{
+  const auto& call=to_code_function_call(step.pc->code);
+  const auto& id=call.function().get(ID_identifier);
+  auto callee_type=st.lookup(id).type;
+  return callee_type.get_bool("java_super_method_call");
+}
+
 exprt interpretert::get_value(const irep_idt& id)
 {
   // The dynamic type and the static symbol type may differ for VLAs,
@@ -1808,8 +1818,12 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   // creeps in that needs the current value of local 'i') will be evaluated correctly.
 
   std::vector<std::pair<mp_integer, std::vector<mp_integer> > > trace_eval;
-  // Holds pairs of function names, and the symbol name to capture on exiting if any.
-  std::vector<std::pair<irep_idt, irep_idt> > trace_stack;
+  struct trace_stack_entry {
+    irep_idt func_name;
+    irep_idt capture_symbol;
+    bool is_super_call;
+  };
+  std::vector<trace_stack_entry> trace_stack;
   int outermost_constructor_depth=-1;
   irep_idt capture_next_assignment_id;
 
@@ -1846,7 +1860,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       irep_idt called, capture_symbol;      
       auto is_stub = calls_opaque_stub(to_code_function_call(step.pc->code),
 				       symbol_table,called,capture_symbol);
-      trace_stack.push_back(std::make_pair(called,irep_idt()));
+      trace_stack.push_back({called,irep_idt(),is_super_call(step,symbol_table)});
       if(!is_stub)
       {
 	if(is_constructor_call(step,symbol_table))
@@ -1866,10 +1880,22 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	if(is_constructor_call(step,symbol_table) && outermost_constructor_depth!=-1)
 	{
 	  assert(outermost_constructor_depth < trace_stack.size());
-	  trace_stack[outermost_constructor_depth].second=capture_symbol;
+	  trace_stack[outermost_constructor_depth].capture_symbol=capture_symbol;
+	}
+	else if(trace_stack.back().is_super_call)
+	{
+	  // When a method calls the overridden method, capture the return value of
+	  // the child method, as replacing the supercall is tricky using mocking tools.
+	  // We could also consider generating a new method that can be stubbed.
+	  auto findit=trace_stack.rbegin();
+	  while(findit!=trace_stack.rend() && findit->is_super_call)
+	    ++findit;
+	  assert(findit!=trace_stack.rend());
+	  assert(findit->capture_symbol==irep_idt() && "Stub somehow called a super-method?");
+	  findit->capture_symbol=as_string(findit->func_name)+RETURN_VALUE_SUFFIX;
 	}
 	else
-	  trace_stack.back().second=capture_symbol;
+	  trace_stack.back().capture_symbol=capture_symbol;
 	outermost_constructor_depth=-1;
       }
     }
@@ -1878,17 +1904,17 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       outermost_constructor_depth=-1;
       assert(trace_stack.size()!=0);
       const auto& ret_func=trace_stack.back();
-      if(ret_func.second!=irep_idt())
+      if(ret_func.capture_symbol!=irep_idt())
       {
 	// We must record the value of stub_capture_symbol now.
 	function_assignmentst defined;
-	get_value_tree(ret_func.second,defined);
+	get_value_tree(ret_func.capture_symbol,defined);
 	if(defined.size()!=0) // Definition found?
 	{
 	  // Find our calling function:
 	  auto nextit=it; ++nextit;
 	  assert(nextit!=trace.steps.end());
-	  function_inputs[ret_func.first].push_front({ nextit->pc->function,defined });
+	  function_inputs[ret_func.func_name].push_front({ nextit->pc->function,defined });
 	}
       }
       trace_stack.pop_back();
