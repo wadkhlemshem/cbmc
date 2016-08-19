@@ -1696,26 +1696,17 @@ calls_opaque_stub_ret calls_opaque_stub(const code_function_callt& callinst,
 // the values of any symbols referenced in its fields.
 // Store them in 'captured' in bottom-up order.
 void interpretert::get_value_tree(const irep_idt& capture_symbol,
-  const input_varst& inputs, function_assignmentst& captured)
+				  function_assignmentst& captured)
 {
 
   // Circular reference?
   for(auto already_captured : captured)
     if(already_captured.id==capture_symbol)
       return;
-
-  auto findit=inputs.find(capture_symbol);
-  if(findit==inputs.end())
-  {
-    message->error() << "Stub method returned without defining " << capture_symbol
-            << ". Did the program trace end inside a stub?\n" << messaget::eom;
-    return;
-  }
-
-  exprt defined=findit->second;
+  exprt defined=get_value(capture_symbol);
   if(defined.type().id()==ID_pointer)
   {
-    get_value_tree(defined,inputs,captured);
+    get_value_tree(defined,captured);
   }
   else
   {
@@ -1725,7 +1716,7 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
     // symex::dynamic_object expressions, which are always address-of-symbol constructions.
     forall_operands(opit, defined) {
       if(opit->type().id()==ID_pointer)
-        get_value_tree(*opit,inputs,captured);
+        get_value_tree(*opit,captured);
     }
   }
 
@@ -1734,13 +1725,13 @@ void interpretert::get_value_tree(const irep_idt& capture_symbol,
 }
 
 void interpretert::get_value_tree(const exprt& capture_expr,
-  const input_varst& inputs, function_assignmentst& captured)
+				  function_assignmentst& captured)
 {
   assert(capture_expr.type().id()==ID_pointer);
   if(capture_expr!=null_pointer_exprt(to_pointer_type(capture_expr.type())))
   {
     const auto& referee=to_symbol_expr(to_address_of_expr(capture_expr).object()).get_identifier();
-    get_value_tree(referee,inputs,captured);
+    get_value_tree(referee,captured);
   }
 }
 
@@ -1759,26 +1750,22 @@ static bool is_constructor_call(const goto_trace_stept& step,
   return callee_type.get_bool(ID_constructor);
 }
 
-static goto_tracet::stepst::const_reverse_iterator
-find_super_constructor_call(goto_tracet::stepst::const_reverse_iterator it,
-			    const goto_tracet::stepst::const_reverse_iterator& itend,
-			    const symbol_tablet& st)
+exprt interpretert::get_value(const irep_idt& id)
 {
-  auto this_step=*it;
-  if(!is_constructor_call(this_step,st))
-    return itend;
+  // The dynamic type and the static symbol type may differ for VLAs,
+  // where the symbol carries a size expression and the dynamic type
+  // registry contains its actual length.
+  auto findit=dynamic_types.find(id);
+  typet get_type;
+  if(findit!=dynamic_types.end())
+    get_type=findit->second;
+  else
+    get_type=symbol_table.lookup(id).type;
+  
+  symbol_exprt symbol_expr(id,get_type);
+  mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
 
-  // Find out if this is the first call our parent makes,
-  // the signature of a super-constructor call.
-  for(++it; it!=itend && (!it->is_function_return()) && (!it->is_function_call()); ++it)
-  { }
-
-  if(it==itend || it->is_function_return())
-    return itend;
-  if(!is_constructor_call(*it,st))
-    return itend;
-
-  return it;
+  return get_value(get_type,integer2unsigned(whole_lhs_object_address));
 }
 
 /*******************************************************************
@@ -1814,9 +1801,14 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   // creeps in that needs the current value of local 'i') will be evaluated correctly.
 
   std::vector<std::pair<mp_integer, std::vector<mp_integer> > > trace_eval;
+  // Holds pairs of function names, and the symbol name to capture on exiting if any.
+  std::vector<std::pair<irep_idt, irep_idt> > trace_stack;
+  int outermost_constructor_depth=-1;
+  irep_idt capture_next_assignment_id;
 
-  for(const auto& step : trace.steps)
+  for(auto it = trace.steps.begin(), itend = trace.steps.end(); it != itend; ++it)
   {
+    const auto& step=*it;
     if(is_assign_step(step))
     {
       mp_integer address;
@@ -1832,77 +1824,90 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       evaluate(step.full_lhs_value,rhs);
       assign(address,rhs);
 
+      if(capture_next_assignment_id!=irep_idt())
+      {
+	function_assignmentst single_defn=
+	  { { id, get_value(id) } };
+	function_inputs[capture_next_assignment_id].push_front({ step.pc->function, single_defn });
+	capture_next_assignment_id=irep_idt();
+      }
+
       trace_eval.push_back(std::make_pair(address, rhs));
     }
-  }
-
-  // Now walk backwards to find object states at their origin points.
-
-  auto trace_eval_iter=trace_eval.rbegin();
-  goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
-  if(it!=trace.steps.rend()) targetAssert=it->pc;
-  for(;it!=trace.steps.rend();++it) {
-    if(it->is_function_call())      
+    else if(step.is_function_call())
     {
-      irep_idt called, capture_symbol;
-      switch(calls_opaque_stub(to_code_function_call(it->pc->code),
-                   symbol_table,called,capture_symbol))
+      irep_idt called, capture_symbol;      
+      auto is_stub = calls_opaque_stub(to_code_function_call(step.pc->code),
+				       symbol_table,called,capture_symbol);
+      trace_stack.push_back(std::make_pair(called,irep_idt()));
+      switch(is_stub)
       {
-    
       case NOT_OPAQUE_STUB:
-    break;
+	{
+	  if(outermost_constructor_depth==-1 && is_constructor_call(step,symbol_table))
+	    outermost_constructor_depth=trace_stack.size()-1;
+	  else
+	    outermost_constructor_depth=-1;
+	  break;
+	}
       case SIMPLE_OPAQUE_STUB:
 	{
 	  // Simple opaque function that returns a primitive. The assignment after
-	  // this (before it in trace order) will have given the value
-	  // assigned to its return nondet.
-	  if(previous_assigned_symbol!=irep_idt())
-	  {
-	    function_assignmentst single_defn=
-	      { { previous_assigned_symbol,inputs[previous_assigned_symbol] } };
-	    function_inputs[called].push_front({ it->pc->function,single_defn });
-	  }
+	  // this will have given the value assigned to its return nondet.
+	  capture_next_assignment_id=called;
+	  outermost_constructor_depth=-1;
 	  break;
 	}
       case COMPLEX_OPAQUE_STUB:
 	{
 	  // Complex stub: capture the value of capture_symbol instead of whatever happened
 	  // to have been defined most recently. Also capture any other referenced objects.
-	  function_assignmentst defined;
-	  get_value_tree(capture_symbol,inputs,defined);
-	  if(defined.size()!=0) // Definition found?
+	  // Capture after the stub finishes, or in the particular case of a constructor
+	  // that makes opaque super-calls, after the outermost constructor finishes.
+	  if(is_constructor_call(step,symbol_table) && outermost_constructor_depth!=-1)
 	  {
-	    while(it!=trace.steps.rend())
-	    {
-	      // If a superclass constructor was opaque, attribute the constructed
-	      // object to the outermost constructor, thus matching the actual type
-	      // of the dynamic object constructed.
-	      auto parent_constructor_it=find_super_constructor_call(it,trace.steps.rend(),
-								     symbol_table);
-	      if(parent_constructor_it!=trace.steps.rend())
-	      {
-		// Skip forwards in the trace -- there should only be parameter
-		// assignments and declarations between the two call entry trace items.
-		for(auto it2=it; it2!=parent_constructor_it; ++it2)
-		  if(is_assign_step(*it2))
-		    ++trace_eval_iter;
-		it=parent_constructor_it;
-		called=to_code_function_call(it->pc->code).function().get(ID_identifier);
-	      }
-	      else
-		break;
-	    }
-	    function_inputs[called].push_front({ it->pc->function,defined });
+	    assert(outermost_constructor_depth < trace_stack.size());
+	    trace_stack[outermost_constructor_depth].second=capture_symbol;
 	  }
+	  else
+	    trace_stack.back().second=capture_symbol;
+	  outermost_constructor_depth=-1;
 	  break;
 	}
 	
       } // End switch on stub type
 
-      previous_assigned_symbol=irep_idt();
+    }
+    else if(step.is_function_return())
+    {
+      outermost_constructor_depth=-1;
+      assert(trace_stack.size()!=0);
+      const auto& ret_func=trace_stack.back();
+      if(ret_func.second!=irep_idt())
+      {
+	// We must record the value of stub_capture_symbol now.
+	function_assignmentst defined;
+	get_value_tree(ret_func.second,defined);
+	if(defined.size()!=0) // Definition found?
+	{
+	  // Find our calling function:
+	  auto nextit=it; ++nextit;
+	  assert(nextit!=trace.steps.end());
+	  function_inputs[ret_func.first].push_front({ nextit->pc->function,defined });
+	}
+      }
+      trace_stack.pop_back();
+    }
+  }
 
-    } // End if-is-function-call
-    else if(is_assign_step(*it))
+  // Now walk backwards to find object states on entering 'main'.
+  // TODO integrate this into the forwards walk as well.
+
+  auto trace_eval_iter=trace_eval.rbegin();
+  goto_tracet::stepst::const_reverse_iterator it=trace.steps.rbegin();
+  if(it!=trace.steps.rend()) targetAssert=it->pc;
+  for(;it!=trace.steps.rend();++it) {
+    if(is_assign_step(*it))
     {
 
       assert(trace_eval_iter!=trace_eval.rend() &&
@@ -1917,27 +1922,9 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       symbol_exprt symbol_expr=get_assigned_symbol(*it);
       irep_idt id=symbol_expr.get_identifier();
 
-      mp_integer whole_lhs_object_address=evaluate_address(symbol_expr);
-      // The dynamic type and the static symbol type may differ for VLAs,
-      // where the symbol carries a size expression and the dynamic type
-      // registry contains its actual length.
-      auto findit=dynamic_types.find(symbol_expr.get_identifier());
-      typet get_type;
-      if(findit!=dynamic_types.end())
-        get_type=findit->second;
-      else
-        get_type=symbol_expr.type();
-      inputs[id]=get_value(get_type,integer2unsigned(whole_lhs_object_address));
+      inputs[id]=get_value(id);
       input_first_assignments[id]=it->pc->function;
-
-      previous_assigned_symbol=id;
-      
     }
-    else if(!it->is_function_return())
-    {
-      previous_assigned_symbol=irep_idt();
-    }
-
   }
 
   assert(trace_eval_iter==trace_eval.rend() &&
