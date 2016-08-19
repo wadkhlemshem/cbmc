@@ -1758,13 +1758,15 @@ static bool is_constructor_call(const goto_trace_stept& step,
   return callee_type.get_bool(ID_constructor);
 }
 
-static bool is_super_call(const goto_trace_stept& step,
-			  const symbol_tablet& st)
+static bool is_super_call(const irep_idt& called, const irep_idt& caller)
 {
-  const auto& call=to_code_function_call(step.pc->code);
-  const auto& id=call.function().get(ID_identifier);
-  auto callee_type=st.lookup(id).type;
-  return callee_type.get_bool("java_super_method_call");
+  // Check whether the mangled method names (disregarding class) match:
+  std::string calleds=as_string(called);
+  std::string callers=as_string(caller);
+  size_t calledoff=calleds.rfind('.'), calleroff=callers.rfind('.');
+  if(calledoff==std::string::npos || calleroff==std::string::npos)
+    return false;
+  return calleds.substr(calledoff)==callers.substr(calleroff);
 }
 
 exprt interpretert::get_value(const irep_idt& id)
@@ -1860,7 +1862,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       irep_idt called, capture_symbol;      
       auto is_stub = calls_opaque_stub(to_code_function_call(step.pc->code),
 				       symbol_table,called,capture_symbol);
-      trace_stack.push_back({called,irep_idt(),is_super_call(step,symbol_table)});
+      bool is_super=trace_stack.size()!=0 && is_super_call(called,trace_stack.back().func_name);
+      trace_stack.push_back({called,irep_idt(),is_super});
       if(!is_stub)
       {
 	if(is_constructor_call(step,symbol_table))
