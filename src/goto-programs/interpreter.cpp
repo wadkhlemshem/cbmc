@@ -1746,7 +1746,13 @@ static bool is_constructor_call(const goto_trace_stept& step,
 				const symbol_tablet& st)
 {
   const auto& call=to_code_function_call(step.pc->code);
-  auto callee_type=st.lookup(call.function().get(ID_identifier)).type;
+  const auto& id=call.function().get(ID_identifier);
+  // No need to intercept j.l.O's constructor since we know it doesn't do
+  // anything visible to the object's state.
+  // TODO: consider just supplying a constructor for it?
+  if(as_string(id).find("java.lang.Object")!=std::string::npos)
+    return false;
+  auto callee_type=st.lookup(id).type;
   return callee_type.get_bool(ID_constructor);
 }
 
