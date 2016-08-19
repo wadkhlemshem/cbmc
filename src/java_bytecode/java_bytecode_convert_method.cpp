@@ -725,12 +725,17 @@ codet java_bytecode_convert_methodt::convert_instructions(
         {
 	  typet thistype = empty_typet();
 	  // Note invokespecial is used for super-method calls as well as constructors.
-	  if(statement=="invokespecial" && 
-	     as_string(arg0.get(ID_identifier)).find("<init>")!=std::string::npos) {
-	    // Constructor -- infer the "this" type must match the type implied by the name.
-	    irep_idt classname = arg0.get(ID_C_class);
-	    thistype = symbol_typet(classname);
-	    code_type.set(ID_constructor, true);
+	  if(statement=="invokespecial")
+	  {
+	    if(as_string(arg0.get(ID_identifier)).find("<init>")!=std::string::npos)
+	    {
+	      // Constructor -- infer the "this" type must match the type implied by the name.
+	      irep_idt classname = arg0.get(ID_C_class);
+	      thistype = symbol_typet(classname);
+	      code_type.set(ID_constructor, true);
+	    }
+	    else
+	      code_type.set("java_super_method_call", true);
 	  }
           pointer_typet object_ref_type(thistype);
           code_typet::parametert this_p(object_ref_type);
