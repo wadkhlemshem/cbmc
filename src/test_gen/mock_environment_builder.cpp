@@ -295,14 +295,32 @@ std::string mock_environment_builder::finalise_instance_calls()
 	   << prelude_newline;
   }
 
+  // Punch through to real code whenever the real implementation is available:
+  for(auto iter : elaborated_instance_methods)
+  {
+    const auto &cname=iter.classname;
+    if(!mock_instances_exist.count(cname))
+      continue;
+
+    std::string instanceList=cname+"_instances";
+    std::string instanceIter=cname+"_iter";
+
+    result << "for(" << cname << " " << instanceIter << " : " << instanceList
+	   << ')' << prelude_newline << "  ";
+    generate_arg_matchers(result,instanceIter,iter.methodname,
+                          iter.argtypes);
+    result << ".thenCallRealMethod();"
+	   << prelude_newline;
+  }
+
   return result.str();
 }
 
 /*******************************************************************\
 
-Function: finalise_instance_calls
+Function: static_call
 
-As instance_call above,but for Java static methods.
+As instance_call above, but for Java static methods.
 
 \*******************************************************************/
 
@@ -312,7 +330,8 @@ void mock_environment_builder::static_call(
 {
 
   // Intercepting static calls needs PowerMockito setup:
-  auto inserted=powermock_classes.insert(targetclass);
+  powermock_classes.insert(targetclass);
+  auto inserted=static_mocked_classes.insert(targetclass);
   // Call mockStatic the first time a particular type is needed:
   if(inserted.second)
     mock_prelude << "org.powermock.api.mockito.PowerMockito.mockStatic("

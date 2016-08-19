@@ -799,6 +799,30 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
       
   }
 
+  forall_symbols(it,symbol_table.symbols)
+  {
+    const auto& sym=it->second;
+    if((!sym.is_type) && 
+       sym.value.id()==ID_code && 
+       sym.type.id()==ID_code &&
+       has_prefix(as_string(sym.name),"java::") &&
+       sym.type.get("opaque_method_capture_symbol")==irep_idt())
+    {
+      struct java_call_descriptor desc;
+      populate_descriptor_names(sym,desc);
+      populate_descriptor_types(sym,empty_typet(),desc,st);
+      bool is_static=!desc.original_type.has_this();
+      bool is_constructor=desc.original_type.get_bool(ID_constructor);
+      // Can't have partial mocks for static methods or constructors--
+      // either the whole namespace is available or it isn't.
+      if(is_static || is_constructor)
+	continue;
+      mockenv_builder.note_elaborated_instance_method(desc.classname,
+						      desc.funcname,
+						      desc.java_arg_types);
+    }
+  }
+
 }
 
 } // End of anonymous namespace
