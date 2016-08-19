@@ -301,6 +301,10 @@ std::string mock_environment_builder::finalise_instance_calls()
     const auto &cname=iter.classname;
     if(!mock_instances_exist.count(cname))
       continue;
+    
+    // An elaborated method may be mocked if it has an opaque super call:
+    if(instance_method_answers.count(iter))
+      continue;
 
     std::string instanceList=cname+"_instances";
     std::string instanceIter=cname+"_iter";
