@@ -17,7 +17,9 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
                                     symbol_tablet &symbol_table,
                                     code_blockt *parent_block,
                                     unsigned insert_before_index,
-                                    bool is_constructor,bool assume_non_null)
+                                    bool is_constructor,
+				    bool assume_non_null,
+				    int max_nondet_array_length)
 {
 
   // At this point we know 'ptr' points to an opaque-typed object. We should
@@ -45,7 +47,8 @@ void insert_nondet_opaque_fields_at(const typet &expected_type,
   if(is_constructor)
     to_init=dereference_exprt(to_init,expected_base);
 
-  gen_nondet_init(to_init,new_instructions,symbol_table,false,true);
+  gen_nondet_init(to_init,new_instructions,symbol_table,false,true,
+		  assume_non_null,max_nondet_array_length);
 
   if(new_instructions.operands().size()!=0)
   {
@@ -91,7 +94,7 @@ void assign_parameter_names(code_typet &ftype,const irep_idt &name_prefix,
 
 void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
                                  code_blockt *parent,unsigned parent_index,
-                                 bool assume_non_null)
+                                 bool assume_non_null,int max_nondet_array_length)
 {
 
   code_blockt new_instructions;
@@ -123,7 +126,8 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
         code_assignt(init_symexpr,symbol_exprt(thisarg.get_identifier()));
     new_instructions.copy_to_operands(getarg);
     insert_nondet_opaque_fields_at(thistype,init_symexpr,symbol_table,
-                                   &new_instructions,1,true,assume_non_null);
+                                   &new_instructions,1,true,assume_non_null,
+				   max_nondet_array_length);
     sym.type.set("opaque_method_capture_symbol",init_symbol.name);
   }
   else
@@ -138,7 +142,7 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     else
       insert_nondet_opaque_fields_at(
 	required_type.return_type(),toreturn_symexpr,symbol_table,
-	&new_instructions,0,false,assume_non_null);
+	&new_instructions,0,false,assume_non_null,max_nondet_array_length);
     new_instructions.copy_to_operands(code_returnt(toreturn_symexpr));
     sym.type.set("opaque_method_capture_symbol",toreturn_symbol.name);
   }
@@ -147,7 +151,7 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
 }
 
 void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
-                                 bool assume_non_null)
+                                 bool assume_non_null, int max_nondet_array_length)
 {
 
   if(sym.is_type)
@@ -157,13 +161,14 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
   if(sym.type.id()!=ID_code)
     return;
 
-  insert_nondet_opaque_fields(sym,symbol_table,0,0,assume_non_null);
+  insert_nondet_opaque_fields(sym,symbol_table,0,0,assume_non_null,max_nondet_array_length);
 }
 
 } // End anon namespace for insert-nondet support functions
 
 void java_generate_opaque_method_stubs(symbol_tablet &symbol_table,
-                                       bool assume_non_null)
+                                       bool assume_non_null,
+				       int max_nondet_array_length)
 {
 
   std::vector<irep_idt>identifiers;
@@ -172,5 +177,5 @@ void java_generate_opaque_method_stubs(symbol_tablet &symbol_table,
 
   for(auto &id : identifiers)
     insert_nondet_opaque_fields(symbol_table.symbols[id],symbol_table,
-                                assume_non_null);
+                                assume_non_null, max_nondet_array_length);
 }
