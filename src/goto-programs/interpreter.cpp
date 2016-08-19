@@ -1844,8 +1844,11 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       {
       case NOT_OPAQUE_STUB:
 	{
-	  if(outermost_constructor_depth==-1 && is_constructor_call(step,symbol_table))
-	    outermost_constructor_depth=trace_stack.size()-1;
+	  if(is_constructor_call(step,symbol_table))
+	  {
+	    if(outermost_constructor_depth==-1)
+	      outermost_constructor_depth=trace_stack.size()-1;
+	  }
 	  else
 	    outermost_constructor_depth=-1;
 	  break;
