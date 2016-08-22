@@ -19,6 +19,8 @@
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/mock_environment_builder.h>
 
+#include <goto-programs/remove_returns.h>
+
 #define INDENT_SPACES "  "
 #define JAVA_NS_PREFIX_LEN 6u
 
@@ -857,23 +859,21 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
-      // const namespacet ns(st);
-    const code_typet &t = to_code_type(func.type);
-    std::ostringstream func_name;
-    func_name << func.name;
-    std::string fname = func_name.str();
-
-    // search begin of return value
-    std::size_t e_pos=fname.rfind(')');
-    typet ret_type =
-        java_type_from_string(std::string(fname, e_pos+1, std::string::npos));
-
-    add_decl_from_type(result, st, ret_type);
-
-    result+= // " " + type_name +
-      " retval = ";
-
-    if(is_instance_method(st, func_id))
+    bool is_constructor=func.type.get_bool(ID_constructor);
+    std::string retval_symbol=as_string(func.name)+RETURN_VALUE_SUFFIX;
+    const auto findit=st.symbols.find(retval_symbol);
+    if(is_constructor)
+    {
+      const auto& thistype=to_code_type(func.type).parameters()[0].type();
+      add_decl_from_type(result,st,thistype);
+      result += " constructed = new ";
+    }
+    else if(findit!=st.symbols.end())
+    {
+      add_decl_from_type(result,st,findit->second.type);
+      result += " retval = ";
+    }
+    if((!is_constructor) && is_instance_method(st, func_id))
     {
       for (const irep_idt &param : get_parameters(st.lookup(func_id)))
       {
