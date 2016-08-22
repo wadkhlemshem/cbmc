@@ -1829,6 +1829,8 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   int outermost_constructor_depth=-1;
   irep_idt capture_next_assignment_id;
 
+  trace_stack.push_back({goto_functionst::entry_point(),irep_idt(),false});
+  
   for(auto it = trace.steps.begin(), itend = trace.steps.end(); it != itend; ++it)
   {
     const auto& step=*it;
