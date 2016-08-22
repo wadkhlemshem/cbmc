@@ -1749,11 +1749,6 @@ static bool is_constructor_call(const goto_trace_stept& step,
 {
   const auto& call=to_code_function_call(step.pc->code);
   const auto& id=call.function().get(ID_identifier);
-  // No need to intercept j.l.O's constructor since we know it doesn't do
-  // anything visible to the object's state.
-  // TODO: consider just supplying a constructor for it?
-  if(as_string(id).find("java.lang.Object")!=std::string::npos)
-    return false;
   auto callee_type=st.lookup(id).type;
   return callee_type.get_bool(ID_constructor);
 }
@@ -1861,14 +1856,23 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
     }
     else if(step.is_function_call())
     {
-      irep_idt called, capture_symbol;      
-      auto is_stub = calls_opaque_stub(to_code_function_call(step.pc->code),
-				       symbol_table,called,capture_symbol);
-      bool is_super=trace_stack.size()!=0 && is_super_call(called,trace_stack.back().func_name);
+      irep_idt called, capture_symbol;
+      bool is_cons=is_constructor_call(step,symbol_table);
+      // No need to intercept j.l.O's constructor since we know it doesn't do
+      // anything visible to the object's state.
+      // TODO: consider just supplying a constructor for it?
+      auto is_stub=calls_opaque_stub(to_code_function_call(step.pc->code),
+                                     symbol_table,called,capture_symbol);
+      bool is_jlo_cons=is_cons &&
+                       as_string(called).find("java.lang.Object")!=std::string::npos;
+      bool is_super=(!is_cons) &&
+                    trace_stack.size()!=0 &&
+                    is_super_call(called,trace_stack.back().func_name);
+      
       trace_stack.push_back({called,irep_idt(),is_super});
-      if(!is_stub)
+      if((!is_stub) || is_jlo_cons)
       {
-	if(is_constructor_call(step,symbol_table))
+	if(is_cons)
 	{
 	  if(outermost_constructor_depth==-1)
 	    outermost_constructor_depth=trace_stack.size()-1;
@@ -1882,7 +1886,7 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
 	// to have been defined most recently. Also capture any other referenced objects.
 	// Capture after the stub finishes, or in the particular case of a constructor
 	// that makes opaque super-calls, after the outermost constructor finishes.
-	if(is_constructor_call(step,symbol_table) && outermost_constructor_depth!=-1)
+	if(is_cons && outermost_constructor_depth!=-1)
 	{
 	  assert(outermost_constructor_depth < trace_stack.size());
 	  trace_stack[outermost_constructor_depth].capture_symbol=capture_symbol;
