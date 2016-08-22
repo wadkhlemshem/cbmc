@@ -874,7 +874,9 @@ mp_integer interpretert::evaluate_address(const exprt &expr, bool fail_quietly) 
       memory_map.find(identifier);
 
     if(m_it1!=memory_map.end())
+    {
       return m_it1->second;
+    }
 
     if(!call_stack.empty())
     {
