@@ -106,11 +106,8 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
   if(!is_constructor)
   {
     const auto &needed=required_type.return_type();
-    if(needed.id()!=ID_pointer)
-    {
-      // Simple primitive stub:
-      
-    }
+    if(needed==empty_typet())
+      return;
   }
 
   assign_parameter_names(required_type,sym.name,symbol_table);
