@@ -459,6 +459,9 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   if(cmdline.isset("cover-function-only"))
     options.set_option("cover-function-only", true);
 
+  if(cmdline.isset("assertions-as-assumptions"))
+    options.set_option("assertions-as-assumptions", true);
+
   if(cmdline.isset("java-disable-mocks"))
     options.set_option("java-disable-mocks", true);
 }
@@ -1174,6 +1177,7 @@ void cbmc_parse_optionst::help()
     " --main-class class-name      set the name of the main class\n"
     " --gen-java-test-case         generate test case\n" 
     " --cover-function-only        add coverage instrumentation only to the entry function"
+    " --assertions-as-assumptions  convert assertions from generic checks into assumptions"
     "\n"
     "Semantic transformations:\n"
     " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"
