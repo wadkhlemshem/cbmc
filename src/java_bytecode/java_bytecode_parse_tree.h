@@ -14,6 +14,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_code.h>
 #include <util/std_types.h>
 
+#include "bytecode_info.h"
+
 class java_bytecode_parse_treet
 {
 public:
