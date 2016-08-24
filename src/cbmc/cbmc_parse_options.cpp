@@ -946,6 +946,20 @@ bool cbmc_parse_optionst::process_goto_program(
         get_message_handler(), goto_functions);
     }
 
+    if(cmdline.isset("assertions-as-assumptions"))
+    {
+      // turn assertions (from generic checks) into assumptions
+      Forall_goto_functions(f_it, goto_functions)
+      {
+        goto_programt &body=f_it->second.body;
+        Forall_goto_program_instructions(i_it, body)
+        {
+          if(i_it->is_assert())
+  	    i_it->type= goto_program_instruction_typet::ASSUME;
+	}
+      }
+    }
+
     // add failed symbols
     // needs to be done before pointer analysis
     add_failed_symbols(symbol_table);
@@ -1159,7 +1173,7 @@ void cbmc_parse_optionst::help()
     " --classpath dir/jar          set the classpath\n"
     " --main-class class-name      set the name of the main class\n"
     " --gen-java-test-case         generate test case\n" 
-    " --cover-function-only        add coverage instrumentation only to the entry function" 
+    " --cover-function-only        add coverage instrumentation only to the entry function"
     "\n"
     "Semantic transformations:\n"
     " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"
