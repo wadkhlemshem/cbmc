@@ -39,7 +39,8 @@ std::string generate_java_test_case_from_inputs(
     const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
     const interpretert::dynamic_typest& dynamic_types,
-    bool disable_mocks);
+    bool disable_mocks,
+    const std::vector<std::string>& goals);
 
 std::string func_name(const symbolt &symbol);
 

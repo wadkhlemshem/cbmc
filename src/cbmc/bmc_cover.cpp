@@ -111,6 +111,7 @@ public:
   {
     goto_tracet goto_trace;
     std::vector<irep_idt> covered_goals;
+    std::string source_code;
   };
   
   inline irep_idt id(goto_programt::const_targett loc)
@@ -310,7 +311,29 @@ bool bmc_covert::operator()()
   
   for(const auto & it : goal_map)
     if(it.second.satisfied) goals_covered++;
-  
+
+  if (bmc.options.get_bool_option("gen-java-test-case"))
+  {
+    size_t test_case_no=0;
+    for(auto& test : tests)
+    {
+      java_test_case_generatort gen(get_message_handler());
+      std::string test_name;
+      {
+        std::ostringstream oss;
+        oss << "testcase_" << (++test_case_no);
+        test_name=oss.str();
+      }
+      std::vector<std::string> goal_names;
+      for(const auto& goalid : test.covered_goals)
+        goal_names.push_back(
+          as_string(goal_map.at(goalid).description));
+      test.source_code=gen.generate_java_test_case(bmc.options,bmc.ns.get_symbol_table(),
+                                                   goto_functions,test.goto_trace,
+                                                   test_name,goal_names);
+    }
+  }
+
   switch(bmc.ui)
   {
     case ui_message_handlert::PLAIN:
@@ -334,20 +357,9 @@ bool bmc_covert::operator()()
       }
       for(const auto& it : tests)
       {
-        if (bmc.options.get_bool_option("gen-java-test-case"))
-        {
-          java_test_case_generatort gen(get_message_handler());
-          assert(it.covered_goals.size()!=0);
-          const auto& first_goal=goal_map.at(it.covered_goals[0]);
-          status() << gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
-                                                  goto_functions, it.goto_trace,
-                                                  id2string(first_goal.source_location.get_property_id()))
-                   << eom;
-        }
+        if(it.source_code.length()!=0)
+          status() << it.source_code << '\n';
       }
-
-      status() << '\n';
-
       break;
     }
 
@@ -446,15 +458,10 @@ bool bmc_covert::operator()()
               json_test.push_back(json_input);
             }
           }
-          if (bmc.options.get_bool_option("gen-java-test-case"))
-            {
-              java_test_case_generatort gen(get_message_handler());
-              assert(test.covered_goals.size()!=0);
-              const auto& first_goal=goal_map.at(test.covered_goals[0]);
-              result["junit_test_case"]=json_stringt(gen.generate_java_test_case(bmc.options, bmc.ns.get_symbol_table(),
-                                          goto_functions, test.goto_trace,
-                                          id2string(first_goal.source_location.get_property_id())));
-            }
+          if(test.source_code.length()!=0)
+          {
+            result["junit_test_case"]=json_stringt(test.source_code);
+          }
         }
         json_arrayt &goal_refs=result["coveredGoals"].make_array();
         for(const auto & goal_id : test.covered_goals)
