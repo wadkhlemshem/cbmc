@@ -330,6 +330,11 @@ const typet& reference_factoryt::get_symbol_type(const irep_idt& id)
   else
     return findit->second;
 }
+
+static std::string force_instantiate(const std::string& classname)
+{
+  return "com.diffblue.java_testcase.Reflector.forceInstance(\"" + classname + "\")";
+}
   
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
@@ -348,7 +353,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   if(should_mock)
     instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
   else
-    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_file_name + "\")";
+    instance_expr = force_instantiate(qualified_class_file_name);
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
 
@@ -830,7 +835,7 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 } // End of anonymous namespace
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
-    inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
+    bool enters_main, inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
     const interpretert::dynamic_typest& dynamic_types, bool disable_mocks)
 {
@@ -851,7 +856,19 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   std::string post_mock_setup_result;
   
   ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs, input_defn_functions);
-  bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  bool exists_func_call = false;
+  if(enters_main)
+    exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  else
+  {
+    indent(post_mock_setup_result) += "// NOTE: the given entry-point is not called, perhaps because\n";
+    indent(post_mock_setup_result) += "we encountered a fault during static initialisation. Instantiating\n";
+    indent(post_mock_setup_result) += "the target class to cause static initialisers run.\n\n";
+    java_call_descriptor desc;
+    populate_descriptor_names(func,desc);
+    indent(post_mock_setup_result)+=force_instantiate(desc.classname);
+    post_mock_setup_result+=";\n";
+  } 
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
   std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();

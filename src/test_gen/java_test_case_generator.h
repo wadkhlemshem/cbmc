@@ -25,7 +25,7 @@
 #include <util/options.h>
 
 typedef std::function<
-  std::string(const symbol_tablet &, const irep_idt &, const inputst &,
+  std::string(const symbol_tablet &, const irep_idt &, bool, const inputst &,
               const interpretert::list_input_varst&,
               const interpretert::input_var_functionst&,
               const interpretert::dynamic_typest&,

@@ -72,7 +72,20 @@ const std::string java_test_case_generatort::generate_test_case(
   const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
                                        input_defn_functions,dynamic_types));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st,entry_func_id,inputs,opaque_function_returns,
+  bool enters_main=false;
+  irep_idt previous_function;
+  for(const auto& step : trace.steps)
+  {
+    if(step.pc->function==irep_idt())
+      continue;
+    if(step.pc->function==entry_func_id && previous_function=="_start")
+    {
+      enters_main=true;
+      break;
+    }
+    previous_function=step.pc->function;
+  }
+  const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,
                                     options.get_bool_option("java-disable-mocks")));
   const std::string empty("");

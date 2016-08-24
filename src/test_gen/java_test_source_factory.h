@@ -34,6 +34,7 @@ typedef interpretert::input_varst inputst;
 std::string generate_java_test_case_from_inputs(
     const class symbol_tablet &st,
     const irep_idt &func_id,
+    bool main_is_entered,
     inputst inputs,
     const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
