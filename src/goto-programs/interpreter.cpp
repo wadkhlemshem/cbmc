@@ -1027,9 +1027,12 @@ typet interpretert::concretise_type(const typet &type) const
   if(type.id()==ID_array)
   {
     const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
+    const mp_integer max_allowed_dynamic_array_size=65536;
     std::vector<mp_integer> computed_size;
     evaluate(size_expr,computed_size);
-    if(computed_size.size()==1 && computed_size[0]!=0)
+    if(computed_size.size()==1 &&
+       computed_size[0]>0 &&
+       computed_size[0]<=max_allowed_dynamic_array_size)
     {
       std::cout << "Concretised array with size " << computed_size[0] << "\n";
       return array_typet(type.subtype(),
@@ -1822,7 +1825,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
   };
   std::vector<trace_stack_entry> trace_stack;
   int outermost_constructor_depth=-1;
-  irep_idt capture_next_assignment_id;
 
   trace_stack.push_back({goto_functionst::entry_point(),irep_idt(),false});
   
@@ -1843,14 +1845,6 @@ interpretert::input_varst& interpretert::load_counter_example_inputs(
       std::vector<mp_integer> rhs;
       evaluate(step.full_lhs_value,rhs);
       assign(address,rhs);
-
-      if(capture_next_assignment_id!=irep_idt())
-      {
-	function_assignmentst single_defn=
-	  { { id, get_value(id) } };
-	function_inputs[capture_next_assignment_id].push_front({ step.pc->function, single_defn });
-	capture_next_assignment_id=irep_idt();
-      }
 
       trace_eval.push_back(std::make_pair(address, rhs));
     }
