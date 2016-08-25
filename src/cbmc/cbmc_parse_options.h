@@ -56,6 +56,7 @@ class optionst;
   "(graphml-cex):" \
   "(gen-java-test-case)(java-assume-inputs-non-null)(java-disable-mocks)"\
   "(java-max-input-array-length):(java-mock-class):(java-no-mock-class):"\
+  "(java-max-vla-length):"\
   "(localize-faults)(localize-faults-method):" \
   "(floatbv)(all-claims)(all-properties)(decide)" // legacy, and will eventually disappear
 

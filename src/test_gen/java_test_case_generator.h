@@ -13,6 +13,7 @@
 #include <string>
 #include <functional>
 #include <cbmc/bmc.h>
+#include <util/options.h>
 
 #include <test_gen/java_test_source_factory.h>
 
@@ -48,7 +49,8 @@ class java_test_case_generatort:public messaget
   inputst generate_inputs(const symbol_tablet &, const goto_functionst &,
                           const goto_tracet &, interpretert::list_input_varst&,
                           interpretert::input_var_functionst&,
-                          interpretert::dynamic_typest&);
+                          interpretert::dynamic_typest&,
+                          const optionst&);
   const irep_idt &get_entry_function_id(const goto_functionst &gf);
 
  public:

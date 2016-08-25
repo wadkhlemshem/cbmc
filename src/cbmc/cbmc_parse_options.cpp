@@ -462,6 +462,9 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   if(cmdline.isset("gen-java-test-case"))
     options.set_option("gen-java-test-case", true);
 
+  if(cmdline.isset("java-max-vla-length"))
+    options.set_option("java-max-vla-length", cmdline.get_value("java-max-vla-length"));
+
   if(cmdline.isset("cover-function-only"))
     options.set_option("cover-function-only", true);
 

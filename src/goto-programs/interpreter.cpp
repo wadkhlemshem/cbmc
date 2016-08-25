@@ -1027,7 +1027,6 @@ typet interpretert::concretise_type(const typet &type) const
   if(type.id()==ID_array)
   {
     const exprt &size_expr=static_cast<const exprt &>(type.find(ID_size));
-    const mp_integer max_allowed_dynamic_array_size=65536;
     std::vector<mp_integer> computed_size;
     evaluate(size_expr,computed_size);
     if(computed_size.size()==1 &&
@@ -1978,6 +1977,6 @@ void interpreter(
   const goto_functionst &goto_functions,
   messaget *message_handler)
 {
-  interpretert interpreter(symbol_table,goto_functions,message_handler);
+  interpretert interpreter(symbol_table,goto_functions,message_handler,optionst());
   interpreter();
 }

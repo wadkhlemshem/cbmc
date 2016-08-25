@@ -6,6 +6,7 @@
 #include "goto_trace.h"
 #include "json_goto_trace.h"
 #include "util/message.h"
+#include "util/options.h"
 
 /*******************************************************************\
 
@@ -21,13 +22,16 @@ public:
   interpretert(
     const symbol_tablet &_symbol_table,
     const goto_functionst &_goto_functions,
-    messaget *_message_handler):
+    messaget *_message_handler,
+    const optionst& options):
   symbol_table(_symbol_table),
   ns(_symbol_table),
     goto_functions(_goto_functions)
   {
-        message = _message_handler;
-
+    message = _message_handler;
+    max_allowed_dynamic_array_size=options.get_unsigned_int_option("java-max-vla-length");
+    if(max_allowed_dynamic_array_size==0)
+      max_allowed_dynamic_array_size=65536;
   }
   
   void operator()();
@@ -149,6 +153,7 @@ protected:
   mutable int num_dynamic_objects;
   int stack_depth;
   int thread_id;
+  size_t max_allowed_dynamic_array_size;
 
   bool evaluate_boolean(const exprt &expr) const
   {

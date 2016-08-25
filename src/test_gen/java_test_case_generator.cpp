@@ -25,9 +25,10 @@ inputst java_test_case_generatort::generate_inputs(const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     interpretert::list_input_varst& opaque_function_returns,
     interpretert::input_var_functionst& first_assignments,
-    interpretert::dynamic_typest& dynamic_types)
+    interpretert::dynamic_typest& dynamic_types,
+    const optionst &options)
 {
-  interpretert interpreter(st, gf, this);
+  interpretert interpreter(st, gf, this, options);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);
@@ -71,7 +72,8 @@ const std::string java_test_case_generatort::generate_test_case(
   interpretert::dynamic_typest dynamic_types;
   
   const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
-                                       input_defn_functions,dynamic_types));
+                                       input_defn_functions,dynamic_types,
+                                       options));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   bool enters_main=false;
   irep_idt previous_function;
