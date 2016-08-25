@@ -39,7 +39,7 @@ class java_test_case_generatort:public messaget
 {
   const std::string generate_test_case(const optionst &, const symbol_tablet &,
                                        const goto_functionst &, const goto_tracet &,
-                                       const test_case_generatort, std::string="",
+                                       const test_case_generatort, size_t=0,
                                        std::vector<std::string> goals_reached=std::vector<std::string>());
   int generate_test_case(optionst &, const symbol_tablet &,
                          const goto_functionst &, bmct &, const test_case_generatort);
@@ -92,7 +92,7 @@ class java_test_case_generatort:public messaget
                                             const symbol_tablet &st,
                                             const goto_functionst &gf,
                                             const class goto_tracet &trace,
-                                            const std::string &test_name,
+                                            const size_t test_idx,
                                             const std::vector<std::string> &goals);
 };
 #endif /* JAVA_TEST_CASE_GENERATOR_H_ */

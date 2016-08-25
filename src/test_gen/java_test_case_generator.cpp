@@ -63,7 +63,7 @@ const irep_idt &java_test_case_generatort::get_entry_function_id(const goto_func
 const std::string java_test_case_generatort::generate_test_case(
   const optionst &options, const symbol_tablet &st,
   const goto_functionst &gf, const goto_tracet &trace,
-  const test_case_generatort generate, std::string test_name,
+  const test_case_generatort generate, size_t test_idx,
   std::vector<std::string> goals_reached)
 {
 
@@ -105,10 +105,16 @@ const std::string java_test_case_generatort::generate_test_case(
     }
   else
     {
-      assert(!test_name.empty());
       // the key is an arbitrary test name
-      std::size_t h = std::hash<std::string>()(test_name);
-      out_file_name+=std::to_string(h);
+      std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
+      size_t paren_offset=entry_func_str.find('(');
+      if(paren_offset!=std::string::npos)
+        entry_func_str=entry_func_str.substr(0,paren_offset);
+      std::size_t h = std::hash<std::string>()(as_string(entry_func_id));
+      std::ostringstream testname;
+      testname << entry_func_str << "_" << h << "_" << test_idx << ".java";
+
+      out_file_name+=testname.str();
 
       std::ofstream(out_file_name.c_str()) << source;
       return empty;
@@ -137,12 +143,12 @@ int  java_test_case_generatort::generate_test_case(optionst &options, const symb
 
 const std::string  java_test_case_generatort::generate_java_test_case(const optionst &options, const symbol_tablet &st,
                                                                       const goto_functionst &gf, const goto_tracet &trace,
-                                                                      const std::string &name,
+                                                                      const size_t test_idx,
                                                                       const std::vector<std::string> &goals_reached
   )
 {
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-  return generate_test_case(options, st, gf, trace, source_gen, name, goals_reached);
+  return generate_test_case(options, st, gf, trace, source_gen, test_idx, goals_reached);
 }
 
 int java_test_case_generatort::generate_java_test_case(optionst &o, const symbol_tablet &st,
