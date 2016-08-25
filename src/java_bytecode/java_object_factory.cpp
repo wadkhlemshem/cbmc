@@ -16,6 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/namespace.h>
 #include <util/pointer_offset_size.h>
 #include <util/prefix.h>
+#include <util/expr_util.h>
 
 #include "java_object_factory.h"
 #include "java_types.h"
@@ -246,11 +247,17 @@ void gen_nondet_state::gen_nondet_init(
       {
 	if(skip_classid)
 	  continue;
-	  
-	constant_exprt ci(class_identifier, string_typet());
+
+        irep_idt qualified_clsid="java::"+as_string(class_identifier);
+	constant_exprt ci(qualified_clsid,string_typet());
 
 	code_assignt code(me, ci);
 	init_code.copy_to_operands(code);
+      }
+      else if(name=="@lock")
+      {
+        code_assignt code(me, gen_zero(me.type()));
+        init_code.copy_to_operands(code);
       }
       else
       {

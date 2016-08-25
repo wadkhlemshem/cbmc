@@ -19,6 +19,8 @@
 #include <test_gen/java_test_source_factory.h>
 #include <test_gen/mock_environment_builder.h>
 
+#include <goto-programs/remove_returns.h>
+
 #define INDENT_SPACES "  "
 #define JAVA_NS_PREFIX_LEN 6u
 
@@ -328,6 +330,11 @@ const typet& reference_factoryt::get_symbol_type(const irep_idt& id)
   else
     return findit->second;
 }
+
+static std::string force_instantiate(const std::string& classname)
+{
+  return "com.diffblue.java_testcase.Reflector.forceInstance(\"" + classname + "\")";
+}
   
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
     const struct_exprt &value, const std::string &this_name)
@@ -346,7 +353,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   if(should_mock)
     instance_expr = mockenv_builder.instantiate_mock(qualified_class_name, false);
   else
-    instance_expr = "com.diffblue.java_testcase.Reflector.forceInstance(\"" + qualified_class_file_name + "\")";
+    instance_expr = force_instantiate(qualified_class_file_name);
       
   result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
 
@@ -828,13 +835,21 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 } // End of anonymous namespace
 
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
-    inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
+    bool enters_main, inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
-    const interpretert::dynamic_typest& dynamic_types, bool disable_mocks)
+    const interpretert::dynamic_typest& dynamic_types, bool disable_mocks,
+    const std::vector<std::string>& goals_reached)
 {
   const symbolt &func=st.lookup(func_id);
   const std::string func_name(get_escaped_func_name(func));
   std::string result;
+
+  if(goals_reached.size()!=0)
+  {
+    result="// This test case reaches the following goals:\n";
+    for(const auto& g : goals_reached)
+      result+=("//    " + g + "\n");
+  }
 
   // Do this first since the mock object creation can require annotations on the test class.
   // Parameter is the indent level on generated code.
@@ -849,7 +864,19 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   std::string post_mock_setup_result;
   
   ref_factory.add_global_state_assignments(post_mock_setup_result, st, inputs, input_defn_functions);
-  bool exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  bool exists_func_call = false;
+  if(enters_main)
+    exists_func_call = ref_factory.add_func_call_parameters(post_mock_setup_result, st, func_id, inputs);
+  else
+  {
+    indent(post_mock_setup_result) += "// NOTE: the given entry-point is not called, perhaps because\n";
+    indent(post_mock_setup_result) += "we encountered a fault during static initialisation. Instantiating\n";
+    indent(post_mock_setup_result) += "the target class to cause static initialisers run.\n\n";
+    java_call_descriptor desc;
+    populate_descriptor_names(func,desc);
+    indent(post_mock_setup_result)+=force_instantiate(desc.classname);
+    post_mock_setup_result+=";\n";
+  } 
   // Finalise happens here because add_func_call_parameters et al
   // may have generated mock objects.
   std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
@@ -857,23 +884,21 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
   if(exists_func_call)
   {
-      // const namespacet ns(st);
-    const code_typet &t = to_code_type(func.type);
-    std::ostringstream func_name;
-    func_name << func.name;
-    std::string fname = func_name.str();
-
-    // search begin of return value
-    std::size_t e_pos=fname.rfind(')');
-    typet ret_type =
-        java_type_from_string(std::string(fname, e_pos+1, std::string::npos));
-
-    add_decl_from_type(result, st, ret_type);
-
-    result+= // " " + type_name +
-      " retval = ";
-
-    if(is_instance_method(st, func_id))
+    bool is_constructor=func.type.get_bool(ID_constructor);
+    std::string retval_symbol=as_string(func.name)+RETURN_VALUE_SUFFIX;
+    const auto findit=st.symbols.find(retval_symbol);
+    if(is_constructor)
+    {
+      const auto& thistype=to_code_type(func.type).parameters()[0].type();
+      add_decl_from_type(result,st,thistype);
+      result += " constructed = new ";
+    }
+    else if(findit!=st.symbols.end())
+    {
+      add_decl_from_type(result,st,findit->second.type);
+      result += " retval = ";
+    }
+    if((!is_constructor) && is_instance_method(st, func_id))
     {
       for (const irep_idt &param : get_parameters(st.lookup(func_id)))
       {

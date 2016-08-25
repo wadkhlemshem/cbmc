@@ -27,14 +27,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <limits>
 
-#if 0
-#include <numeric>
-#include <set>
-#include <stack>
-
-#include "java_class_identifier.h"
-#endif
-
 namespace {
 class patternt
 {
@@ -46,7 +38,7 @@ public:
   // match with '?'  
   friend bool operator==(const irep_idt &what, const patternt &pattern)
   {
-    for(unsigned i=0; i<what.size(); i++)
+    for(std::size_t i=0; i<what.size(); i++)
       if(pattern.p[i]==0)
         return false;
       else if(pattern.p[i]!='?' && pattern.p[i]!=what[i])
@@ -111,42 +103,30 @@ protected:
                                     variablest &var_list, instruction_sizet inst_size)
   {
     size_t var_list_length = var_list.size();
-    if(var_list_length > 1)
-      {
-        for(variablet &var : var_list)
-          {
-            size_t start_pc = var.start_pc;
-            size_t length = var.length;
-            if (address + (size_t) inst_size >= start_pc && address < start_pc + length)
-              return var;
-          }
-        // add unnamed local variable to end of list at this index
-        // with scope from 0 to INT_MAX
-        // as it is at the end of the vector, it will only be taken into account
-        // if no other variable is valid
-        size_t list_length = var_list.size();
-        var_list.resize(list_length + 1);
-        var_list[list_length].start_pc = 0;
-        var_list[list_length].length = std::numeric_limits<size_t>::max();
-        return var_list[list_length];
-      }
-    else if(var_list_length == 1)
-      return var_list[0];
-    else
-      {
-        // return reference to unnamed local variable
-        // if no local variable is defined for this index
-        var_list.resize(1);
-        return var_list[0];
-      }
+    for(variablet &var : var_list)
+    {
+      size_t start_pc = var.start_pc;
+      size_t length = var.length;
+      if (address + (size_t) inst_size >= start_pc && address < start_pc + length)
+        return var;
+    }
+    // add unnamed local variable to end of list at this index
+    // with scope from 0 to INT_MAX
+    // as it is at the end of the vector, it will only be taken into account
+    // if no other variable is valid
+    size_t list_length = var_list.size();
+    var_list.resize(list_length + 1);
+    var_list[list_length].start_pc = 0;
+    var_list[list_length].length = std::numeric_limits<size_t>::max();
+    return var_list[list_length];
   }
 
   // JVM local variables
-  const exprt variable(const exprt &arg, char type_char, size_t address, instruction_sizet inst_size)
+  const exprt variable(const exprt &arg, char type_char, size_t address, instruction_sizet inst_size, bool do_cast = true)
   {
     irep_idt number=to_constant_expr(arg).get_value();
     
-    unsigned number_int=safe_string2unsigned(id2string(number));
+    std::size_t number_int=safe_string2size_t(id2string(number));
     typet t=java_type_from_char(type_char);
     variablest &var_list = variables[number_int];
 
@@ -169,7 +149,7 @@ protected:
       exprt result=var.symbol_expr;
       if(!var.is_parameter)
         used_local_names.insert(to_symbol_expr(result));      
-      if(t!=result.type()) result=typecast_exprt(result, t);
+      if(do_cast && t!=result.type()) result=typecast_exprt(result, t);
       return result;
     }
   }
@@ -207,7 +187,7 @@ protected:
   typedef std::vector<exprt> stackt;
   stackt stack;
 
-  exprt::operandst pop(unsigned n)
+  exprt::operandst pop(std::size_t n)
   {
     if(stack.size()<n)
     {
@@ -217,7 +197,7 @@ protected:
 
     exprt::operandst operands;
     operands.resize(n);
-    for(unsigned i=0; i<n; i++)
+    for(std::size_t i=0; i<n; i++)
       operands[i]=stack[stack.size()-n+i];
 
     stack.resize(stack.size()-n);
@@ -228,7 +208,7 @@ protected:
   {
     stack.resize(stack.size()+o.size());
 
-    for(unsigned i=0; i<o.size(); i++)
+    for(std::size_t i=0; i<o.size(); i++)
       stack[stack.size()-o.size()+i]=o[i];
   }
 
@@ -249,7 +229,7 @@ const size_t SLOTS_PER_INTEGER(1u);
 const size_t INTEGER_WIDTH(64u);
 size_t count_slots(const size_t value, const code_typet::parametert &param)
 {
-  const unsigned int width(param.type().get_unsigned_int(ID_width));
+  const std::size_t width(param.type().get_unsigned_int(ID_width));
   return value + SLOTS_PER_INTEGER + width / INTEGER_WIDTH;
 }
 
@@ -308,11 +288,7 @@ void java_bytecode_convert_methodt::convert(
   if(!m.is_static)
   {
     code_typet::parametert this_p;
-#if 0
-    const empty_typet empty;
-    const pointer_typet object_ref_type(empty);
-#endif
-    const pointer_typet object_ref_type(symbol_typet(class_symbol.name));
+    const reference_typet object_ref_type(symbol_typet(class_symbol.name));
     this_p.type()=object_ref_type;
     this_p.set_this();
     parameters.insert(parameters.begin(), this_p);
@@ -389,9 +365,11 @@ void java_bytecode_convert_methodt::convert(
     symbol_table.add(parameter_symbol);
 
     // add as a JVM variable
-    unsigned slots=get_variable_slots(parameters[i]);
+    std::size_t slots=get_variable_slots(parameters[i]);
     variables[param_index][0].symbol_expr=parameter_symbol.symbol_expr();
-    variables[param_index][0].is_parameter=true;    
+    variables[param_index][0].is_parameter=true;
+    variables[param_index][0].start_pc=0;
+    variables[param_index][0].length = std::numeric_limits<size_t>::max();
     param_index+=slots;
   }
 
@@ -489,7 +467,7 @@ irep_idt get_if_cmp_operator(const irep_idt &stmt)
 
 constant_exprt as_number(const mp_integer value, const typet &type)
 {
-  const unsigned int java_int_width(type.get_unsigned_int(ID_width));
+  const std::size_t java_int_width(type.get_unsigned_int(ID_width));
   const std::string significant_bits(integer2string(value, 2));
   std::string binary_width(java_int_width - significant_bits.length(), '0');
   return constant_exprt(binary_width += significant_bits, type);
@@ -724,17 +702,13 @@ codet java_bytecode_convert_methodt::convert_instructions(
       {
         if(parameters.empty() || !parameters[0].get_this())
         {
-	  typet thistype = empty_typet();
+          irep_idt classname = arg0.get(ID_C_class);
+          typet thistype = symbol_typet(classname);          
 	  // Note invokespecial is used for super-method calls as well as constructors.
 	  if(statement=="invokespecial")
 	  {
 	    if(as_string(arg0.get(ID_identifier)).find("<init>")!=std::string::npos)
-	    {
-	      // Constructor -- infer the "this" type must match the type implied by the name.
-	      irep_idt classname = arg0.get(ID_C_class);
-	      thistype = symbol_typet(classname);
 	      code_type.set(ID_constructor, true);
-	    }
 	    else
 	      code_type.set("java_super_method_call", true);
 	  }
@@ -762,7 +736,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       // Also cast pointers since intermediate locals
       // can be void*.
 
-      for(unsigned i=0; i<parameters.size(); i++)
+      for(std::size_t i=0; i<parameters.size(); i++)
       {
         const typet &type=parameters[i].type();
         if(type==java_boolean_type() ||
@@ -864,7 +838,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       // store value into some local variable
       assert(op.size()==1 && results.empty());
 
-      exprt var=variable(arg0, statement[0], i_it->address, INST_INDEX);
+      exprt var=variable(arg0, statement[0], i_it->address, INST_INDEX, /*do_cast=*/false);
 
       exprt toassign=op[0];
       if('a'==statement[0] && toassign.type()!=var.type())
@@ -1057,7 +1031,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
     else if(statement=="iinc")
     {
       code_assignt code_assign;
-      code_assign.lhs()=variable(arg0, 'i', i_it->address, INST_INDEX_CONST);
+      code_assign.lhs()=variable(arg0, 'i', i_it->address, INST_INDEX_CONST, /*do_cast=*/false);
       code_assign.rhs()=plus_exprt(
                                    variable(arg0, 'i', i_it->address, INST_INDEX_CONST),
                           typecast_exprt(arg1, java_int_type()));
@@ -1093,7 +1067,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       assert(op.size()==2 && results.size()==1);
       const typet type=java_type_from_char(statement[0]);
 
-      const unsigned int width=type.get_unsigned_int(ID_width);
+      const std::size_t width=type.get_size_t(ID_width);
       typet target=unsignedbv_typet(width);
 
       const typecast_exprt lhs(op[0], target);
@@ -1343,7 +1317,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
       // The first argument is the type, the second argument is the number of dimensions.
       // The size of each dimension is on the stack.
       irep_idt number=to_constant_expr(arg1).get_value();
-      unsigned dimension=safe_c_str2unsigned(number.c_str());
+      std::size_t dimension=safe_string2size_t(id2string(number));
 
       op=pop(dimension);
       assert(results.size()==1);
@@ -1439,11 +1413,32 @@ codet java_bytecode_convert_methodt::convert_instructions(
         binary_predicate_exprt(op[0], "java_instanceof", arg0);
     }
     else if(statement=="monitorenter")
-      warning() << "critical section with lock object is ignored ("
-                << i_it->source_location << ")" << eom;
-    else if(statement=="monitorexit")
-      // just skip, is always preceeded with "monitorenter"
     {
+      // becomes a function call
+      code_typet type;
+      type.return_type()=void_typet();
+      type.parameters().resize(1);
+      type.parameters()[0].type()=reference_typet(void_typet());
+      code_function_callt call;
+      call.function()=symbol_exprt("java::monitorenter", type);
+      call.lhs().make_nil();
+      call.arguments().push_back(op[0]);
+      call.add_source_location()=i_it->source_location;
+      c=call;
+    }
+    else if(statement=="monitorexit")
+    {
+      // becomes a function call
+      code_typet type;
+      type.return_type()=void_typet();
+      type.parameters().resize(1);
+      type.parameters()[0].type()=reference_typet(void_typet());
+      code_function_callt call;
+      call.function()=symbol_exprt("java::monitorexit", type);
+      call.lhs().make_nil();
+      call.arguments().push_back(op[0]);
+      call.add_source_location()=i_it->source_location;
+      c=call;
     }
     else
     {

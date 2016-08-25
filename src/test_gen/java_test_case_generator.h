@@ -25,17 +25,19 @@
 #include <util/options.h>
 
 typedef std::function<
-  std::string(const symbol_tablet &, const irep_idt &, const inputst &,
+  std::string(const symbol_tablet &, const irep_idt &, bool, const inputst &,
               const interpretert::list_input_varst&,
               const interpretert::input_var_functionst&,
               const interpretert::dynamic_typest&,
-              bool)> test_case_generatort;
+              bool,
+              const std::vector<std::string>&)> test_case_generatort;
 
 class java_test_case_generatort:public messaget
 {
   const std::string generate_test_case(const optionst &, const symbol_tablet &,
                                        const goto_functionst &, const goto_tracet &,
-                                       const test_case_generatort, std::string="");
+                                       const test_case_generatort, std::string="",
+                                       std::vector<std::string> goals_reached=std::vector<std::string>());
   int generate_test_case(optionst &, const symbol_tablet &,
                          const goto_functionst &, bmct &, const test_case_generatort);
 
@@ -86,6 +88,7 @@ class java_test_case_generatort:public messaget
                                             const symbol_tablet &st,
                                             const goto_functionst &gf,
                                             const class goto_tracet &trace,
-                                            const std::string &property);
+                                            const std::string &test_name,
+                                            const std::vector<std::string> &goals);
 };
 #endif /* JAVA_TEST_CASE_GENERATOR_H_ */

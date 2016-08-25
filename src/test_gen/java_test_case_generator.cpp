@@ -62,7 +62,8 @@ const irep_idt &java_test_case_generatort::get_entry_function_id(const goto_func
 const std::string java_test_case_generatort::generate_test_case(
   const optionst &options, const symbol_tablet &st,
   const goto_functionst &gf, const goto_tracet &trace,
-  const test_case_generatort generate, std::string property)
+  const test_case_generatort generate, std::string test_name,
+  std::vector<std::string> goals_reached)
 {
 
   interpretert::list_input_varst opaque_function_returns;
@@ -72,23 +73,37 @@ const std::string java_test_case_generatort::generate_test_case(
   const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
                                        input_defn_functions,dynamic_types));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
-  const std::string source(generate(st,entry_func_id,inputs,opaque_function_returns,
+  bool enters_main=false;
+  irep_idt previous_function;
+  for(const auto& step : trace.steps)
+  {
+    if(step.pc->function==irep_idt())
+      continue;
+    if(step.pc->function==entry_func_id && previous_function=="_start")
+    {
+      enters_main=true;
+      break;
+    }
+    previous_function=step.pc->function;
+  }
+  const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,
-                                    options.get_bool_option("java-disable-mocks")));
+                                    options.get_bool_option("java-disable-mocks"),
+                                    goals_reached));
   const std::string empty("");
   std::string out_file_name=options.get_option("outfile");
   if(out_file_name.empty())
     {
-      // if(!property.empty())
-      //   std::cout << "Test case: " << property << std::endl;
+      // if(!test_name.empty())
+      //   std::cout << "Test case: " << test_name << std::endl;
       //std::cout << source << std::endl;
       return source;
     }
   else
     {
-      assert(!property.empty());
-      // the key is the property_id of the goal
-      std::size_t h = std::hash<std::string>()(property);
+      assert(!test_name.empty());
+      // the key is an arbitrary test name
+      std::size_t h = std::hash<std::string>()(test_name);
       out_file_name+=std::to_string(h);
 
       std::ofstream(out_file_name.c_str()) << source;
@@ -118,10 +133,12 @@ int  java_test_case_generatort::generate_test_case(optionst &options, const symb
 
 const std::string  java_test_case_generatort::generate_java_test_case(const optionst &options, const symbol_tablet &st,
                                                                       const goto_functionst &gf, const goto_tracet &trace,
-                                                                      const std::string &name)
+                                                                      const std::string &name,
+                                                                      const std::vector<std::string> &goals_reached
+  )
 {
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-  return generate_test_case(options, st, gf, trace, source_gen, name);
+  return generate_test_case(options, st, gf, trace, source_gen, name, goals_reached);
 }
 
 int java_test_case_generatort::generate_java_test_case(optionst &o, const symbol_tablet &st,
