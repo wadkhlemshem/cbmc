@@ -135,9 +135,9 @@ protected:
     if(var.symbol_expr.get_identifier().empty())
     {
       // an un-named local variable
-      irep_idt base_name="local"+id2string(number)+type_char;
+      irep_idt base_name="__anonlocal"+id2string(number)+type_char;
       irep_idt identifier=id2string(current_method)+"::"+id2string(base_name);
-
+      
       symbol_exprt result(identifier, t);
       result.set(ID_C_base_name, base_name);
       used_local_names.insert(result);
@@ -295,6 +295,8 @@ void java_bytecode_convert_methodt::convert(
 
   variables.clear();
 
+  std::set<std::string> unique_local_names;
+  
   // Do the parameters and locals in the variable table, which is available when
   // compiled with -g or for methods with many local variables in the latter
   // case, different variables can have the same index, depending on the
@@ -306,9 +308,27 @@ void java_bytecode_convert_methodt::convert(
   for(const auto & v : m.local_variable_table)
   {
     typet t=java_type_from_string(v.signature);
-    irep_idt identifier=id2string(method_identifier)+"::"+id2string(v.name);
+    size_t unique_number=0;
+    std::string unique_id;
+    std::string infix;
+    // Avoid clashing with anonymous locals:
+    if(has_prefix(as_string(v.name),"__anonlocal"))
+      infix="_";
+    // Avoid clashing with other named locals with disjoint scopes
+    // (no sub-function-block-scoping in GOTO programs afaik!)
+    do {
+      std::ostringstream id_oss;
+      id_oss << infix << v.name;
+      size_t this_suffix=unique_number++;
+      if(this_suffix!=0)
+        id_oss << this_suffix;
+      unique_id=id_oss.str();
+    } while(!unique_local_names.insert(unique_id).second);
+    std::ostringstream scoped_name;
+    scoped_name << method_identifier << "::" << unique_id;
+    irep_idt identifier(scoped_name.str());
     symbol_exprt result(identifier, t);
-    result.set(ID_C_base_name, v.name);
+    result.set(ID_C_base_name, irep_idt(unique_id));
     size_t number_index_entries = variables[v.index].size();
     variables[v.index].resize(number_index_entries + 1);
     variables[v.index][number_index_entries].symbol_expr = result;
