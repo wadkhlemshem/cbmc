@@ -55,7 +55,7 @@ class optionst;
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(graphml-cex):" \
   "(gen-java-test-case)(java-assume-inputs-non-null)(java-disable-mocks)"\
-  "(java-max-input-array-length):"\
+  "(java-max-input-array-length):(java-mock-class):(java-no-mock-class):"\
   "(localize-faults)(localize-faults-method):" \
   "(floatbv)(all-claims)(all-properties)(decide)" // legacy, and will eventually disappear
 

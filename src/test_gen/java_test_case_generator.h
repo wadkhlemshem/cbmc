@@ -30,6 +30,8 @@ typedef std::function<
               const interpretert::input_var_functionst&,
               const interpretert::dynamic_typest&,
               bool,
+              const optionst::value_listt&,
+              const optionst::value_listt&,              
               const std::vector<std::string>&)> test_case_generatort;
 
 class java_test_case_generatort:public messaget

@@ -470,6 +470,12 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("java-disable-mocks"))
     options.set_option("java-disable-mocks", true);
+
+  if(cmdline.isset("java-mock-class"))
+    options.set_option("java-mock-class", cmdline.get_values("java-mock-class"));
+
+  if(cmdline.isset("java-no-mock-class"))
+    options.set_option("java-no-mock-class", cmdline.get_values("java-no-mock-class"));  
 }
 
 /*******************************************************************\

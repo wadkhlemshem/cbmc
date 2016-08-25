@@ -36,6 +36,9 @@ class reference_factoryt {
 
 public:
 
+  std::set<std::string> must_mock_classes;
+  std::set<std::string> no_mock_classes;
+  bool disable_mocks;
   std::set<std::string> mock_classes;
   mock_environment_builder mockenv_builder;
   const symbol_tablet& symbol_table;
@@ -71,6 +74,11 @@ public:
 		     const java_call_descriptor& desc, const symbol_tablet&);
   void add_mock_objects(const symbol_tablet &st,
 			const interpretert::list_input_varst& opaque_function_returns);
+  void expand_wildcard(const std::string& s, std::vector<std::string>& out);
+  void configure_mocks(bool disable_mocks,
+                       const optionst::value_listt& mock_classes,
+                       const optionst::value_listt& no_mock_classes);
+  bool shouldnt_mock_class(const std::string&);
   void gather_referenced_symbols(const exprt& rhs, inputst& in, const symbol_tablet&,
                                  std::vector<symbolt>& needed);
   void gather_referenced_symbols(const symbolt& symbol, inputst& in, const symbol_tablet&,
@@ -615,11 +623,20 @@ std::string get_escaped_func_name(const symbolt &symbol)
   return result;
 }
 
-bool shouldnt_mock_class(const std::string& classname)
+bool reference_factoryt::shouldnt_mock_class(const std::string& classname)
 {
-  // Should make a proper black/whitelist in due time; for now just avoid
-  // mocking things like Exceptions.
-  return classname.find("java.") == 0;
+  assert(!disable_mocks); // Shouldn't get here at all in this case.
+  // Priority 1: explicitly forced to mock something:
+  if(must_mock_classes.count(classname))
+    return false;
+  // Priority 2: default exclude the standard library:
+  if(has_prefix(classname,"java."))
+    return true;
+  // Priority 3: explicitly forbidden to mock:
+  if(no_mock_classes.count(classname))
+    return true;
+  // Default allowed:
+  return false;
 }
 
 void string_to_statements(const std::string& instring,
@@ -682,6 +699,64 @@ void populate_descriptor_types(const symbolt& func, const typet& ret_type,
 
   add_decl_from_type(desc.java_ret_type.classname,st,
 		     ret_type,&desc.java_ret_type.is_primitive);
+}
+
+void reference_factoryt::expand_wildcard(const std::string& s, std::vector<std::string>& out)
+{
+  if(s.length()==0 || s[s.length()-1]!='*')
+  {
+    out.push_back(s);
+    return;
+  }
+
+  std::string prefix=s.substr(0,s.length()-1);
+  for(const auto& it : symbol_table.symbols)
+  {
+    const auto& sym=it.second;
+    if(!sym.is_type)
+      continue;
+    if(sym.type.id()!=ID_struct)
+      continue;
+    std::string basename=as_string(sym.base_name);
+    if(has_prefix(basename,prefix))
+      out.push_back(basename);
+  }
+  
+}
+  
+void reference_factoryt::configure_mocks(
+  bool disable_mocks,
+  const optionst::value_listt& mock_classes_list,
+  const optionst::value_listt& no_mock_classes_list)
+{
+
+  this->disable_mocks=disable_mocks;
+  if(disable_mocks && (mock_classes_list.size() || no_mock_classes_list.size()))
+    throw "java-mock-class and java-no-mock-class are incompatible with java-disable-mocks";
+  
+  for(const auto& c : mock_classes_list)
+  {
+    std::vector<std::string> expanded;
+    expand_wildcard(c,expanded);
+    for(const auto& c2 : expanded)
+      must_mock_classes.insert(c2);
+  }
+  for(const auto& c : no_mock_classes_list)
+  {
+    std::vector<std::string> expanded;
+    expand_wildcard(c,expanded);
+    for(const auto& c2 : expanded)
+    {
+      no_mock_classes.insert(c2);
+      if(must_mock_classes.count(c2))
+      {
+        std::ostringstream msg;
+        msg << "Class " << c2 << " specified for both java-mock-class and java-no-mock-class";
+        throw msg.str();
+      }
+    }
+  }
+
 }
   
 void reference_factoryt::add_mock_call(
@@ -766,6 +841,9 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
   const interpretert::list_input_varst& opaque_function_returns)
 {
 
+  if(disable_mocks)
+    return;
+  
   mock_classes.clear();
 
   for(auto fn_and_returns : opaque_function_returns)
@@ -838,6 +916,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     bool enters_main, inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
     const interpretert::dynamic_typest& dynamic_types, bool disable_mocks,
+    const optionst::value_listt& mock_classes,
+    const optionst::value_listt& no_mock_classes,            
     const std::vector<std::string>& goals_reached)
 {
   const symbolt &func=st.lookup(func_id);
@@ -855,8 +935,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   // Parameter is the indent level on generated code.
   reference_factoryt ref_factory(4,st,dynamic_types);
 
-  if(!disable_mocks)
-    ref_factory.add_mock_objects(st, opaque_function_returns);
+  ref_factory.configure_mocks(disable_mocks, mock_classes, no_mock_classes);
+  ref_factory.add_mock_objects(st, opaque_function_returns);
 
   result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
   add_test_class_name(result, func_name);

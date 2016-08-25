@@ -89,6 +89,8 @@ const std::string java_test_case_generatort::generate_test_case(
   const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,
                                     options.get_bool_option("java-disable-mocks"),
+                                    options.get_list_option("java-mock-class"),
+                                    options.get_list_option("java-no-mock-class"),
                                     goals_reached));
   const std::string empty("");
   std::string out_file_name=options.get_option("outfile");
