@@ -216,9 +216,10 @@ std::string &indent(std::string &result, const size_t num_indent=1u)
 
 void add_test_class_name(std::string &result, const std::string &func_name)
 {
-  result+="public class ";
-  result+=func_name;
-  result+="Test {\n";
+  //result+="public class ";
+  //result+=func_name;
+  //result+="Test {\n";
+  //indent(result)+="public void test";
   indent(result)+="@org.junit.Test public void test";
   result+=func_name;
   result+="() throws Exception {\n";
@@ -916,8 +917,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
       add_func_call(result,st,func_id);
   }
 
+  // closing the method
   indent(result)+="}\n";
-  return result+="}\n";
+  return result;
 
 }
 
