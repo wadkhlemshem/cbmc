@@ -998,6 +998,11 @@ void java_bytecode_parsert::rmethod_attribute(methodt &method)
         it->source_location.set_line(line_number);
     }
     
+    // line number of method
+    if(!method.instructions.empty())
+      method.source_location.set_line(
+        method.instructions.begin()->source_location.get_line());
+
   }
   else if(attribute_name=="RuntimeInvisibleAnnotations" ||
           attribute_name=="RuntimeVisibleAnnotations")
@@ -1411,6 +1416,7 @@ void java_bytecode_parsert::rclass_attribute(classt &parsed_class)
         m_it!=parsed_class.methods.end();
         m_it++)
     {
+      m_it->source_location.set_file(sourcefile_name);
       for(instructionst::iterator i_it=m_it->instructions.begin();
           i_it!=m_it->instructions.end();
           i_it++)
