@@ -395,6 +395,7 @@ void java_bytecode_convert_methodt::convert(
   method_symbol.base_name=method.get_base_name();
   method_symbol.mode=ID_java;
   method_symbol.location=m.source_location;
+  method_symbol.location.set_function(method_identifier);
 
   if(method.get_base_name()=="<init>")
     method_symbol.pretty_name=id2string(class_symbol.pretty_name)+"."+
