@@ -67,6 +67,7 @@ void goto_trace_stept::output(
   case goto_trace_stept::ASSIGNMENT: out << "ASSIGNMENT"; break;
   case goto_trace_stept::GOTO: out << "GOTO"; break;
   case goto_trace_stept::DECL: out << "DECL"; break;
+  case goto_trace_stept::DEAD: out << "DEAD"; break;
   case goto_trace_stept::OUTPUT: out << "OUTPUT"; break;
   case goto_trace_stept::INPUT: out << "INPUT"; break;
   case goto_trace_stept::ATOMIC_BEGIN: out << "ATOMC_BEGIN"; break;
