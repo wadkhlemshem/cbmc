@@ -798,7 +798,11 @@ codet java_bytecode_convert_methodt::convert_instructions(
         call.function()=symbol_exprt(arg0.get(ID_identifier), arg0.type());
       }
 
-      call.function().add_source_location()=i_it->source_location;
+      source_locationt loc;
+      loc = i_it->source_location;
+      loc.set_function(method_id);
+      source_locationt &dloc = loc;
+      call.function().add_source_location()=dloc;
       c = call;
     }
     else if(statement=="return")
