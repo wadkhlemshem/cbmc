@@ -150,7 +150,9 @@ Function: java_build_arguments
 exprt::operandst java_build_arguments(
   const symbolt &function,
   code_blockt &init_code,
-  symbol_tablet &symbol_table)
+  symbol_tablet &symbol_table,
+  bool assume_init_pointers_not_null,
+  unsigned max_nondet_array_length)
 {
   const code_typet::parameterst &parameters=
     to_code_type(function.type).parameters();
@@ -164,11 +166,12 @@ exprt::operandst java_build_arguments(
   {
     bool is_this=param_number==0 &&
                  parameters[param_number].get_this();
-    bool allow_null=config.main!="" && !is_this;
+    bool allow_null=config.main!="" && (!is_this) && !assume_init_pointers_not_null;
 
     main_arguments[param_number]=
       object_factory(parameters[param_number].type(), 
-                     init_code, allow_null, symbol_table);
+                     init_code, allow_null, symbol_table,
+                     max_nondet_array_length);
 
     const symbolt &p_symbol=
       symbol_table.lookup(parameters[param_number].get_identifier());
@@ -180,7 +183,7 @@ exprt::operandst java_build_arguments(
       index_exprt(string_constantt(p_symbol.base_name), 
                   gen_zero(index_type())));
     input.op1()=main_arguments[param_number];
-    input.add_source_location()=parameters[param_number].source_location();
+    input.add_source_location()=function.location;
 
     init_code.move_to_operands(input);
   }
@@ -227,8 +230,7 @@ void java_record_outputs(
       index_exprt(string_constantt(return_symbol.base_name), 
                   gen_zero(index_type())));
     output.op1()=return_symbol.symbol_expr();
-    output.add_source_location()=
-      function.value.operands().back().source_location();
+    output.add_source_location()=function.location;
 
     init_code.move_to_operands(output);
   }
@@ -271,7 +273,9 @@ Function: java_entry_point
 bool java_entry_point(
   symbol_tablet &symbol_table,
   const irep_idt &main_class,
-  message_handlert &message_handler)
+  message_handlert &message_handler,
+  bool assume_init_pointers_not_null,
+  int max_nondet_array_length)
 {
   // check if the entry point is already there
   if(symbol_table.symbols.find(goto_functionst::entry_point())!=
@@ -457,7 +461,9 @@ bool java_entry_point(
   }
 
   exprt::operandst main_arguments=
-    java_build_arguments(symbol, init_code, symbol_table);
+    java_build_arguments(symbol, init_code, symbol_table,
+                         assume_init_pointers_not_null,
+                         max_nondet_array_length);
   call_main.arguments()=main_arguments;
 
   init_code.move_to_operands(call_main);
@@ -483,3 +489,4 @@ bool java_entry_point(
 
   return false;
 }
+

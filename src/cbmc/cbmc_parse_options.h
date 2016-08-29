@@ -45,7 +45,8 @@ class optionst;
   "(stop-on-fail)(trace)" \
   "(error-label):(verbosity):(no-library)" \
   "(version)" \
-  "(cover):" \
+  "(assertions-as-assumptions)" \
+  "(cover):(cover-function-only)" \
   "(mm):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
   "(ppc-macos)(unsigned-char)" \
@@ -53,6 +54,8 @@ class optionst;
   "(string-abstraction)(no-arch)(arch):" \
   "(round-to-nearest)(round-to-plus-inf)(round-to-minus-inf)(round-to-zero)" \
   "(graphml-cex):" \
+  "(gen-java-test-case)(java-assume-inputs-non-null)(java-disable-mocks)"\
+  "(java-max-input-array-length):"\
   "(localize-faults)(localize-faults-method):" \
   "(floatbv)(all-claims)(all-properties)(decide)" // legacy, and will eventually disappear
 

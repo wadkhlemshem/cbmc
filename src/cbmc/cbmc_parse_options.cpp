@@ -46,6 +46,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <pointer-analysis/add_failed_symbols.h>
 
+#include <test_gen/java_test_case_generator.h>
+
 #include <analyses/goto_check.h>
 
 #include <langapi/mode.h>
@@ -456,6 +458,18 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   if(cmdline.isset("graphml-cex"))
     options.set_option("graphml-cex", cmdline.get_value("graphml-cex"));
+
+  if(cmdline.isset("gen-java-test-case"))
+    options.set_option("gen-java-test-case", true);
+
+  if(cmdline.isset("cover-function-only"))
+    options.set_option("cover-function-only", true);
+
+  if(cmdline.isset("assertions-as-assumptions"))
+    options.set_option("assertions-as-assumptions", true);
+
+  if(cmdline.isset("java-disable-mocks"))
+    options.set_option("java-disable-mocks", true);
 }
 
 /*******************************************************************\
@@ -571,6 +585,13 @@ int cbmc_parse_optionst::doit()
 
   if(set_properties(goto_functions))
     return 7;
+
+  if(options.get_bool_option("gen-java-test-case"))
+    {
+      bmc.set_ui(get_ui());
+      java_test_case_generatort gen(ui_message_handler);
+      return gen.generate_java_test_case(options, symbol_table, goto_functions, bmc);
+    }
 
   // do actual BMC
   return do_bmc(bmc, goto_functions);
@@ -934,6 +955,20 @@ bool cbmc_parse_optionst::process_goto_program(
         get_message_handler(), goto_functions);
     }
 
+    if(cmdline.isset("assertions-as-assumptions"))
+    {
+      // turn assertions (from generic checks) into assumptions
+      Forall_goto_functions(f_it, goto_functions)
+      {
+        goto_programt &body=f_it->second.body;
+        Forall_goto_program_instructions(i_it, body)
+        {
+          if(i_it->is_assert())
+  	    i_it->type= goto_program_instruction_typet::ASSUME;
+	}
+      }
+    }
+
     // add failed symbols
     // needs to be done before pointer analysis
     add_failed_symbols(symbol_table);
@@ -975,7 +1010,11 @@ bool cbmc_parse_optionst::process_goto_program(
       }
           
       status() << "Instrumenting coverage goals" << eom;
-      instrument_cover_goals(symbol_table, goto_functions, c);
+      if(cmdline.isset("cover-function-only"))
+	instrument_cover_goals_function_only(symbol_table,goto_functions,c);
+      else
+	instrument_cover_goals(symbol_table,goto_functions,c);
+
       goto_functions.update();
     }
 
@@ -1140,9 +1179,12 @@ void cbmc_parse_optionst::help()
     " --cover CC                   create test-suite with coverage criterion CC\n"
     " --mm MM                      memory consistency model for concurrent programs\n"
     "\n"
-    "Java Bytecode frontend options:\n"
+    "Java Bytecode options:\n"
     " --classpath dir/jar          set the classpath\n"
     " --main-class class-name      set the name of the main class\n"
+    " --gen-java-test-case         generate test case\n" 
+    " --cover-function-only        add coverage instrumentation only to the entry function"
+    " --assertions-as-assumptions  convert assertions from generic checks into assumptions"
     "\n"
     "Semantic transformations:\n"
     " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"

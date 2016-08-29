@@ -24,6 +24,22 @@ void instrument_cover_goals(
 
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
+  goto_programt &goto_program,
+  coverage_criteriont,
+  const bool function_only);
+
+void instrument_cover_goals_function_only(
+  const symbol_tablet &symbol_table,
+  goto_programt &goto_program,
+  coverage_criteriont);
+
+void instrument_cover_goals(
+  const symbol_tablet &symbol_table,
+  goto_functionst &goto_functions,
+  coverage_criteriont);
+
+void instrument_cover_goals_function_only(
+  const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
   coverage_criteriont);
 

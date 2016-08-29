@@ -14,6 +14,8 @@ Author: Daniel Kroening, kroening@kroening.com
 bool java_entry_point(
   class symbol_tablet &symbol_table,
   const irep_idt &main_class,
-  class message_handlert &message_handler);
+  class message_handlert &message_handler,
+  bool assume_init_pointers_not_null,
+  int max_nondet_array_length);
 
 #endif
