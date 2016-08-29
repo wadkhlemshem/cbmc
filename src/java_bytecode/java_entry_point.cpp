@@ -183,7 +183,7 @@ exprt::operandst java_build_arguments(
       index_exprt(string_constantt(p_symbol.base_name), 
                   gen_zero(index_type())));
     input.op1()=main_arguments[param_number];
-    input.add_source_location()=parameters[param_number].source_location();
+    input.add_source_location()=function.location;
 
     init_code.move_to_operands(input);
   }
@@ -230,8 +230,7 @@ void java_record_outputs(
       index_exprt(string_constantt(return_symbol.base_name), 
                   gen_zero(index_type())));
     output.op1()=return_symbol.symbol_expr();
-    output.add_source_location()=
-      function.value.operands().back().source_location();
+    output.add_source_location()=function.location;
 
     init_code.move_to_operands(output);
   }

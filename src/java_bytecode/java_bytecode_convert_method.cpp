@@ -72,6 +72,7 @@ public:
   }
 
 protected:
+  irep_idt method_id;
   symbol_tablet &symbol_table;
 
   irep_idt current_method;
@@ -279,6 +280,7 @@ void java_bytecode_convert_methodt::convert(
 
   const irep_idt method_identifier=
     id2string(class_symbol.name)+"."+id2string(m.name)+":"+m.signature;
+  method_id = method_identifier;
 
   code_typet &code_type=to_code_type(member_type);
   method_return_type=code_type.return_type();
@@ -832,15 +834,19 @@ codet java_bytecode_convert_methodt::convert_instructions(
       const dereference_exprt element(data_plus_offset, element_type);
 
       c=code_assignt(element, op[2]);
+      c.add_source_location()=i_it->source_location;
     }
     else if(statement==patternt("?store"))
     {
+      status()<< "ASSIGN: " << i_it->source_location << eom;
       // store value into some local variable
       assert(op.size()==1 && results.empty());
 
       exprt var=variable(arg0, statement[0], i_it->address, INST_INDEX, /*do_cast=*/false);
+      //var.add_source_location()=i_it->source_location;
 
       exprt toassign=op[0];
+      //toassign.add_source_location()=i_it->source_location;
       if('a'==statement[0] && toassign.type()!=var.type())
         toassign=typecast_exprt(toassign,var.type());
 
@@ -1523,7 +1529,14 @@ codet java_bytecode_convert_methodt::convert_instructions(
   // locals
   for(const auto & var : used_local_names)
   {
-    code.add(code_declt(var));
+    code_declt decl = code_declt(var);
+    code_declt &declaration = decl;
+    source_locationt loc = instructions.begin()->source_location;
+    source_locationt &dloc = loc;
+    dloc.set_function(method_id);
+    declaration.add_source_location() = dloc;
+    code.add(declaration);
+
     symbolt new_symbol;
     new_symbol.name=var.get_identifier();
     new_symbol.type=var.type();
@@ -1539,7 +1552,12 @@ codet java_bytecode_convert_methodt::convert_instructions(
   // temporaries
   for(const auto & var : tmp_vars)
   {
-    code.add(code_declt(var));
+    code_declt decl = code_declt(var);
+    code_declt &declaration = decl;
+    source_locationt loc = instructions.begin()->source_location;
+    source_locationt &dloc = loc;
+    dloc.set_function(method_id);
+    code.add(declaration);
   }
 
   for(const auto & it : address_map)
