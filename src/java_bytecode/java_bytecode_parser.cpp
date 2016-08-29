@@ -6,8 +6,10 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
+#include <algorithm>
 #include <fstream>
 #include <map>
+#include <string>
 
 #include <util/i2string.h>
 #include <util/parser.h>
@@ -1405,7 +1407,19 @@ void java_bytecode_parsert::rclass_attribute(classt &parsed_class)
   if(attribute_name=="SourceFile")
   {
     u2 sourcefile_index=read_u2();
-    irep_idt sourcefile_name=pool_entry(sourcefile_index).s;
+    irep_idt sourcefile_name;
+
+    std::string fqn = std::string(id2string(parsed_class.name));
+    size_t lastIndex = fqn.find_last_of(".");
+    if(lastIndex == std::string::npos)
+      sourcefile_name=pool_entry(sourcefile_index).s;
+    else
+    {
+      std::string packageName = fqn.substr(0, lastIndex + 1);
+      std::replace(packageName.begin(), packageName.end(), '.', '/');
+      const std::string &fullFileName = std::string(packageName + id2string(pool_entry(sourcefile_index).s));
+      sourcefile_name=fullFileName;
+    }
     
     for(methodst::iterator m_it=parsed_class.methods.begin();
         m_it!=parsed_class.methods.end();
