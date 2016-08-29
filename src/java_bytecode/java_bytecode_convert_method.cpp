@@ -838,7 +838,6 @@ codet java_bytecode_convert_methodt::convert_instructions(
     }
     else if(statement==patternt("?store"))
     {
-      status()<< "ASSIGN: " << i_it->source_location << eom;
       // store value into some local variable
       assert(op.size()==1 && results.empty());
 
@@ -1557,6 +1556,7 @@ codet java_bytecode_convert_methodt::convert_instructions(
     source_locationt loc = instructions.begin()->source_location;
     source_locationt &dloc = loc;
     dloc.set_function(method_id);
+    declaration.add_source_location() = dloc;
     code.add(declaration);
   }
 
