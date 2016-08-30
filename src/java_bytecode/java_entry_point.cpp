@@ -109,6 +109,7 @@ bool java_static_lifetime_init(
        it->second.mode==ID_java)
     {
       code_assignt assignment(it->second.symbol_expr(), it->second.value);
+      assignment.add_source_location()=source_location;
       code_block.add(assignment);
     }
   }
@@ -127,6 +128,7 @@ bool java_static_lifetime_init(
       code_function_callt function_call;
       function_call.lhs()=nil_exprt();
       function_call.function()=it->second.symbol_expr();
+      function_call.add_source_location()=source_location;
       code_block.add(function_call);
     }
   }
@@ -450,9 +452,8 @@ bool java_entry_point(
   loc.set_function(symbol.name);
   source_locationt &dloc = loc;
 
-  call_main.add_source_location()=symbol.location;
+  call_main.add_source_location()=dloc;
   call_main.function()=symbol.symbol_expr();
-  call_main.function().add_source_location()=dloc;
 
   if(to_code_type(symbol.type).return_type()!=empty_typet())
   {
