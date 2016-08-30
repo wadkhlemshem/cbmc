@@ -468,6 +468,7 @@ bool java_entry_point(
 
   call_main.add_source_location()=dloc;
   call_main.function()=symbol.symbol_expr();
+  call_main.function().add_source_location()=dloc;
 
   if(to_code_type(symbol.type).return_type()!=empty_typet())
   {
