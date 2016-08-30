@@ -173,7 +173,8 @@ exprt::operandst java_build_arguments(
     main_arguments[param_number]=
       object_factory(parameters[param_number].type(), 
                      init_code, allow_null, symbol_table,
-                     max_nondet_array_length);
+                     max_nondet_array_length,
+                     function.location);
 
     const symbolt &p_symbol=
       symbol_table.lookup(parameters[param_number].get_identifier());
@@ -260,6 +261,143 @@ void java_record_outputs(
   }
 }
 
+
+std::pair<symbolt, bool> get_main_symbol(symbol_tablet &symbol_table,
+                                           const irep_idt &main_class,
+                                           message_handlert &message_handler)
+{
+  symbolt symbol;
+
+  messaget message(message_handler);
+
+  // find main symbol
+  if(config.main!="")
+  {
+    // Add java:: prefix
+    std::string main_identifier="java::"+config.main;
+    
+    symbol_tablet::symbolst::const_iterator s_it;
+    
+    // Does it have a type signature? (':' suffix)
+    if(config.main.rfind(':')==std::string::npos)
+    {
+      std::string prefix=main_identifier+':';
+      std::set<irep_idt> matches;
+      
+      for(const auto & s : symbol_table.symbols)
+        if(has_prefix(id2string(s.first), prefix) &&
+           s.second.type.id()==ID_code)
+          matches.insert(s.first);
+
+      if(matches.empty())
+      {
+        message.error() << "main symbol `" << config.main
+                        << "' not found" << messaget::eom;
+        return std::make_pair(symbol, true);
+      }
+      else if(matches.size()==1)
+      {
+        s_it=symbol_table.symbols.find(*matches.begin());
+        assert(s_it!=symbol_table.symbols.end());
+      }
+      else
+      {
+        message.error() << "main symbol `" << config.main
+                        << "' is ambiguous:\n";
+
+        for(const auto & s : matches)
+          message.error() << "  " << s << '\n';
+        
+        message.error() << messaget::eom;
+        return std::make_pair(symbol, true);
+      }
+    }
+    else
+    {
+      // just look it up
+      s_it=symbol_table.symbols.find(main_identifier);
+
+      if(s_it==symbol_table.symbols.end())
+      {
+        message.error() << "main symbol `" << config.main
+                        << "' not found" << messaget::eom;
+        return std::make_pair(symbol, true);
+      }
+    }
+    // function symbol
+    symbol=s_it->second;
+
+    if(symbol.type.id()!=ID_code)
+    {
+      message.error() << "main symbol `" << config.main
+                      << "' not a function" << messaget::eom;
+      return std::make_pair(symbol, true);
+    }
+    
+    // check if it has a body
+    if(symbol.value.is_nil())
+    {
+      message.error() << "main method `" << main_class
+                      << "' has no body" << messaget::eom;
+      return std::make_pair(symbol, true);
+    }
+  }
+  else
+  {
+    // no function given, we look for the main class
+    assert(config.main=="");
+
+    // are we given a main class?
+    if(main_class.empty())
+      return std::make_pair(symbol, false); // silently ignore
+
+    std::string entry_method=
+      id2string(main_class)+".main";
+
+    std::string prefix="java::"+entry_method+":";
+
+    // look it up
+    std::set<irep_idt> matches;
+
+    for(symbol_tablet::symbolst::const_iterator
+        s_it=symbol_table.symbols.begin();
+        s_it!=symbol_table.symbols.end();
+        s_it++)
+    {
+      if(s_it->second.type.id()==ID_code &&
+         has_prefix(id2string(s_it->first), prefix))
+        matches.insert(s_it->first);
+    }
+
+    if(matches.empty())
+    {
+      // Not found, silently ignore
+      return std::make_pair(symbol, false);
+    }
+
+    if(matches.size()>=2)
+    {
+      message.error() << "main method in `" << main_class
+                      << "' is ambiguous" << messaget::eom;
+      return std::make_pair(symbol, true); // give up with error, no main
+    }
+
+    // function symbol
+    symbol=symbol_table.symbols.find(*matches.begin())->second;
+  
+    // check if it has a body
+    if(symbol.value.is_nil())
+    {
+      message.error() << "main method `" << main_class
+                      << "' has no body" << messaget::eom;
+      return std::make_pair(symbol, true); // give up with error
+    }
+  }
+
+  //symbolt &main_symbol = symbol;
+  return std::make_pair(symbol, false);
+}
+
 /*******************************************************************\
 
 Function: java_entry_point
@@ -285,134 +423,10 @@ bool java_entry_point(
     return false; // silently ignore
 
   messaget message(message_handler);
-
-  symbolt symbol; // main function symbol
-
-  // find main symbol
-  if(config.main!="")
-  {
-    // Add java:: prefix
-    std::string main_identifier="java::"+config.main;
-    
-    symbol_tablet::symbolst::const_iterator s_it;
-    
-    // Does it have a type signature? (':' suffix)
-    if(config.main.rfind(':')==std::string::npos)
-    {
-      std::string prefix=main_identifier+':';
-      std::set<irep_idt> matches;
-      
-      for(const auto & s : symbol_table.symbols)
-        if(has_prefix(id2string(s.first), prefix) &&
-           s.second.type.id()==ID_code)
-          matches.insert(s.first);
-
-      if(matches.empty())
-      {
-        message.error() << "main symbol `" << config.main
-                        << "' not found" << messaget::eom;
-        return true;
-      }
-      else if(matches.size()==1)
-      {
-        s_it=symbol_table.symbols.find(*matches.begin());
-        assert(s_it!=symbol_table.symbols.end());
-      }
-      else
-      {
-        message.error() << "main symbol `" << config.main
-                        << "' is ambiguous:\n";
-
-        for(const auto & s : matches)
-          message.error() << "  " << s << '\n';
-        
-        message.error() << messaget::eom;
-
-        return true;
-      }
-    }
-    else
-    {
-      // just look it up
-      s_it=symbol_table.symbols.find(main_identifier);
-
-      if(s_it==symbol_table.symbols.end())
-      {
-        message.error() << "main symbol `" << config.main
-                        << "' not found" << messaget::eom;
-        return true;
-      }
-    }
-
-    // function symbol
-    symbol=s_it->second;
-
-    if(symbol.type.id()!=ID_code)
-    {
-      message.error() << "main symbol `" << config.main
-                      << "' not a function" << messaget::eom;
-      return true;
-    }
-    
-    // check if it has a body
-    if(symbol.value.is_nil())
-    {
-      message.error() << "main method `" << main_class
-                      << "' has no body" << messaget::eom;
-      return true;
-    }
-  }
-  else
-  {
-    // no function given, we look for the main class
-    assert(config.main=="");
-
-    // are we given a main class?
-    if(main_class.empty())
-      return false; // silently ignore
-
-    std::string entry_method=
-      id2string(main_class)+".main";
-
-    std::string prefix="java::"+entry_method+":";
-
-    // look it up
-    std::set<irep_idt> matches;
-
-    for(symbol_tablet::symbolst::const_iterator
-        s_it=symbol_table.symbols.begin();
-        s_it!=symbol_table.symbols.end();
-        s_it++)
-    {
-      if(s_it->second.type.id()==ID_code &&
-         has_prefix(id2string(s_it->first), prefix))
-        matches.insert(s_it->first);
-    }
-
-    if(matches.empty())
-    {
-      // Not found, silently ignore
-      return false;
-    }
-
-    if(matches.size()>=2)
-    {
-      message.error() << "main method in `" << main_class
-                      << "' is ambiguous" << messaget::eom;
-      return true; // give up with error, no main
-    }
-
-    // function symbol
-    symbol=symbol_table.symbols.find(*matches.begin())->second;
-  
-    // check if it has a body
-    if(symbol.value.is_nil())
-    {
-      message.error() << "main method `" << main_class
-                      << "' has no body" << messaget::eom;
-      return true; // give up with error
-    }
-  }
+  std::pair<symbolt, bool> p = get_main_symbol(symbol_table, main_class, message_handler);
+  if(p.second)
+    return true;
+  symbolt symbol = p.first;
 
   assert(!symbol.value.is_nil());
   assert(symbol.type.id()==ID_code);
