@@ -445,8 +445,15 @@ bool java_entry_point(
   // build call to the main method
 
   code_function_callt call_main;
+
+  source_locationt loc = symbol.location;
+  loc.set_function(symbol.name);
+  source_locationt &dloc = loc;
+
   call_main.add_source_location()=symbol.location;
   call_main.function()=symbol.symbol_expr();
+  call_main.function().add_source_location()=dloc;
+
   if(to_code_type(symbol.type).return_type()!=empty_typet())
   {
     auxiliary_symbolt return_symbol;
