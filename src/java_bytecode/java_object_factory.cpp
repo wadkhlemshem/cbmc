@@ -91,6 +91,7 @@ exprt gen_nondet_state::allocate_object(
     if(cast_needed)
       aoe=typecast_exprt(aoe, target_expr.type());
     code_assignt code(target_expr,aoe);
+    code.add_source_location()=loc;
     init_code.copy_to_operands(code);
     return aoe;
   }
@@ -119,6 +120,7 @@ exprt gen_nondet_state::allocate_object(
       if(cast_needed)
         malloc_expr=typecast_exprt(malloc_expr,target_expr.type());
       code_assignt code(target_expr, malloc_expr);
+      code.add_source_location() = loc;
       init_code.copy_to_operands(code);
       return malloc_sym.symbol_expr();
     }
@@ -127,6 +129,7 @@ exprt gen_nondet_state::allocate_object(
       // make null
       null_pointer_exprt null_pointer_expr(to_pointer_type(target_expr.type()));
       code_assignt code(target_expr, null_pointer_expr);
+      code.add_source_location() = loc;
       init_code.copy_to_operands(code);
       return exprt();
     }
@@ -164,6 +167,7 @@ void gen_nondet_state::gen_nondet_init(
         // make null
         null_pointer_exprt null_pointer_expr(pointer_type);
         code_assignt code(expr, null_pointer_expr);
+        code.add_source_location() = loc;
         init_code.copy_to_operands(code);
 
         return;
@@ -183,11 +187,12 @@ void gen_nondet_state::gen_nondet_init(
       auto returns_null=returns_null_sym.symbol_expr();
       auto assign_returns_null=
           code_assignt(returns_null,get_nondet_bool(returns_null_sym.type));
+      assign_returns_null.add_source_location() = loc;
       init_code.move_to_operands(assign_returns_null);
-      
 
       auto set_null_inst=code_assignt(
           expr,null_pointer_exprt(pointer_type));
+      set_null_inst.add_source_location() = loc;
 
       std::ostringstream fresh_label_oss;
       fresh_label_oss<<"post_synthetic_malloc_"
@@ -260,11 +265,13 @@ void gen_nondet_state::gen_nondet_init(
 	constant_exprt ci(qualified_clsid,string_typet());
 
 	code_assignt code(me, ci);
+        code.add_source_location() = loc;
 	init_code.copy_to_operands(code);
       }
       else if(name=="@lock")
       {
         code_assignt code(me, gen_zero(me.type()));
+        code.add_source_location() = loc;
         init_code.copy_to_operands(code);
       }
       else
@@ -287,6 +294,7 @@ void gen_nondet_state::gen_nondet_init(
     side_effect_expr_nondett se=side_effect_expr_nondett(type);
 
     code_assignt code(expr, se);
+    code.add_source_location() = loc;
     init_code.copy_to_operands(code);
   }
 }
@@ -332,7 +340,10 @@ void gen_nondet_state::gen_nondet_array_init(const exprt &expr, const source_loc
   java_new_array.copy_to_operands(length_sym_expr);
   java_new_array.set("skip_initialise",true);
   java_new_array.type().subtype().set(ID_C_element_type,element_type);
-  init_code.copy_to_operands(code_assignt(expr,java_new_array));
+  codet assign = code_assignt(expr,java_new_array);
+  codet &cassign = assign;
+  cassign.add_source_location() = loc;
+  init_code.copy_to_operands(assign);
 
   exprt init_array_expr=member_exprt(dereference_exprt(expr, expr.type().subtype()),
                                      "data", struct_type.components()[2].type());
@@ -343,7 +354,10 @@ void gen_nondet_state::gen_nondet_array_init(const exprt &expr, const source_loc
   symbolt &array_init_symbol=new_tmp_symbol(symbol_table,"array_data_init");
   array_init_symbol.type=init_array_expr.type();
   const auto &array_init_symexpr=array_init_symbol.symbol_expr();
-  init_code.copy_to_operands(code_assignt(array_init_symexpr,init_array_expr));
+  codet aassign = code_assignt(array_init_symexpr,init_array_expr);
+  codet &caassign = aassign;
+  cassign.add_source_location() = loc;
+  init_code.copy_to_operands(cassign);
 
   // Emit init loop for(array_init_iter=0; array_init_iter!=array.length; ++array_init_iter)
   //                  init(array[array_init_iter]);
