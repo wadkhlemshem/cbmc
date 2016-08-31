@@ -254,7 +254,7 @@ void java_record_outputs(
         index_exprt(string_constantt(p_symbol.base_name), 
                     gen_zero(index_type())));
       output.op1()=main_arguments[param_number];
-      output.add_source_location()=parameters[param_number].source_location();
+      output.add_source_location()=function.location;
 
       init_code.move_to_operands(output);
     }

@@ -123,6 +123,7 @@ void insert_nondet_opaque_fields(symbolt &sym,symbol_tablet &symbol_table,
     const auto init_symexpr=init_symbol.symbol_expr();
     auto getarg=
         code_assignt(init_symexpr,symbol_exprt(thisarg.get_identifier()));
+    getarg.add_source_location() = loc;
     new_instructions.copy_to_operands(getarg);
     insert_nondet_opaque_fields_at(thistype,init_symexpr,symbol_table,
                                    &new_instructions,1,true,assume_non_null,
