@@ -267,6 +267,11 @@ json_objectt json(
       result["binary"]=json_stringt(expr.is_true()?"1":"0");
       result["data"]=jsont::json_boolean(expr.is_true());
     }
+    else if(type.id()==ID_string)
+    {
+      result["name"]=json_stringt("string");
+      result["data"]=json_stringt(from_expr(ns, ID_value, expr));
+    }
     else
     {
       result["name"]=json_stringt("unknown");
