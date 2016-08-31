@@ -273,10 +273,11 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   else expr2java(result, value, ns);
 }
 
-bool is_class_name_comp(const struct_typet::componentt &comp,
+bool is_synthetic_comp(const struct_typet::componentt &comp,
     const size_t index)
 {
-  return ID_string == comp.type().id() && index == 0;
+  return (ID_string == comp.type().id() && index == 0) ||
+    comp.get_name()=="@lock";
 }
 
 class member_factoryt
@@ -315,7 +316,7 @@ public:
     } else
     {
       const struct_typet::componentt &comp=comps[comp_index];
-      if (!is_class_name_comp(comp, comp_index))
+      if (!is_synthetic_comp(comp, comp_index))
       {
         indent(result, 2u)+="com.diffblue.java_testcase.Reflector.setInstanceField(";
         result+=this_name;
