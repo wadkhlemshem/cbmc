@@ -224,9 +224,10 @@ std::string &indent(std::string &result, const size_t num_indent=1u)
 
 void add_test_class_name(std::string &result, const std::string &func_name)
 {
-  result+="public class ";
-  result+=func_name;
-  result+="Test {\n";
+  //result+="public class ";
+  //result+=func_name;
+  //result+="Test {\n";
+  //indent(result)+="public void test";
   indent(result)+="@org.junit.Test public void test";
   result+=func_name;
   result+="() throws Exception {\n";
@@ -969,9 +970,19 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     const auto findit=st.symbols.find(retval_symbol);
     if(is_constructor)
     {
-      const auto& thistype=to_code_type(func.type).parameters()[0].type();
-      add_decl_from_type(result,st,thistype);
-      result += " constructed = new ";
+      if(to_code_type(func.type).parameters().size()==0)
+      {
+        java_call_descriptor desc;
+        populate_descriptor_names(func,desc);
+        indent(result)+="// forcing instance to execute static initializer\n";
+        indent(result)+=desc.classname + " constructed = " + force_instantiate(desc.classname) + " // ";
+      }
+      else
+      {
+        const auto& thistype=to_code_type(func.type).parameters()[0].type();
+        add_decl_from_type(result,st,thistype);
+        result += " constructed = new ";
+      }
     }
     else if(findit!=st.symbols.end())
     {
@@ -996,8 +1007,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
       add_func_call(result,st,func_id);
   }
 
+  // closing the method
   indent(result)+="}\n";
-  return result+="}\n";
+  return result;
 
 }
 
