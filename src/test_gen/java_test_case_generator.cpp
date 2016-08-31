@@ -25,9 +25,10 @@ inputst java_test_case_generatort::generate_inputs(const symbol_tablet &st,
     const goto_functionst &gf, const goto_tracet &trace,
     interpretert::list_input_varst& opaque_function_returns,
     interpretert::input_var_functionst& first_assignments,
-    interpretert::dynamic_typest& dynamic_types)
+    interpretert::dynamic_typest& dynamic_types,
+    const optionst &options)
 {
-  interpretert interpreter(st, gf, this);
+  interpretert interpreter(st, gf, this, options);
   inputst res(interpreter.load_counter_example_inputs(trace, opaque_function_returns));
   for (inputst::const_iterator it(res.begin()); it != res.end();)
     if (is_meta(it->first)) it=res.erase(it);
@@ -62,7 +63,7 @@ const irep_idt &java_test_case_generatort::get_entry_function_id(const goto_func
 const std::string java_test_case_generatort::generate_test_case(
   const optionst &options, const symbol_tablet &st,
   const goto_functionst &gf, const goto_tracet &trace,
-  const test_case_generatort generate, std::string test_name,
+  const test_case_generatort generate, size_t test_idx,
   std::vector<std::string> goals_reached)
 {
 
@@ -71,7 +72,8 @@ const std::string java_test_case_generatort::generate_test_case(
   interpretert::dynamic_typest dynamic_types;
   
   const inputst inputs(generate_inputs(st,gf,trace,opaque_function_returns,
-                                       input_defn_functions,dynamic_types));
+                                       input_defn_functions,dynamic_types,
+                                       options));
   const irep_idt &entry_func_id=get_entry_function_id(gf);
   bool enters_main=false;
   irep_idt previous_function;
@@ -89,6 +91,8 @@ const std::string java_test_case_generatort::generate_test_case(
   const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,
                                     options.get_bool_option("java-disable-mocks"),
+                                    options.get_list_option("java-mock-class"),
+                                    options.get_list_option("java-no-mock-class"),
                                     goals_reached));
   const std::string empty("");
   std::string out_file_name=options.get_option("outfile");
@@ -101,10 +105,16 @@ const std::string java_test_case_generatort::generate_test_case(
     }
   else
     {
-      assert(!test_name.empty());
       // the key is an arbitrary test name
-      std::size_t h = std::hash<std::string>()(test_name);
-      out_file_name+=std::to_string(h);
+      std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
+      size_t paren_offset=entry_func_str.find('(');
+      if(paren_offset!=std::string::npos)
+        entry_func_str=entry_func_str.substr(0,paren_offset);
+      std::size_t h = std::hash<std::string>()(as_string(entry_func_id));
+      std::ostringstream testname;
+      testname << entry_func_str << "_" << h << "_" << test_idx << ".java";
+
+      out_file_name+=testname.str();
 
       std::ofstream(out_file_name.c_str()) << source;
       return empty;
@@ -133,12 +143,12 @@ int  java_test_case_generatort::generate_test_case(optionst &options, const symb
 
 const std::string  java_test_case_generatort::generate_java_test_case(const optionst &options, const symbol_tablet &st,
                                                                       const goto_functionst &gf, const goto_tracet &trace,
-                                                                      const std::string &name,
+                                                                      const size_t test_idx,
                                                                       const std::vector<std::string> &goals_reached
   )
 {
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
-  return generate_test_case(options, st, gf, trace, source_gen, name, goals_reached);
+  return generate_test_case(options, st, gf, trace, source_gen, test_idx, goals_reached);
 }
 
 int java_test_case_generatort::generate_java_test_case(optionst &o, const symbol_tablet &st,

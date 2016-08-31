@@ -103,7 +103,6 @@ protected:
   variablet &find_variable_for_slot(unsigned number_int, size_t address,
                                     variablest &var_list, instruction_sizet inst_size)
   {
-    size_t var_list_length = var_list.size();
     for(variablet &var : var_list)
     {
       size_t start_pc = var.start_pc;
@@ -137,9 +136,9 @@ protected:
     if(var.symbol_expr.get_identifier().empty())
     {
       // an un-named local variable
-      irep_idt base_name="local"+id2string(number)+type_char;
+      irep_idt base_name="anonlocal::"+id2string(number)+type_char;
       irep_idt identifier=id2string(current_method)+"::"+id2string(base_name);
-
+      
       symbol_exprt result(identifier, t);
       result.set(ID_C_base_name, base_name);
       used_local_names.insert(result);
@@ -309,7 +308,10 @@ void java_bytecode_convert_methodt::convert(
   for(const auto & v : m.local_variable_table)
   {
     typet t=java_type_from_string(v.signature);
-    irep_idt identifier=id2string(method_identifier)+"::"+id2string(v.name);
+    size_t unique_number=0;
+    std::ostringstream id_oss;
+    id_oss << method_identifier << "::" << v.start_pc << "::" << v.name;
+    irep_idt identifier(id_oss.str());
     symbol_exprt result(identifier, t);
     result.set(ID_C_base_name, v.name);
     size_t number_index_entries = variables[v.index].size();

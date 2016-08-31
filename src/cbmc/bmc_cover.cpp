@@ -318,19 +318,13 @@ bool bmc_covert::operator()()
     for(auto& test : tests)
     {
       java_test_case_generatort gen(get_message_handler());
-      std::string test_name;
-      {
-        std::ostringstream oss;
-        oss << "testcase_" << (++test_case_no);
-        test_name=oss.str();
-      }
       std::vector<std::string> goal_names;
       for(const auto& goalid : test.covered_goals)
         goal_names.push_back(
           as_string(goal_map.at(goalid).description));
       test.source_code=gen.generate_java_test_case(bmc.options,bmc.ns.get_symbol_table(),
                                                    goto_functions,test.goto_trace,
-                                                   test_name,goal_names);
+                                                   ++test_case_no,goal_names);
     }
   }
 
