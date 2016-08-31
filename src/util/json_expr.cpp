@@ -17,6 +17,7 @@ Author: Peter Schrammel
 #include "i2string.h"
 
 #include "json_expr.h"
+#include <langapi/language_util.h>
 
 /*******************************************************************\
 
@@ -256,7 +257,7 @@ json_objectt json(
     else if(type.id()==ID_pointer)
     {
       result["name"]=json_stringt("pointer");
-      result["binary"]=json_stringt(expr.get_string(ID_value));
+      result["obj"]=json_stringt(from_expr(ns, ID_pointer, expr));
       if(expr.get(ID_value)==ID_NULL)
         result["data"]=json_stringt("NULL");
     }
