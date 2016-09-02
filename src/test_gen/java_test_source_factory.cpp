@@ -222,7 +222,7 @@ std::string &indent(std::string &result, const size_t num_indent=1u)
   return result;
 }
 
-void add_test_class_name(std::string &result, const std::string &func_name)
+void add_test_method_name(std::string &result, const std::string &func_name)
 {
   //result+="public class ";
   //result+=func_name;
@@ -365,7 +365,7 @@ void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
   else
     instance_expr = force_instantiate(qualified_class_file_name);
 
-  result+='(' + qualified_class_name + ") " + instance_expr + ";\n";
+  result+='(' + qualified_class_name + ") " + instance_expr;
 
   if(should_mock)
     result+=mockenv_builder.register_mock_instance(qualified_class_name, this_name);
@@ -949,7 +949,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   ref_factory.add_mock_objects(st, opaque_function_returns);
 
   result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
-  add_test_class_name(result, func_name);
+  add_test_method_name(result, func_name);
 
   std::string post_mock_setup_result;
   
@@ -971,7 +971,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   // may have generated mock objects.
   std::string mock_final = ref_factory.mockenv_builder.finalise_instance_calls();
   result += "\n" + ref_factory.mockenv_builder.get_mock_prelude() +
-    "\n\n" + post_mock_setup_result + "\n\n" + mock_final;
+    "\n" + post_mock_setup_result + "\n" + mock_final;
   if(exists_func_call)
   {
     bool is_constructor=func.type.get_bool(ID_constructor);
