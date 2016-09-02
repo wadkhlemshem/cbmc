@@ -4474,7 +4474,7 @@ std::string expr2ct::convert(
     {
       if(src.op0().id()!=ID_member ||
 	 src.operands().size()!=1 ||
-	 to_member_expr(src.op0()).get_component_name()==ID_class) 
+	 id2string(to_member_expr(src.op0()).get_component_name()).find("@") == std::string::npos)
       {
 	return convert_unary(src, "&", precedence=15);
       }
