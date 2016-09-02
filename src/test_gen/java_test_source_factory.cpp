@@ -984,7 +984,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
         java_call_descriptor desc;
         populate_descriptor_names(func,desc);
         indent(result)+="/* STEP: creating instance to execute static initializer */\n";
-        indent(result)+=desc.classname + " constructed = " + force_instantiate(desc.classname) + " // ";
+        indent(result)+=desc.classname + " constructed = (" + desc.classname + ") " + force_instantiate(desc.classname) + "; // ";
       }
       else
       {

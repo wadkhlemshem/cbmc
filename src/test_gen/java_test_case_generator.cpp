@@ -92,10 +92,13 @@ const std::string java_test_case_generatort::generate_test_case(
 
   // the key is an arbitrary test name
   std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
-  substitute(entry_func_str, ".", "_");
+  // remove ., <, > and substitute with _ to create valid Java identifiers
   size_t paren_offset=entry_func_str.find('(');
   if(paren_offset!=std::string::npos)
     entry_func_str=entry_func_str.substr(0,paren_offset);
+  substitute(entry_func_str, ".", "_");
+  substitute(entry_func_str, "<", "_");
+  substitute(entry_func_str, ">", "_");
   std::size_t h = std::hash<std::string>()(as_string(entry_func_id));
   std::ostringstream testname;
   testname << entry_func_str << "_" << std::hex << h << "_"
