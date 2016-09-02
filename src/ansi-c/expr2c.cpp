@@ -4470,10 +4470,22 @@ std::string expr2ct::convert(
       return convert(to_index_expr(src.op0()).array());
     else if(src.type().subtype().id()==ID_code)
       return convert_unary(src, "", precedence=15);
-    else
-      return convert_unary(src, "&", precedence=15);
+    else 
+    {
+      if(src.op0().id()!=ID_member ||
+	 src.operands().size()!=1 ||
+	 to_member_expr(src.op0()).get_component_name()==ID_class) 
+      {
+	return convert_unary(src, "&", precedence=15);
+      }
+      else
+      {
+	// convert &a[0] to a
+	unsigned p;
+	return convert(src.op0().op0(), p);
+      }
+    }
   }
-
   else if(src.id()==ID_dereference)
   {
     if(src.operands().size()!=1)
