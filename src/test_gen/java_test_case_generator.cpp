@@ -2,6 +2,7 @@
 #include <functional>
 
 #include <util/message.h>
+#include <util/substitute.h>
 #include <cbmc/bmc.h>
 
 #include <java_bytecode/java_entry_point.h>
@@ -91,6 +92,7 @@ const std::string java_test_case_generatort::generate_test_case(
 
   // the key is an arbitrary test name
   std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
+  substitute(entry_func_str, ".", "_");
   size_t paren_offset=entry_func_str.find('(');
   if(paren_offset!=std::string::npos)
     entry_func_str=entry_func_str.substr(0,paren_offset);
