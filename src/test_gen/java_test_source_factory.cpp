@@ -923,13 +923,14 @@ void reference_factoryt::add_mock_objects(const symbol_tablet &st,
 std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const irep_idt &func_id,
     bool enters_main, inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
-    const interpretert::dynamic_typest& dynamic_types, bool disable_mocks,
+    const interpretert::dynamic_typest& dynamic_types,
+    const std::string &test_func_name, bool disable_mocks,
     const optionst::value_listt& mock_classes,
     const optionst::value_listt& no_mock_classes,            
     const std::vector<std::string>& goals_reached)
 {
   const symbolt &func=st.lookup(func_id);
-  const std::string func_name(get_escaped_func_name(func));
+  const std::string func_name(test_func_name);//get_escaped_func_name(func));
   std::string result;
 
   if(goals_reached.size()!=0)
