@@ -18,6 +18,65 @@ Author: Peter Schrammel
 
 #include "json_expr.h"
 #include <langapi/language_util.h>
+#include <java_bytecode/expr2java.h>
+/*******************************************************************\
+
+Function: simplify_json_expr
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+exprt simplify_json_expr(
+  const exprt &src,
+  const namespacet &ns)
+{
+  if(src.id()==ID_constant) 
+  {
+     const typet &type=ns.follow(src.type());
+    
+     if(type.id()==ID_pointer)
+     {
+       const irep_idt &value=to_constant_expr(src).get_value();
+    
+       if(value!=ID_NULL &&
+	  (value!=std::string(value.size(), '0') ||
+	   !config.ansi_c.NULL_is_zero) &&
+	  src.operands().size()==1 &&
+	  src.op0().id()!=ID_constant)
+	 // try to simplify the constant pointer
+	 return simplify_json_expr(src.op0(), ns);
+     }
+  }
+  else if(src.id()==ID_address_of &&
+  	  src.operands().size()==1)
+  {
+    if(src.op0().id()==ID_member &&
+       src.operands().size()==1 &&
+       id2string(to_member_expr(src.op0()).
+  		 get_component_name()).find("@class_identifier")!=std::string::npos)
+    {
+  	 if(src.op0().op0().id()==ID_member &&
+  	    src.op0().operands().size()==1 &&
+  	    id2string(to_member_expr(src.op0().op0()).
+                      get_component_name()).find("@java.lang.Object")!=std::string::npos)
+  	 {
+	   // simplify &member_expr(member_expr(object, @java.lang.Object), @class_identifier) 
+	   // to object
+  	   return simplify_json_expr(src.op0().op0().op0(), ns);
+  	 }
+	 else
+	 {
+	   // simplify &member_expr(object, @class_identifier) to object 
+	   return simplify_json_expr(src.op0().op0(), ns);
+	 }
+    }
+  }
+  return src;
+}
 
 /*******************************************************************\
 
@@ -257,8 +316,10 @@ json_objectt json(
     else if(type.id()==ID_pointer)
     {
       result["name"]=json_stringt("pointer");
-      result["obj"]=json_stringt(from_expr(ns, ID_pointer, expr));
-      if(expr.get(ID_value)==ID_NULL)
+      exprt simpl_expr = simplify_json_expr(expr, ns);
+      expr2javat e2j = expr2javat(ns);
+      result["obj"]= json_stringt(e2j.convert(simpl_expr));//json_stringt(from_expr(ns, ID_pointer, expr));
+      if(simpl_expr.get(ID_value)==ID_NULL)
         result["data"]=json_stringt("NULL");
     }
     else if(type.id()==ID_bool || type.id()==ID_c_bool)

@@ -4471,20 +4471,7 @@ std::string expr2ct::convert(
     else if(src.type().subtype().id()==ID_code)
       return convert_unary(src, "", precedence=15);
     else 
-    {
-      if(src.op0().id()!=ID_member ||
-	 src.operands().size()!=1 ||
-	 id2string(to_member_expr(src.op0()).get_component_name()).find("@") == std::string::npos)
-      {
-	return convert_unary(src, "&", precedence=15);
-      }
-      else
-      {
-	// convert &a[0] to a
-	unsigned p;
-	return convert(src.op0().op0(), p);
-      }
-    }
+      return convert_unary(src, "&", precedence=15);
   }
   else if(src.id()==ID_dereference)
   {
