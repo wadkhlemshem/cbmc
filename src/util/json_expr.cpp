@@ -317,10 +317,13 @@ json_objectt json(
     {
       result["name"]=json_stringt("pointer");
       exprt simpl_expr = simplify_json_expr(expr, ns);
-      expr2javat e2j = expr2javat(ns);
-      result["obj"]= json_stringt(e2j.convert(simpl_expr));//json_stringt(from_expr(ns, ID_pointer, expr));
-      if(simpl_expr.get(ID_value)==ID_NULL)
+      if(simpl_expr.get(ID_value)==ID_NULL || 
+         //remove typecast on NULL
+         (simpl_expr.id()==ID_constant && simpl_expr.type().id()==ID_pointer &&
+          simpl_expr.op0().get(ID_value)==ID_NULL))
         result["data"]=json_stringt("NULL");
+      else 
+        result["data"]=json_stringt(from_expr(ns, ID_pointer, simpl_expr));
     }
     else if(type.id()==ID_bool || type.id()==ID_c_bool)
     {
