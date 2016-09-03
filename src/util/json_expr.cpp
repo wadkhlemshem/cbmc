@@ -257,9 +257,13 @@ json_objectt json(
     else if(type.id()==ID_pointer)
     {
       result["name"]=json_stringt("pointer");
-      result["obj"]=json_stringt(from_expr(ns, ID_pointer, expr));
-      if(expr.get(ID_value)==ID_NULL)
+      if(expr.get(ID_value)==ID_NULL || 
+         //remove typecast on NULL
+         (expr.id()==ID_constant && expr.type().id()==ID_pointer &&
+          expr.op0().get(ID_value)==ID_NULL))
         result["data"]=json_stringt("NULL");
+      else 
+        result["data"]=json_stringt(from_expr(ns, ID_pointer, expr));
     }
     else if(type.id()==ID_bool || type.id()==ID_c_bool)
     {
