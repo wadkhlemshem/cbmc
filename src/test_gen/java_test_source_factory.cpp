@@ -318,7 +318,7 @@ public:
       const struct_typet::componentt &comp=comps[comp_index];
       if (!is_synthetic_comp(comp, comp_index))
       {
-        indent(result, 2u)+="com.diffblue.java_testcase.Reflector.setInstanceField(";
+        indent(result, 2u)+="Reflector.setInstanceField(";
         result+=this_name;
         result+=",\"";
         result+=id2string(comp.get_pretty_name());
@@ -343,7 +343,7 @@ const typet& reference_factoryt::get_symbol_type(const irep_idt& id)
 
 static std::string force_instantiate(const std::string& classname)
 {
-  return "com.diffblue.java_testcase.Reflector.forceInstance(\"" + classname + "\")";
+  return "Reflector.forceInstance(\"" + classname + "\")";
 }
   
 void reference_factoryt::add_value(std::string &result, const symbol_tablet &st,
