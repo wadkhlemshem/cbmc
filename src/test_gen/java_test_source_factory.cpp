@@ -924,7 +924,9 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     bool enters_main, inputst inputs, const interpretert::list_input_varst& opaque_function_returns,
     const interpretert::input_var_functionst& input_defn_functions,
     const interpretert::dynamic_typest& dynamic_types,
-    const std::string &test_func_name, bool disable_mocks,
+    const std::string &test_func_name,
+    const std::string &assertCompare, bool emitAssert,
+    bool disable_mocks,
     const optionst::value_listt& mock_classes,
     const optionst::value_listt& no_mock_classes,            
     const std::vector<std::string>& goals_reached)
@@ -1017,6 +1019,13 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     }
     else
       add_func_call(result,st,func_id);
+
+    if(emitAssert)
+    {
+      result+="\n";
+      indent(result,2u)+="/* check return value */\n";
+      indent(result,2u)+="assertTrue(retval" + assertCompare + ");\n";
+    }
   }
 
   // closing the method
