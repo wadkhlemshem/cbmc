@@ -55,7 +55,7 @@ Function: cnft::gate_and
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of conjunction of two literals
 
 \*******************************************************************/
 
@@ -88,7 +88,7 @@ Function: cnft::gate_or
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of disjunction of two literals
 
 \*******************************************************************/
 
@@ -120,7 +120,7 @@ Function: cnft::gate_xor
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of XOR of two literals
 
 \*******************************************************************/
 
@@ -161,7 +161,7 @@ Function: cnft::gate_nand
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of NAND of two literals
 
 \*******************************************************************/
 
@@ -193,7 +193,7 @@ Function: cnft::gate_nor
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of NOR of two literals
 
 \*******************************************************************/
 
@@ -225,7 +225,7 @@ Function: cnft::gate_equal
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of equality between two literals
 
 \*******************************************************************/
 
@@ -242,7 +242,7 @@ Function: cnft::gate_implies
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of implication between two literals
 
 \*******************************************************************/
 
@@ -259,7 +259,7 @@ Function: cnft::land
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of conjunction between multiple literals
 
 \*******************************************************************/
 
@@ -269,9 +269,9 @@ literalt cnft::land(const bvt &bv)
   if(bv.size()==1) return bv[0];
   if(bv.size()==2) return land(bv[0], bv[1]);
 
-  forall_literals(it, bv)
-    if(it->is_false())
-      return *it;
+  for(const auto l : bv)
+    if(l.is_false())
+      return l;
 
   if(is_all(bv, const_literal(true)))
     return const_literal(true);
@@ -284,17 +284,17 @@ literalt cnft::land(const bvt &bv)
   literalt literal=new_variable();
   lits[1]=neg(literal);
 
-  forall_literals(it, new_bv)
+  for(const auto l : new_bv)
   {
-    lits[0]=pos(*it);
+    lits[0]=pos(l);
     lcnf(lits);
   }
 
   lits.clear();
   lits.reserve(new_bv.size()+1);
 
-  forall_literals(it, new_bv)
-    lits.push_back(neg(*it));
+  for(const auto l : new_bv)
+    lits.push_back(neg(l));
 
   lits.push_back(pos(literal));
   lcnf(lits);
@@ -310,7 +310,7 @@ Function: cnft::lor
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of disjunction between multiple literals
 
 \*******************************************************************/
 
@@ -320,9 +320,9 @@ literalt cnft::lor(const bvt &bv)
   if(bv.size()==1) return bv[0];
   if(bv.size()==2) return lor(bv[0], bv[1]);
 
-  forall_literals(it, bv)
-    if(it->is_true())
-      return *it;
+  for(const auto l : bv)
+    if(l.is_true())
+      return l;
 
   if(is_all(bv, const_literal(false)))
     return const_literal(false);
@@ -335,17 +335,17 @@ literalt cnft::lor(const bvt &bv)
   literalt literal=new_variable();
   lits[1]=pos(literal);
 
-  forall_literals(it, new_bv)
+  for(const auto l : new_bv)
   {
-    lits[0]=neg(*it);
+    lits[0]=neg(l);
     lcnf(lits);
   }
 
   lits.clear();
   lits.reserve(new_bv.size()+1);
 
-  forall_literals(it, new_bv)
-    lits.push_back(pos(*it));
+  for(const auto l : new_bv)
+    lits.push_back(pos(l));
 
   lits.push_back(neg(literal));
   lcnf(lits);
@@ -361,7 +361,7 @@ Function: cnft::lxor
 
  Outputs:
 
- Purpose:
+ Purpose: Tseitin encoding of XOR between multiple literals
 
 \*******************************************************************/
 
@@ -373,8 +373,8 @@ literalt cnft::lxor(const bvt &bv)
 
   literalt literal=const_literal(false);
 
-  forall_literals(it, bv)
-    literal=lxor(*it, literal);
+  for(const auto l : bv)
+    literal=lxor(l, literal);
 
   return literal;
 }
@@ -387,7 +387,7 @@ Function: cnft::land
 
  Outputs:
 
- Purpose:
+ Purpose: 
 
 \*******************************************************************/
 
@@ -583,7 +583,7 @@ Function: cnft::new_variable
 
  Outputs:
 
- Purpose:
+ Purpose: Generate a new variable and return it as a literal
 
 \*******************************************************************/
 
@@ -605,7 +605,7 @@ Function: cnft::eliminate_duplicates
 
  Outputs:
 
- Purpose:
+ Purpose: eliminate duplicates from given vector of literals
 
 \*******************************************************************/
 
@@ -615,9 +615,9 @@ void cnft::eliminate_duplicates(const bvt &bv, bvt &dest)
 
   dest.reserve(bv.size());
 
-  forall_literals(it, bv)
-    if(s.insert(*it).second)
-      dest.push_back(*it);
+  for(const auto l : bv)
+    if(s.insert(l).second)
+      dest.push_back(l);
 }
 
 /*******************************************************************\
@@ -628,7 +628,8 @@ Function: cnft::process_clause
 
  Outputs:
 
- Purpose:
+ Purpose: filter 'true' from clause, eliminate duplicates,
+          recognise trivially satisfied clauses
 
 \*******************************************************************/
 
@@ -641,12 +642,8 @@ bool cnft::process_clause(const bvt &bv, bvt &dest)
 
   // first check simple things
   
-  for(bvt::const_iterator it=bv.begin();
-      it!=bv.end();
-      it++)
-  {
-    literalt l=*it;
-    
+  for(const auto l : bv)
+  {    
     // we never use index 0
     assert(l.var_no()!=0);
     
@@ -669,12 +666,8 @@ bool cnft::process_clause(const bvt &bv, bvt &dest)
   dest.clear();
   dest.reserve(bv.size());
   
-  for(bvt::const_iterator it=bv.begin();
-      it!=bv.end();
-      it++)
+  for(const auto l : bv)
   {
-    literalt l=*it;
-    
     if(l.is_false())
       continue; // remove
 
