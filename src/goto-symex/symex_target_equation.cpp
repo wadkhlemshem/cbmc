@@ -837,6 +837,43 @@ void symex_target_equationt::convert_assertions(
     assert(false); // unreachable
   }
 
+  if(all_assumptions)
+  {
+    //collect assumptions
+    exprt assumption = true_exprt();
+    for(auto & it : SSA_steps)
+    {
+      if(it.is_assume())
+      {
+        if(assumption.id()==ID_and)
+          assumption.copy_to_operands(literal_exprt(it.cond_literal));
+        else
+          assumption=
+            and_exprt(assumption, literal_exprt(it.cond_literal));
+      }
+    }
+    exprt::operandst disjuncts;
+    disjuncts.reserve(number_of_assertions);
+    //now add the assertions
+    for(auto & it : SSA_steps)
+    {
+      if(it.is_assert())
+      {
+        implies_exprt implication(
+          assumption,
+          it.cond_expr);
+      
+        // do the conversion
+        it.cond_literal=prop_conv.convert(implication);
+
+        // store disjunct
+        disjuncts.push_back(literal_exprt(!it.cond_literal));
+      }
+    }
+   prop_conv.set_to_true(disjunction(disjuncts));
+   return;
+  }
+
   // We do (NOT a1) OR (NOT a2) ...
   // where the a's are the assertions
   or_exprt::operandst disjuncts;

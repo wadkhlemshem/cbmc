@@ -1151,7 +1151,7 @@ void instrument_cover_goals(
           i_it->code.clear();
           i_it->source_location.set_comment(comment);
           i_it->source_location.set_property_class("coverage");
-	  i_it->source_location.set_function(i_it->function);
+          i_it->source_location.set_function(i_it->function);
         }
       }
       else if(i_it->is_assert())

@@ -44,6 +44,7 @@ public:
     ui(ui_message_handlert::PLAIN)
   {
     symex.constant_propagation=options.get_bool_option("propagation");
+    equation.all_assumptions=options.get_bool_option("all-assumptions");
   }
  
   virtual resultt run(const goto_functionst &goto_functions);

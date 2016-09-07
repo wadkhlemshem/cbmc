@@ -31,6 +31,8 @@ public:
   explicit symex_target_equationt(const namespacet &_ns);
   virtual ~symex_target_equationt();
 
+  bool all_assumptions;
+
   // read event
   virtual void shared_read(
     const exprt &guard,

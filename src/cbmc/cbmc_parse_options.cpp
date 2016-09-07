@@ -284,6 +284,12 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
   else
     options.set_option("assumptions", true);
 
+  // always use all assumptions
+  if(cmdline.isset("all-assumptions"))
+    options.set_option("all-assumptions", true);
+  else
+    options.set_option("all-assumptions", false);
+
   // magic error label
   if(cmdline.isset("error-label"))
     options.set_option("error-label", cmdline.get_values("error-label"));
