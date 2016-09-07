@@ -870,8 +870,8 @@ void symex_target_equationt::convert_assertions(
         disjuncts.push_back(literal_exprt(!it.cond_literal));
       }
     }
-   prop_conv.set_to_true(disjunction(disjuncts));
-   return;
+    prop_conv.set_to_true(disjunction(disjuncts));
+    return;
   }
 
   // We do (NOT a1) OR (NOT a2) ...

@@ -262,21 +262,59 @@ bool bmc_covert::operator()()
   
   //bmc.equation.output(std::cout);
   
-  // get the conditions for these goals from formula
-  // collect all 'instances' of the goals
-  for(auto it = bmc.equation.SSA_steps.begin();
-      it!=bmc.equation.SSA_steps.end();
-      it++)
+  if(bmc.equation.all_assumptions)
   {
-    if(it->is_assert())
+    //collect assumptions
+    exprt assumption = true_exprt();
+    for(auto & it : bmc.equation.SSA_steps)
     {
-      assert(it->source.pc->is_assert());
-      exprt c=
-        conjunction({
-          literal_exprt(it->guard_literal),
-          literal_exprt(!it->cond_literal) });
-      literalt l_c=solver.convert(c);
-      goal_map[id(it->source.pc)].add_instance(it, l_c);
+      if(it.is_assume())
+      {
+        if(assumption.id()==ID_and)
+          assumption.copy_to_operands(literal_exprt(it.cond_literal));
+        else
+          assumption=
+            and_exprt(assumption, literal_exprt(it.cond_literal));
+      }
+    }
+    //now add the goals
+    for(auto it = bmc.equation.SSA_steps.begin();
+        it!=bmc.equation.SSA_steps.end();
+        it++)
+    {
+      if(it->is_assert())
+      {
+        exprt c=
+          conjunction({
+              literal_exprt(it->guard_literal),
+                literal_exprt(!it->cond_literal) });
+        implies_exprt implication(
+          assumption,
+          c);
+      
+        literalt l_c=solver.convert(implication);
+        goal_map[id(it->source.pc)].add_instance(it, l_c);
+      }
+    }
+  }
+  else
+  {
+    // get the conditions for these goals from formula
+    // collect all 'instances' of the goals
+    for(auto it = bmc.equation.SSA_steps.begin();
+        it!=bmc.equation.SSA_steps.end();
+        it++)
+    {
+      if(it->is_assert())
+      {
+        assert(it->source.pc->is_assert());
+        exprt c=
+          conjunction({
+              literal_exprt(it->guard_literal),
+                literal_exprt(!it->cond_literal) });
+        literalt l_c=solver.convert(c);
+        goal_map[id(it->source.pc)].add_instance(it, l_c);
+      }
     }
   }
   
