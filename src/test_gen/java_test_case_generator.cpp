@@ -4,6 +4,7 @@
 #include <util/message.h>
 #include <util/substitute.h>
 #include <cbmc/bmc.h>
+#include <ansi-c/expr2c_class.h>
 
 #include <java_bytecode/java_entry_point.h>
 #include <test_gen/java_test_source_factory.h>
@@ -102,19 +103,19 @@ const std::string java_test_case_generatort::generate_test_case(
 
       if(id2string(identifier)=="return'")
       {
-        const exprt &expr = step.lhs_object_value;
-
-        status() << "FUNCTION: " << id2string(source_location.get_function()) << eom;
-        status() << "ID      : " << id2string(identifier) << eom;
-        status() << "VAL     : " << expr.get_string(ID_value) << eom;
-        status() << "TYPE     : ";
-
-        const namespacet ns(st);
-        const typet &type=ns.follow(expr.type());
+        const exprt &expr = step.full_lhs_value;
 
         // from json_expr.cpp
         if(expr.id()==ID_constant)
         {
+          status() << "FUNCTION: " << id2string(source_location.get_function()) << eom;
+          status() << "ID      : " << id2string(identifier) << eom;
+          status() << "VAL     : " << expr.get_string(ID_value) << eom;
+
+
+          const namespacet ns(st);
+          const typet &type=ns.follow(expr.type());
+
           // no unsinged ints in Java
           if(// type.id()==ID_unsignedbv ||
              type.id()==ID_signedbv ||
@@ -123,8 +124,9 @@ const std::string java_test_case_generatort::generate_test_case(
             std::size_t width = to_bitvector_type(type).get_width();
             if(width==8 || width==16 || width==32 || width==64)
             {
-              status() << "Integer" << eom;
-              assertCompare=(" == " + expr.get_string(ID_value));
+              mp_integer i;
+              to_integer(expr, i);
+              assertCompare=(" == " + integer2string(i));
               emitAssert = true;
             }
           }
@@ -140,7 +142,6 @@ const std::string java_test_case_generatort::generate_test_case(
           }
           else if(type.id()==ID_floatbv)
           {
-            status() << "floatBV" << eom;
             std::size_t width = to_bitvector_type(type).get_width();
             if(width==32 || width==64)
             {
@@ -150,7 +151,6 @@ const std::string java_test_case_generatort::generate_test_case(
           }
           else if(type.id()==ID_bool || type.id()==ID_c_bool)
           {
-            status() << "bool" << eom;
             if(expr.is_true())
               assertCompare=(" == true");
             else
@@ -159,13 +159,11 @@ const std::string java_test_case_generatort::generate_test_case(
           }
           else if(type.id()==ID_string)
           {
-            status() << "String" << eom;
             assertCompare=(".equals(" + expr.get_string(ID_value) +")");
             emitAssert = true;
           }
           else
           {
-            status() << "unclear" << eom;
             assertCompare=" != null";
             emitAssert = true;
           }
