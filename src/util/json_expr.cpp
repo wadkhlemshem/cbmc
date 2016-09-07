@@ -36,45 +36,39 @@ exprt simplify_json_expr(
 {
   if(src.id()==ID_constant) 
   {
-     const typet &type=ns.follow(src.type());
+    const typet &type=ns.follow(src.type());
     
-     if(type.id()==ID_pointer)
-     {
-       const irep_idt &value=to_constant_expr(src).get_value();
-    
-       if(value!=ID_NULL &&
-	  (value!=std::string(value.size(), '0') ||
-	   !config.ansi_c.NULL_is_zero) &&
-	  src.operands().size()==1 &&
-	  src.op0().id()!=ID_constant)
-	 // try to simplify the constant pointer
-	 return simplify_json_expr(src.op0(), ns);
-     }
-  }
-  else if(src.id()==ID_address_of &&
-  	  src.operands().size()==1)
-  {
-    if(src.op0().id()==ID_member &&
-       src.operands().size()==1 &&
-       id2string(to_member_expr(src.op0()).
-  		 get_component_name()).find("@class_identifier")!=std::string::npos)
+    if(type.id()==ID_pointer)
     {
-  	 if(src.op0().op0().id()==ID_member &&
-  	    src.op0().operands().size()==1 &&
-  	    id2string(to_member_expr(src.op0().op0()).
-                      get_component_name()).find("@java.lang.Object")!=std::string::npos)
-  	 {
-	   // simplify &member_expr(member_expr(object, @java.lang.Object), @class_identifier) 
-	   // to object
-  	   return simplify_json_expr(src.op0().op0().op0(), ns);
-  	 }
-	 else
-	 {
-	   // simplify &member_expr(object, @class_identifier) to object 
-	   return simplify_json_expr(src.op0().op0(), ns);
-	 }
+      const irep_idt &value=to_constant_expr(src).get_value();
+    
+      if(value!=ID_NULL &&
+	 (value!=std::string(value.size(), '0') ||
+	  !config.ansi_c.NULL_is_zero) &&
+	 src.operands().size()==1 &&
+	 src.op0().id()!=ID_constant)
+	// try to simplify the constant pointer
+	return simplify_json_expr(src.op0(), ns);
     }
   }
+  else if(src.id()==ID_address_of &&
+  	  src.operands().size()==1 && 
+	  src.op0().id()==ID_member &&
+	  id2string(to_member_expr(src.op0()).
+		    get_component_name()).find("@")!=std::string::npos)
+  {
+    // simplify things of the form  &member_expr(object, @class_identifier)
+    return simplify_json_expr(src.op0(), ns);
+  }
+  else if(src.id()==ID_member &&
+	  src.operands().size()==1 &&
+	  id2string(to_member_expr(src).
+		    get_component_name()).find("@")!=std::string::npos)
+  {
+    // simplify things of the form  member_expr(object, @class_identifier)
+    return simplify_json_expr(src.op0(), ns);
+  }
+
   return src;
 }
 
