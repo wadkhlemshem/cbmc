@@ -4,6 +4,7 @@
 #include <util/message.h>
 #include <util/substitute.h>
 #include <cbmc/bmc.h>
+#include <ansi-c/expr2c_class.h>
 
 #include <java_bytecode/java_entry_point.h>
 #include <test_gen/java_test_source_factory.h>
@@ -90,6 +91,90 @@ const std::string java_test_case_generatort::generate_test_case(
     previous_function=step.pc->function;
   }
 
+  std::string assertCompare;
+  bool emitAssert = false;
+
+  for(const auto& step : trace.steps)
+  {
+    if(step.type==goto_trace_stept::ASSIGNMENT)
+    {
+      irep_idt identifier=step.lhs_object.get_identifier();
+      const source_locationt &source_location=step.pc->source_location;
+
+      if(id2string(identifier)=="return'")
+      {
+        const exprt &expr = step.full_lhs_value;
+
+        // from json_expr.cpp
+        if(expr.id()==ID_constant)
+        {
+          status() << "FUNCTION: " << id2string(source_location.get_function()) << eom;
+          status() << "ID      : " << id2string(identifier) << eom;
+          status() << "VAL     : " << expr.get_string(ID_value) << eom;
+
+
+          const namespacet ns(st);
+          const typet &type=ns.follow(expr.type());
+
+          // no unsinged ints in Java
+          if(// type.id()==ID_unsignedbv ||
+             type.id()==ID_signedbv ||
+             type.id()==ID_c_bit_field)
+          {
+            std::size_t width = to_bitvector_type(type).get_width();
+            if(width==8 || width==16 || width==32 || width==64)
+            {
+              mp_integer i;
+              to_integer(expr, i);
+              assertCompare=(" == " + integer2string(i));
+              emitAssert = true;
+            }
+          }
+          else if(type.id()==ID_c_enum)
+          {
+            assertCompare=(" == " + expr.get_string(ID_value));
+            emitAssert = true;
+          }
+          else if(type.id()==ID_c_enum_tag)
+          {
+            assertCompare=(" == " + expr.get_string(ID_value));
+            emitAssert = true;
+          }
+          else if(type.id()==ID_floatbv)
+          {
+            std::size_t width = to_bitvector_type(type).get_width();
+            if(width==32 || width==64)
+            {
+              assertCompare=(" == " + expr.get_string(ID_value));
+              emitAssert = true;
+            }
+          }
+          else if(type.id()==ID_bool || type.id()==ID_c_bool)
+          {
+            if(expr.is_true())
+              assertCompare=(" == true");
+            else
+              assertCompare=(" == false");
+            emitAssert = true;
+          }
+          else if(type.id()==ID_string)
+          {
+            assertCompare=(".equals(" + expr.get_string(ID_value) +")");
+            emitAssert = true;
+          }
+          else
+          {
+            assertCompare=" != null";
+            emitAssert = true;
+          }
+        }
+      }
+    }
+  }
+
+  if(!emitAssert)
+    return("/* test cases without return values are not generated */\n");
+
   // the key is an arbitrary test name
   std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
   // remove ., <, > and substitute with _ to create valid Java identifiers
@@ -107,6 +192,7 @@ const std::string java_test_case_generatort::generate_test_case(
 
   const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,unique_name,
+                                    assertCompare, emitAssert,
                                     options.get_bool_option("java-disable-mocks"),
                                     options.get_list_option("java-mock-class"),
                                     options.get_list_option("java-no-mock-class"),
