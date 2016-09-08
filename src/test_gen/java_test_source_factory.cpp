@@ -86,13 +86,6 @@ public:
 
 };
 
-void qualified2identifier(std::string &s,
-                          const char search='.',
-                          const char replace='_')
-{
-  std::replace(s.begin(), s.end(), search, replace);
-}
-
 bool is_array_tag(const irep_idt& tag)
 {
   return has_prefix(id2string(tag),"java::array[");
@@ -1038,3 +1031,9 @@ std::string func_name(const symbolt &symbol)
 {
   return get_escaped_func_name(symbol);
 }
+
+void qualified2identifier(std::string &s, const char search, const char replace)
+{
+  std::replace(s.begin(), s.end(), search, replace);
+}
+

@@ -48,6 +48,7 @@ std::string generate_java_test_case_from_inputs(
     const optionst::value_listt& no_mock_classes,                  
     const std::vector<std::string>& goals);
 
+void qualified2identifier(std::string &s, char search='.', char replace='_');
 std::string func_name(const symbolt &symbol);
 
 #endif /* JAVA_TEST_SOURCE_FACTORY_H_ */
