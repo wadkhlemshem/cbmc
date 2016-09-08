@@ -172,6 +172,9 @@ const std::string java_test_case_generatort::generate_test_case(
     }
   }
 
+  if(!emitAssert)
+    return("/* test cases without return values are not generated */\n");
+
   // the key is an arbitrary test name
   std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
   // remove ., <, > and substitute with _ to create valid Java identifiers
