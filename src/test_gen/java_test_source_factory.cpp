@@ -985,6 +985,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
       {
         const auto& thistype=to_code_type(func.type).parameters()[0].type();
         result += "/* creating new object to test contructor */\n";
+        indent(result,2u);
         add_decl_from_type(result,st,thistype);
         result += " constructed = new ";
       }
@@ -1020,7 +1021,10 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
       indent(result,2u)+="assertTrue(retval" + assertCompare + ");\n";
     }
     else
+    {
+      result+="\n";
       indent(result,2u)+="/* no assert due to void return value */\n";
+    }
   }
 
   // closing the method
