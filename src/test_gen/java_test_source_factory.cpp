@@ -221,7 +221,7 @@ void add_test_method_name(std::string &result, const std::string &func_name)
   //result+=func_name;
   //result+="Test {\n";
   //indent(result)+="public void test";
-  indent(result)+="@org.junit.Test public void test";
+  indent(result)+="@org.junit.Test public void ";
   result+=func_name;
   result+="() throws Exception {\n";
 }
