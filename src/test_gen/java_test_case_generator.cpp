@@ -62,7 +62,7 @@ const irep_idt &java_test_case_generatort::get_entry_function_id(const goto_func
   return to_symbol_expr(func_expr).get_identifier();
 }
 
-const std::string &java_test_case_generatort::get_test_function_name(const symbol_tablet &st, const goto_functionst &gf, size_t test_idx)
+const std::string java_test_case_generatort::get_test_function_name(const symbol_tablet &st, const goto_functionst &gf, size_t test_idx)
 {
   const irep_idt &entry_func_id=get_entry_function_id(gf);
     // the key is an arbitrary test name
@@ -201,23 +201,7 @@ const std::string java_test_case_generatort::generate_test_case(
   if(!coversCompleteFlow)
     return("/* test cases without return values are not generated */\n");
 
-  // the key is an arbitrary test name
-  std::string entry_func_str=as_string(st.lookup(entry_func_id).pretty_name);
-  // remove ., <, > and substitute with _ to create valid Java identifiers
-  size_t paren_offset=entry_func_str.find('(');
-  if(paren_offset!=std::string::npos)
-    entry_func_str=entry_func_str.substr(0,paren_offset);
-  substitute(entry_func_str, ".", "_");
-  substitute(entry_func_str, "<", "_");
-  substitute(entry_func_str, ">", "_");
-  std::size_t h = std::hash<std::string>()(as_string(entry_func_id));
-  std::ostringstream testname;
-  testname << entry_func_str << "_" << std::hex << h << "_"
-           << std::setfill('0') << std::setw(3) << test_idx;
-  const std::string unique_name = testname.str();
-
-  //const std::string unique_name = get_test_function_name(st, gf, test_idx);
-
+  const std::string &unique_name = get_test_function_name(st, gf, test_idx);
   const std::string source(generate(st,entry_func_id,enters_main,inputs,opaque_function_returns,
                                     input_defn_functions,dynamic_types,unique_name,
                                     assertCompare, emitAssert,
@@ -271,6 +255,13 @@ const std::string  java_test_case_generatort::generate_java_test_case(const opti
 {
   const test_case_generatort source_gen=generate_java_test_case_from_inputs;
   return generate_test_case(options, st, gf, trace, source_gen, test_idx, goals_reached);
+}
+
+const std::string java_test_case_generatort::generate_test_func_name(const symbol_tablet &st,
+                                                                     const goto_functionst &gf,
+                                                                     const size_t test_idx)
+{
+  return get_test_function_name(st, gf, test_idx + 1);
 }
 
 int java_test_case_generatort::generate_java_test_case(optionst &o, const symbol_tablet &st,

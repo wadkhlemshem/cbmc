@@ -55,9 +55,12 @@ class java_test_case_generatort:public messaget
                           interpretert::dynamic_typest&,
                           const optionst&);
   const irep_idt &get_entry_function_id(const goto_functionst &gf);
-  const std::string &get_test_function_name(const symbol_tablet &st, const goto_functionst &gf, size_t test_idx);
+  const std::string get_test_function_name(const symbol_tablet &st, const goto_functionst &gf, size_t test_idx);
 
  public:
+  const std::string generate_test_func_name(const symbol_tablet &st,
+                                            const goto_functionst &gf,
+                                            const size_t test_idx);
  java_test_case_generatort(message_handlert &_message_handler):
   messaget(_message_handler)
   {

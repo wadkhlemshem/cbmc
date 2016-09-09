@@ -221,7 +221,7 @@ void add_test_method_name(std::string &result, const std::string &func_name)
   //result+=func_name;
   //result+="Test {\n";
   //indent(result)+="public void test";
-  indent(result)+="@org.junit.Test public void ";
+  indent(result,2u)+="@org.junit.Test public void ";
   result+=func_name;
   result+="() throws Exception {\n";
 }
@@ -925,7 +925,6 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
     const std::vector<std::string>& goals_reached)
 {
   const symbolt &func=st.lookup(func_id);
-  const std::string func_name(test_func_name);//get_escaped_func_name(func));
   std::string result;
 
   if(goals_reached.size()!=0)
@@ -944,7 +943,7 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
   ref_factory.add_mock_objects(st, opaque_function_returns);
 
   result += ref_factory.mockenv_builder.get_class_annotations() + "\n";
-  add_test_method_name(result, func_name);
+  add_test_method_name(result, test_func_name);
 
   std::string post_mock_setup_result;
   
