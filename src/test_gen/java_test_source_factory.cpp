@@ -1019,6 +1019,8 @@ std::string generate_java_test_case_from_inputs(const symbol_tablet &st, const i
       indent(result,2u)+="/* check return value */\n";
       indent(result,2u)+="assertTrue(retval" + assertCompare + ");\n";
     }
+    else
+      indent(result,2u)+="/* no assert due to void return value */\n";
   }
 
   // closing the method

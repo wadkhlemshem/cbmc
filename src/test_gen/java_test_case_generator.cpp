@@ -92,7 +92,11 @@ const std::string java_test_case_generatort::generate_test_case(
   }
 
   std::string assertCompare;
+  /* can we emit an assert, i.e., does the function return a non-void value? */
   bool emitAssert = false;
+  /* does the trace cover a complete flow through the function, i.e., not just
+     an init block etc. */
+  bool coversCompleteFlow = false;
 
   for(const auto& step : trace.steps)
   {
@@ -170,9 +174,11 @@ const std::string java_test_case_generatort::generate_test_case(
         }
       }
     }
+    else if(step.type==goto_trace_stept::OUTPUT)
+      coversCompleteFlow = true;
   }
 
-  if(!emitAssert)
+  if(!coversCompleteFlow)
     return("/* test cases without return values are not generated */\n");
 
   // the key is an arbitrary test name
