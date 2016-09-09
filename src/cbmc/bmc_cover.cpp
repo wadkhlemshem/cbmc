@@ -462,7 +462,7 @@ bool bmc_covert::operator()()
         }
         if(test.source_code.length()!=0)
         {
-          result["testName"]=json_stringt(test.test_function_name);
+          result["name"]=json_stringt(test.test_function_name);
           result["test"]=json_stringt(test.source_code);
         }
         json_arrayt &goal_refs=result["coveredGoals"].make_array();
