@@ -1531,7 +1531,7 @@ void instrument_cover_goals(
 }
 /*******************************************************************\
 
-Function: exclude_trivial_goals
+Function: consider_goals
 
   Inputs:
 
