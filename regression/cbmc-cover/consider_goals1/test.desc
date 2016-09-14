@@ -1,0 +1,8 @@
+CORE
+if_icmp1.class
+--cover location
+^EXIT=0$
+^SIGNAL=0$
+^\*\* 13 of 29 covered (44.8%)
+--
+^warning: ignoring

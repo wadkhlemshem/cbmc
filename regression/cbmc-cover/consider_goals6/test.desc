@@ -1,0 +1,8 @@
+CORE
+Account.class
+--cover location
+^EXIT=0$
+^SIGNAL=0$
+^\*\* 17 of 18 covered (94.4%)
+--
+^warning: ignoring
