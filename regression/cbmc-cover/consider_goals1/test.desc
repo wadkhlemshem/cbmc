@@ -1,6 +1,6 @@
 CORE
 if_icmp1.class
---cover location
+--cover location --no-trivial-tests
 ^EXIT=0$
 ^SIGNAL=0$
 ^\*\* 13 of 29 covered (44.8%)

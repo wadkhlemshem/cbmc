@@ -1,6 +1,6 @@
 CORE
 Person.class
---cover location
+--cover location --no-trivial-tests
 ^EXIT=0$
 ^SIGNAL=0$
 ^\*\* 5 of 5 covered (100.0%)
