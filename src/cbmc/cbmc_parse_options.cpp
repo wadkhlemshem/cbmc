@@ -992,6 +992,10 @@ bool cbmc_parse_optionst::process_goto_program(
         goals = coverage_goalst::get_coverage_goals(coverage,get_message_handler());;
       }
 
+      //exclude trivial coverage goals
+      if(cmdline.isset("no-trivial-tests"))
+        goals.set_no_trivial_tests(true);
+
       status() << "Instrumenting coverage goals" << eom;
       instrument_cover_goals(symbol_table, goto_functions, c, goals);
       goto_functions.update();
