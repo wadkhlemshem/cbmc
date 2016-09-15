@@ -3,6 +3,6 @@ Person.class
 --cover location --no-trivial-tests
 ^EXIT=0$
 ^SIGNAL=0$
-^\*\* 15 of 23 covered (65.2%)
+^\*\* 14 of 22 covered (63.6%)
 --
 ^warning: ignoring

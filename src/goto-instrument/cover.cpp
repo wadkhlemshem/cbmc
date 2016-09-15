@@ -8,6 +8,8 @@ Date: May 2016
 
 \*******************************************************************/
 
+#include <iostream>
+
 #include <algorithm>
 #include <iterator>
 
@@ -1608,9 +1610,12 @@ bool consider_goals(
       ++count_decl;
   }
 
-  //this might be a get or set method (pattern)
-  result = !((count_decl==0) && (count_goto<=1) &&
-		   (count_assignments>0 && count_assignments<5));
+  //check whether this is a constructor/destructor or a get/set (pattern)
+  if (!count_goto && !count_assignments && !count_decl)
+    result=false;
+  else
+    result = !((count_decl==0) && (count_goto<=1) &&
+		     (count_assignments>0 && count_assignments<5));
 
   return result;
 }
