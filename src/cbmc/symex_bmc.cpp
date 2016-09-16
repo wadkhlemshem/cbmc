@@ -46,7 +46,7 @@ Function: symex_bmct::symex_step
 
 \*******************************************************************/
 
-void symex_bmct::symex_step(
+bool symex_bmct::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
@@ -62,7 +62,7 @@ void symex_bmct::symex_step(
     last_source_location=source_location;
   }
 
-  goto_symext::symex_step(goto_functions, state);
+  return goto_symext::symex_step(goto_functions, state);
 }
 
 /*******************************************************************\
