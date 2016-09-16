@@ -1,4 +1,4 @@
-/*******************************************************************\
+/*******************************************************************	\
 
 Module: Coverage Instrumentation
 
@@ -16,6 +16,8 @@ Date: May 2016
 #include <util/expr_util.h>
 
 #include <util/config.h>
+
+#include <json/json_parser.h>
 
 #include "cover.h"
 
@@ -67,6 +69,140 @@ public:
           << '\n';
   }
 };
+
+/*******************************************************************\
+
+Function: coverage_goalst::coverage_goalst
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+coverage_goalst::coverage_goalst()
+{
+  no_trivial_tests=false;
+}
+
+/*******************************************************************\
+
+Function: coverage_goalst::get_coverage
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+coverage_goalst coverage_goalst::get_coverage_goals(const std::string &coverage,
+                                   message_handlert &message_handler)
+{
+  jsont json;
+  coverage_goalst goals;
+  source_locationt source_location;
+  goals.set_no_trivial_tests(false);
+
+  //check coverage file
+  if(parse_json(coverage, message_handler, json))
+  {
+    messaget message(message_handler);
+    message.error() << coverage << " file is not a valid json file"
+                    << messaget::eom;
+    exit(0);
+  }
+
+  //make sure that we have an array of elements
+  if(!json.is_array())
+  {
+    messaget message(message_handler);
+    message.error() << "expecting an array in the " <<  coverage << " file, but got "
+                    << json << messaget::eom;
+    exit(0);
+  }
+
+  irep_idt file, function, line;
+  for(jsont::arrayt::const_iterator
+      it=json.array.begin();
+      it!=json.array.end();
+      it++)
+  {
+
+    //get the file of each existing goal
+    file=(*it)["file"].value;
+    source_location.set_file(file);
+
+    //get the function of each existing goal
+    function=(*it)["function"].value;
+    source_location.set_function(function);
+
+    //get the lines array
+    if ((*it)["lines"].is_array())
+  	{
+  	  for(jsont::arrayt::const_iterator
+  	      itg=(*it)["lines"].array.begin();
+  	      itg!=(*it)["lines"].array.end();
+  	      itg++)
+  	  {
+        //get the line of each existing goal
+        line=(*itg)["number"].value;
+        source_location.set_line(line);
+        goals.set_goals(source_location);
+  	  }
+  	}
+  }
+  return goals;
+}
+
+/*******************************************************************\
+
+Function: coverage_goalst::set_goals
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+void coverage_goalst::set_goals(source_locationt goal)
+{
+  existing_goals.push_back(goal);
+}
+
+/*******************************************************************\
+
+Function: coverage_goalst::is_existing_goal
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool coverage_goalst::is_existing_goal(source_locationt source_location)
+{
+  std::vector<source_locationt>::iterator it = existing_goals.begin();
+  while (it!=existing_goals.end())
+  {
+    if (!source_location.get_file().compare(it->get_file()) &&
+    	!source_location.get_function().compare(it->get_function()) &&
+    	!source_location.get_line().compare(it->get_line()))
+      break;
+    ++it;
+  }
+  if(it == existing_goals.end())
+    return true;
+  else
+    return false;
+}
 
 /*******************************************************************\
 
@@ -1057,32 +1193,17 @@ Function: instrument_cover_goals_function_only
 
 \*******************************************************************/
 
-void instrument_cover_goals_function_only(
-  const symbol_tablet &symbol_table,
-  goto_programt &goto_program,
-  coverage_criteriont criterion)
-{
-  instrument_cover_goals(symbol_table,goto_program,criterion,true);
-}
-/*******************************************************************\
-
-Function: instrument_cover_goals_function_only
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
-  coverage_criteriont criterion)
+  coverage_criteriont criterion,
+  bool function_only)
 {
-  instrument_cover_goals(symbol_table,goto_program,criterion,false);
+  coverage_goalst goals; //empty
+  instrument_cover_goals(symbol_table,goto_program,
+			 criterion,goals,function_only,false);
 }
+
 /*******************************************************************\
 
 Function: instrument_cover_goals
@@ -1099,8 +1220,14 @@ void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
   coverage_criteriont criterion,
-  bool function_only)
+  const coverage_goalst &goals,
+  bool function_only,
+  bool ignore_trivial)
 {
+  //exclude trivial coverage goals of a goto program
+  if(ignore_trivial && !consider_goals(goto_program))
+    return;
+
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
   std::set<unsigned> blocks_done;
@@ -1171,7 +1298,9 @@ void instrument_cover_goals(
           source_locationt source_location=
             basic_blocks.source_location_map[block_nr];
           
-          if(!source_location.get_file().empty() &&
+          //check whether the current goal already exists
+          if(goals.is_existing_goal(source_location) &&
+        	 !source_location.get_file().empty() &&
              source_location.get_file()[0]!='<'&&
 	     cover_curr_function)
           {
@@ -1425,21 +1554,25 @@ Function: instrument_cover_goals
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
-  coverage_criteriont criterion)
+  coverage_criteriont,
+  const coverage_goalst &goals,
+  bool function_only=false,
+  bool ignore_trivial=false)
 {
   Forall_goto_functions(f_it, goto_functions)
   {
     if(f_it->first==ID__start ||
        f_it->first=="__CPROVER_initialize")
       continue;
-      
-    instrument_cover_goals(symbol_table, f_it->second.body, criterion);
+
+    instrument_cover_goals(symbol_table, f_it->second.body,
+			   criterion, goals, function_only, ignore_trivial);
   }
 }
 
 /*******************************************************************\
 
-Function: instrument_cover_goals_function_only
+Function: instrument_cover_goals
 
   Inputs:
 
@@ -1449,17 +1582,51 @@ Function: instrument_cover_goals_function_only
 
 \*******************************************************************/
 
-void instrument_cover_goals_function_only(
+void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
-  coverage_criteriont criterion)
+  coverage_criteriont criterion,
+  bool function_only)
 {
-  Forall_goto_functions(f_it, goto_functions)
-  {
-    if(f_it->first==ID__start ||
-       f_it->first=="__CPROVER_initialize")
-      continue;
-      
-    instrument_cover_goals_function_only(symbol_table, f_it->second.body, criterion);
-  }
+  instrument_cover_goals(symbol_table, goto_functions,
+			 criterion, goals, function_only, false);
 }
+
+/*******************************************************************\
+
+Function: consider_goals
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool consider_goals(const goto_programt &goto_program)
+{
+  bool result;
+  unsigned long count_assignments=0, count_goto=0, count_decl=0;
+
+  forall_goto_program_instructions(i_it, goto_program)
+  {
+    if(i_it->is_goto())
+	  ++count_goto;
+    else if (i_it->is_assign())
+      ++count_assignments;
+    else if (i_it->is_decl())
+      ++count_decl;
+  }
+
+  //check whether this is a constructor/destructor or a get/set (pattern)
+  if (!count_goto && !count_assignments && !count_decl)
+    result=false;
+  else
+    result = !((count_decl==0) && (count_goto<=1) &&
+             (count_assignments>0 && count_assignments<5));
+
+  return result;
+}
+
+

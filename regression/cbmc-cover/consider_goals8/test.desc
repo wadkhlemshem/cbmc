@@ -1,0 +1,8 @@
+CORE
+Person.class
+--cover location
+^EXIT=0$
+^SIGNAL=0$
+^\*\* 18 of 26 covered (69.2%)
+--
+^warning: ignoring
