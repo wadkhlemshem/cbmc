@@ -1,4 +1,4 @@
-main()
+void main()
 {
   unsigned int N;
   __CPROVER_assume(N>0); 
@@ -17,4 +17,3 @@ main()
 
   assert(matrix[0]<max);
 }
-

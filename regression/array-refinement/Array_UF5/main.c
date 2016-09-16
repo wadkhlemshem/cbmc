@@ -8,7 +8,7 @@ void __VERIFIER_assert(int cond) {
 }
 int __VERIFIER_nondet_int();
 
-main()
+void main()
 {
   unsigned int SIZE=1;
   unsigned int j,k;
