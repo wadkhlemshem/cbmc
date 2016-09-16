@@ -116,9 +116,9 @@ In its original version it was built by
 
 at
 
-    Institut f¸r Software- und Systemtechnik der Fraunhofer-Gesellschaft
+    Institut f√ºr Software- und Systemtechnik der Fraunhofer-Gesellschaft
     (Fraunhofer Institute for Software Engineering and Systems Engineering)
-    Kurstraﬂe 33
+    Kurstra√üe 33
   D-10117 Berlin
     Germany
 
@@ -324,7 +324,7 @@ run_floorPow2_tests ()
     } else {
       putchar ('X');
     }
-
+    
   }
 
   N = pow(2,0);  // 1
@@ -339,14 +339,14 @@ run_floorPow2_tests ()
   } else {
     putchar ('X');
   }
-
+  
   N -= 1;        // 0
   if (N.floorPow2() == 0) {
     putchar ('.');
   } else {
     putchar ('X');
   }
-
+  
   N += 2;        // 2
   if (N.floorPow2() == 1) {
     putchar ('.');

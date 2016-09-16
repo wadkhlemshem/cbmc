@@ -1,4 +1,11 @@
-DIRS = ansi-c cbmc cpp goto-instrument goto-instrument-unwind
+DIRS =  cbmc-incr-oneloop 
+# array-refinement \
+       cbmc-incr
+#       cbmc cbmc-with-incr \
+#       array-refinement-with-incr \
 
 test:
-	$(foreach var,$(DIRS), $(MAKE) -C $(var) test || exit 1;)
+	$(foreach var,$(DIRS), make -C $(var) test;)
+
+clean:
+	$(foreach var,$(DIRS), make -C $(var) clean;)

@@ -19,7 +19,7 @@ Function: cover_goalst::~cover_goalst
 
  Outputs:
 
- Purpose:
+ Purpose: constructor
 
 \*******************************************************************/
 
@@ -66,7 +66,9 @@ Function: cover_goalst::constaint
 
  Outputs:
 
- Purpose: Build clause
+ Purpose: Build clause (activation literal, non-covered assertion 1 ... 
+                                            non-covered assertion n)
+          and add it to the solver's database
 
 \*******************************************************************/
 
@@ -76,6 +78,8 @@ void cover_goalst::constraint()
 
   // cover at least one unknown goal
 
+  disjuncts.push_back(literal_exprt(activation_literal));
+   
   for(std::list<goalt>::const_iterator
       g_it=goals.begin();
       g_it!=goals.end();
