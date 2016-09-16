@@ -1032,15 +1032,12 @@ bool cbmc_parse_optionst::process_goto_program(
         //get file with covered test goals
         const std::string coverage=cmdline.get_value("existing-coverage");
         //get a coverage_goalst object
-        goals = coverage_goalst::get_coverage_goals(coverage,get_message_handler());;
+        goals = coverage_goalst::get_coverage_goals(coverage,
+                                                    get_message_handler());;
       }
 
-      //exclude trivial coverage goals
-      if(cmdline.isset("no-trivial-tests"))
-        goals.set_no_trivial_tests(true);
-
       status() << "Instrumenting coverage goals" << eom;
-      instrument_cover_goals_function_only(symbol_table,goto_functions,c,
+      instrument_cover_goals(symbol_table,goto_functions,c,
 					   goals,
 					   cmdline.isset("cover-function-only"),
 					   cmdline.isset("no-trivial-tests"));

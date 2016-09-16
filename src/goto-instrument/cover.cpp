@@ -72,23 +72,6 @@ public:
 
 /*******************************************************************\
 
-Function: coverage_goalst::coverage_goalst
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-coverage_goalst::coverage_goalst()
-{
-  no_trivial_tests=false;
-}
-
-/*******************************************************************\
-
 Function: coverage_goalst::get_coverage
 
   Inputs:
@@ -105,7 +88,6 @@ coverage_goalst coverage_goalst::get_coverage_goals(const std::string &coverage,
   jsont json;
   coverage_goalst goals;
   source_locationt source_location;
-  goals.set_no_trivial_tests(false);
 
   //check coverage file
   if(parse_json(coverage, message_handler, json))
@@ -151,7 +133,7 @@ coverage_goalst coverage_goalst::get_coverage_goals(const std::string &coverage,
         //get the line of each existing goal
         line=(*itg)["number"].value;
         source_location.set_line(line);
-        goals.set_goals(source_location);
+        goals.add_goal(source_location);
   	  }
   	}
   }
@@ -160,7 +142,7 @@ coverage_goalst coverage_goalst::get_coverage_goals(const std::string &coverage,
 
 /*******************************************************************\
 
-Function: coverage_goalst::set_goals
+Function: coverage_goalst::add_goal
 
   Inputs:
 
@@ -170,7 +152,7 @@ Function: coverage_goalst::set_goals
 
 \*******************************************************************/
 
-void coverage_goalst::set_goals(source_locationt goal)
+void coverage_goalst::add_goal(source_locationt goal)
 {
   existing_goals.push_back(goal);
 }
@@ -187,9 +169,9 @@ Function: coverage_goalst::is_existing_goal
 
 \*******************************************************************/
 
-bool coverage_goalst::is_existing_goal(source_locationt source_location)
+bool coverage_goalst::is_existing_goal(source_locationt source_location) const
 {
-  std::vector<source_locationt>::iterator it = existing_goals.begin();
+  std::vector<source_locationt>::const_iterator it = existing_goals.begin();
   while (it!=existing_goals.end())
   {
     if (!source_location.get_file().compare(it->get_file()) &&
@@ -1199,9 +1181,46 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   bool function_only)
 {
-  coverage_goalst goals; //empty
+  coverage_goalst goals; //empty already covered goals
   instrument_cover_goals(symbol_table,goto_program,
 			 criterion,goals,function_only,false);
+}
+
+/*******************************************************************\
+
+Function: consider_goals
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+bool consider_goals(const goto_programt &goto_program)
+{
+  bool result;
+  unsigned long count_assignments=0, count_goto=0, count_decl=0;
+
+  forall_goto_program_instructions(i_it, goto_program)
+  {
+    if(i_it->is_goto())
+	  ++count_goto;
+    else if (i_it->is_assign())
+      ++count_assignments;
+    else if (i_it->is_decl())
+      ++count_decl;
+  }
+
+  //check whether this is a constructor/destructor or a get/set (pattern)
+  if (!count_goto && !count_assignments && !count_decl)
+    result=false;
+  else
+    result = !((count_decl==0) && (count_goto<=1) &&
+             (count_assignments>0 && count_assignments<5));
+
+  return result;
 }
 
 /*******************************************************************\
@@ -1554,10 +1573,10 @@ Function: instrument_cover_goals
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
-  coverage_criteriont,
+  coverage_criteriont criterion,
   const coverage_goalst &goals,
-  bool function_only=false,
-  bool ignore_trivial=false)
+  bool function_only,
+  bool ignore_trivial)
 {
   Forall_goto_functions(f_it, goto_functions)
   {
@@ -1588,45 +1607,8 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   bool function_only)
 {
+  coverage_goalst goals; //empty already covered goals
   instrument_cover_goals(symbol_table, goto_functions,
 			 criterion, goals, function_only, false);
 }
-
-/*******************************************************************\
-
-Function: consider_goals
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
-bool consider_goals(const goto_programt &goto_program)
-{
-  bool result;
-  unsigned long count_assignments=0, count_goto=0, count_decl=0;
-
-  forall_goto_program_instructions(i_it, goto_program)
-  {
-    if(i_it->is_goto())
-	  ++count_goto;
-    else if (i_it->is_assign())
-      ++count_assignments;
-    else if (i_it->is_decl())
-      ++count_decl;
-  }
-
-  //check whether this is a constructor/destructor or a get/set (pattern)
-  if (!count_goto && !count_assignments && !count_decl)
-    result=false;
-  else
-    result = !((count_decl==0) && (count_goto<=1) &&
-             (count_assignments>0 && count_assignments<5));
-
-  return result;
-}
-
 
