@@ -1,4 +1,8 @@
-DIRS = ansi-c cbmc cpp goto-instrument goto-instrument-unwind
+DIRS = ansi-c cbmc cpp goto-instrument goto-instrument-unwind \
+       cbmc-incr-oneloop cbmc-incr cbmc-with-incr
 
 test:
-	$(foreach var,$(DIRS), $(MAKE) -C $(var) test || exit 1;)
+	$(foreach var,$(DIRS), make -C $(var) test;)
+
+clean:
+	$(foreach var,$(DIRS), make -C $(var) clean;)

@@ -143,43 +143,48 @@ void goto_symext::rewrite_quantifiers(exprt &expr, statet &state)
 
 Function: goto_symext::operator()
 
-  Inputs:
+  Inputs: goto functions, current symex state
 
- Outputs:
+ Outputs: false if symbolic execution is to be interrupted to perform incremental checking,
+          true if symbolic execution has terminated
 
  Purpose: symex from given state
 
 \*******************************************************************/
 
-void goto_symext::operator()(
+bool goto_symext::operator()(
   statet &state,
   const goto_functionst &goto_functions,
   const goto_programt &goto_program)
 {
   assert(!goto_program.instructions.empty());
 
-  state.source=symex_targett::sourcet(goto_program);
-  assert(!state.threads.empty());
-  assert(!state.call_stack().empty());
-  state.top().end_of_function=--goto_program.instructions.end();
-  state.top().calling_location.pc=state.top().end_of_function;
-  state.symex_target=&target;
+  if(state.symex_target==NULL)
+  {
+    state.source=symex_targett::sourcet(goto_program);
+    assert(!state.threads.empty());
+    assert(!state.call_stack().empty());
+    state.top().end_of_function=--goto_program.instructions.end();
+    state.top().calling_location.pc=state.top().end_of_function;
+    state.symex_target=&target;
+  }
 
   assert(state.top().end_of_function->is_end_function());
 
   while(!state.call_stack().empty())
   {
-    symex_step(goto_functions, state);
+    if(symex_step(goto_functions, state))
+      return false;
 
     // is there another thread to execute?
     if(state.call_stack().empty() &&
        state.source.thread_nr+1<state.threads.size())
     {
       unsigned t=state.source.thread_nr+1;
-      //std::cout << "********* Now executing thread " << t << std::endl;
       state.switch_to_thread(t);
     }
   }
+  return true;
 }
 
 /*******************************************************************\
@@ -231,23 +236,25 @@ void goto_symext::operator()(const goto_functionst &goto_functions)
 
 Function: goto_symext::symex_step
 
-  Inputs:
+  Inputs: goto functions, current symex state
 
- Outputs:
+ Outputs: true if symbolic execution is to be interrupted to perform incremental checking
 
  Purpose: do just one step
 
 \*******************************************************************/
 
-void goto_symext::symex_step(
+bool goto_symext::symex_step(
   const goto_functionst &goto_functions,
   statet &state)
 {
   #if 0
   std::cout << "\ninstruction type is " << state.source.pc->type << std::endl;
   std::cout << "Location: " << state.source.pc->source_location << std::endl;
-  std::cout << "Guard: " << from_expr(ns, "", state.guard.as_expr()) << std::endl;
-  std::cout << "Code: " << from_expr(ns, "", state.source.pc->code) << std::endl;
+  std::cout << "Guard: "
+            << from_expr(ns, "", state.guard.as_expr()) << std::endl;
+  std::cout << "Code: "
+            << from_expr(ns, "", state.source.pc->code) << std::endl;
   #endif
 
   assert(!state.threads.empty());
@@ -288,7 +295,7 @@ void goto_symext::symex_step(
     break;
 
   case GOTO:
-    symex_goto(state);
+    return symex_goto(state);
     break;
 
   case ASSUME:
@@ -304,7 +311,7 @@ void goto_symext::symex_step(
     break;
 
   case ASSERT:
-    if(!state.guard.is_false())
+    if(!state.guard.is_false() && !ignore_assertions)
     {
       std::string msg=id2string(state.source.pc->source_location.get_comment());
       if(msg=="") msg="assertion";
@@ -344,7 +351,33 @@ void goto_symext::symex_step(
       Forall_expr(it, deref_code.arguments())
         clean_expr(*it, state, false);
 
-      symex_function_call(goto_functions, state, deref_code);
+      const irep_idt &identifier =
+        to_symbol_expr(deref_code.function()).get_identifier();
+      const goto_symex_statet::framet::loop_infot &loop_info =
+        state.top().loop_iterations[identifier];
+
+      if(!loop_info.fully_unwound)
+      {
+        goto_functionst::function_mapt::const_iterator it=
+          goto_functions.function_map.find(identifier);
+        assert(goto_functions.function_map.find(identifier)!=
+               goto_functions.function_map.end());
+
+        // interrupt for checking guard if in incremental mode
+        if(!state.guard.is_true() &&
+           // no need to check recursive call if function body is not available
+           it->second.body_available())
+        {
+          exprt guard=state.guard.as_expr();
+          bool do_break=
+            check_break(identifier, true, state, guard, loop_info.count);
+          if(do_break)
+            return true;
+        }
+        return symex_function_call(goto_functions, state, deref_code);
+      }
+      else
+        state.source.pc++;
     }
     else
       state.source.pc++;
@@ -407,4 +440,5 @@ void goto_symext::symex_step(
   default:
     throw "symex got unexpected instruction";
   }
+  return false;
 }

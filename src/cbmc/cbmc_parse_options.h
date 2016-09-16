@@ -47,6 +47,10 @@ class optionst;
   "(error-label):(verbosity):(no-library)" \
   "(nondet-static)" \
   "(version)" \
+  "(incremental-check):(incremental)(earliest-loop-exit)" \
+  "(ignore-assertions-before-unwind-min)(stop-when-unsat)" \
+  "(unwind-max):(unwind-min):" \
+  "(magic-numbers)" \
   "(cover):" \
   "(mm):" \
   "(i386-linux)(i386-macos)(i386-win32)(win32)(winx64)(gcc)" \
@@ -92,6 +96,9 @@ protected:
   bool set_properties(goto_functionst &goto_functions);
 
   void eval_verbosity();
+  
+  bool options_exclusive(const char *opt1, const char *opt2);
+  bool options_inclusive(const char *opt1, const char *opt2);
 
   // get any additional stuff before finalizing
   virtual int get_modules(bmct &bmc)

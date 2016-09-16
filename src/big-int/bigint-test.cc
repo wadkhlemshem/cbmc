@@ -116,9 +116,9 @@ In its original version it was built by
 
 at
 
-    Institut für Software- und Systemtechnik der Fraunhofer-Gesellschaft
+    Institut fÃ¼r Software- und Systemtechnik der Fraunhofer-Gesellschaft
     (Fraunhofer Institute for Software Engineering and Systems Engineering)
-    Kurstraße 33
+    KurstraÃŸe 33
   D-10117 Berlin
     Germany
 

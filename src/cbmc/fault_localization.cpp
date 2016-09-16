@@ -357,7 +357,7 @@ Function: fault_localizationt::stop_on_fail
 
 \*******************************************************************/
 
-safety_checkert::resultt fault_localizationt::stop_on_fail()
+safety_checkert::resultt fault_localizationt::stop_on_fail(bool show_report)
 {
   switch(run_decision_procedure(bmc.prop_conv))
   {
@@ -388,6 +388,7 @@ safety_checkert::resultt fault_localizationt::stop_on_fail()
 
     return safety_checkert::ERROR;
   }
+  assert(false);
 }
 
 /*******************************************************************\
