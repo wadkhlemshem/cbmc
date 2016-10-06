@@ -138,6 +138,10 @@ typet ansi_c_declarationt::full_type(
   }
 
   *p=type();
+
+  // retain typedef for dump-c
+  if(get_is_typedef())
+    result.set(ID_typedef,declarator.get_name());
   
   return result;
 }
@@ -169,7 +173,7 @@ void ansi_c_declarationt::to_symbol(
   symbol.is_macro=get_is_typedef() || get_is_enum_constant();
   symbol.is_parameter=get_is_parameter();
   symbol.is_weak=get_is_weak();
-  
+
   // is it a function?
   
   if(symbol.type.id()==ID_code && !symbol.is_type)
