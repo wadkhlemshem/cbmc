@@ -1,0 +1,9 @@
+CORE
+main.c
+--cover location
+^EXIT=0$
+^SIGNAL=0$
+argv\[1\]\[0\]='A'$
+argv\[1\]\[0\]='[^A]'$
+--
+^warning: ignoring

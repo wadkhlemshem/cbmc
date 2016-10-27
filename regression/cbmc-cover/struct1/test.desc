@@ -1,0 +1,9 @@
+CORE
+main.c
+--cover location 
+^EXIT=0$
+^SIGNAL=0$
+\.y='A',
+\.y='[^A]',
+--
+^warning: ignoring
