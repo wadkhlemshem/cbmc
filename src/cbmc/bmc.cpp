@@ -569,18 +569,6 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       }
     }
 
-    {
-      statistics() << "Generated " << symex.total_vccs
-                   << " VCC(s), " << symex.remaining_vccs
-                   << " remaining after simplification" << eom;
-    }
-
-    if(options.get_bool_option("show-vcc"))
-    {
-      show_vcc();
-      return safety_checkert::SAFE; // to indicate non-error
-    }
-    
     if(!options.get_list_option("cover").empty())
     {
       const optionst::value_listt criteria=
