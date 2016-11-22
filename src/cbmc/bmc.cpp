@@ -310,15 +310,8 @@ Function: bmct::slice
 
 void bmct::slice()
 {
-  if(options.get_option("slice-by-trace")!="")
-  {
-    symex_slice_by_tracet symex_slice_by_trace(ns);
- 
-    symex_slice_by_trace.slice_by_trace
-      (options.get_option("slice-by-trace"), equation);
-  }
- 
-  if(equation.has_threads())
+  // any properties to check at all?
+  if(symex.remaining_vccs==0)
   {
     // we should build a thread-aware SSA slicer
     statistics() << "no slicing due to threads" << eom;
@@ -327,9 +320,20 @@ void bmct::slice()
   {
     if(options.get_bool_option("slice-formula"))
     {
-      json_objectt json_result;
-      json_result["cProverStatus"]=json_stringt("failure");
-      std::cout << ",\n" << json_result;
+      slice();
+      statistics() << "slicing removed "
+                   << equation.count_ignored_SSA_steps()
+                   << " assignments" << eom;
+    }
+    else
+    {
+      if(options.get_list_option("cover").empty())
+      {
+        simple_slice(equation);
+        statistics() << "simple slicing removed "
+                     << equation.count_ignored_SSA_steps()
+                     << " assignments" << eom;
+      }
     }
   }
 }
@@ -352,20 +356,6 @@ safety_checkert::resultt bmct::show(const goto_functionst &goto_functions)
   {
     show_vcc();
     return safety_checkert::SAFE; // to indicate non-error
-  }
-
-  if(options.get_option("localize-faults")!="")
-  {
-    fault_localizationt fault_localization(
-      goto_functions, *this, options);
-    return fault_localization();
-  }
-     
-  if(options.get_option("cover")!="")
-  {
-    std::string criterion=options.get_option("cover");
-    return cover(goto_functions, criterion)?
-      safety_checkert::ERROR:safety_checkert::SAFE;
   }
 
   if(options.get_bool_option("program-only"))
