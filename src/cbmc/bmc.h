@@ -130,7 +130,7 @@ protected:
     const goto_functionst &goto_functions,
     prop_convt &solver);
   virtual resultt stop_on_fail(bool show_report=true);
-  virtual void show_vcc(std::ostream &out);
+
   virtual void show_program();
   virtual void report_success();
   virtual void report_failure();
