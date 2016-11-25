@@ -69,7 +69,8 @@ Function: bmct::error_trace
 
 void bmct::error_trace()
 {
-  if(options.get_bool_option("stop-when-unsat")) return; 
+  if(options.get_bool_option("stop-when-unsat"))
+  	return; 
 
   status() << "Building error trace" << eom;
 
@@ -311,7 +312,7 @@ Function: bmct::slice
 void bmct::slice()
 {
   // any properties to check at all?
-  if(symex.remaining_vccs==0)
+  if(equation.has_threads())
   {
     // we should build a thread-aware SSA slicer
     statistics() << "no slicing due to threads" << eom;
@@ -320,7 +321,7 @@ void bmct::slice()
   {
     if(options.get_bool_option("slice-formula"))
     {
-      slice();
+      ::slice(equation);
       statistics() << "slicing removed "
                    << equation.count_ignored_SSA_steps()
                    << " assignments" << eom;
