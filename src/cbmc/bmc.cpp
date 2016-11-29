@@ -574,11 +574,10 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     }
     
     //do all properties
-    if(options.get_bool_option("all-properties"))
-      return all_properties(goto_functions, prop_conv);
-
-    //do "normal" BMC
+    if(options.get_bool_option("stop-on-fail"))
     return stop_on_fail();
+    else	
+      return all_properties(goto_functions, prop_conv);
   }
  
   catch(std::string &error_str)
