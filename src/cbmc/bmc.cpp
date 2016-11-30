@@ -490,7 +490,6 @@ Function: bmct::initialize
 safety_checkert::resultt bmct::initialize()
 {
   const std::string mm=options.get_option("mm");
-  std::unique_ptr<memory_model_baset> memory_model;
 
   if(mm.empty() || mm=="sc")
     memory_model=std::unique_ptr<memory_model_baset>(new memory_model_sct(ns));
