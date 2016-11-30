@@ -544,6 +544,12 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     // perform slicing
     slice(); 
  
+    {
+      statistics() << "Generated " << symex.total_vccs
+                   << " VCC(s), " << symex.remaining_vccs
+                   << " remaining after simplification" << eom;
+    }
+ 
     // do diverse other options
     {
       resultt result = show(goto_functions);
