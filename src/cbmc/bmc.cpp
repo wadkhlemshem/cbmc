@@ -586,6 +586,14 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       return fault_localization();
     }
     
+    // any properties to check at all?
+    if(!options.get_bool_option("program-only") &&
+       symex.remaining_vccs==0)
+    {
+      report_success();
+      return safety_checkert::SAFE;
+    }
+
     //do all properties
     if(options.get_bool_option("stop-on-fail"))
     return stop_on_fail();
