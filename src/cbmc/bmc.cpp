@@ -542,7 +542,24 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       memory_model->set_message_handler(get_message_handler());
       (*memory_model)(equation);
     }
+ }
+  catch(std::string &error_str)
+  {
+    error() << error_str << eom;
+    return ERROR;
+  }
+
+  catch(const char *error_str)
+  {
+    error() << error_str << eom;
+    return ERROR;
+  }
  
+  catch(std::bad_alloc)
+  {
+    error() << "Out of memory" << eom;
+    return ERROR;
+  }
     statistics() << "size of program expression: "
 		 << equation.SSA_steps.size()
 		 << " steps" << eom;
@@ -598,25 +615,6 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     return stop_on_fail();
     else	
       return all_properties(goto_functions, prop_conv);
-  }
- 
-  catch(std::string &error_str)
-  {
-    error() << error_str << eom;
-    return ERROR;
-  }
-
-  catch(const char *error_str)
-  {
-    error() << error_str << eom;
-    return ERROR;
-  }
-
-  catch(std::bad_alloc)
-  {
-    error() << "Out of memory" << eom;
-    return ERROR;
-  }
 
   assert(false);
 }
