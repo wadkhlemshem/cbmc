@@ -311,6 +311,13 @@ Function: bmct::slice
 
 void bmct::slice()
 {
+  if(options.get_option("slice-by-trace")!="")
+  {
+    symex_slice_by_tracet symex_slice_by_trace(ns);
+
+    symex_slice_by_trace.slice_by_trace
+      (options.get_option("slice-by-trace"), equation);
+  }
   // any properties to check at all?
   if(equation.has_threads())
   {
