@@ -159,12 +159,14 @@ bool goto_symext::operator()(
 {
   assert(!goto_program.instructions.empty());
 
+if(state.symex_target==NULL) {
   state.source=symex_targett::sourcet(goto_program);
   assert(!state.threads.empty());
   assert(!state.call_stack().empty());
   state.top().end_of_function=--goto_program.instructions.end();
   state.top().calling_location.pc=state.top().end_of_function;
   state.symex_target=&target;
+ }
   
   assert(state.top().end_of_function->is_end_function());
 
