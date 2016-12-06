@@ -344,6 +344,11 @@ void bmct::slice()
       }
     }
   }
+  {
+    statistics() << "Generated " << symex.total_vccs
+		 << " VCC(s), " << symex.remaining_vccs
+		 << " remaining after simplification" << eom;
+  }
 }
 
 /*******************************************************************\
