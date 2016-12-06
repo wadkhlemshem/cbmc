@@ -228,14 +228,14 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
     options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental", true);
-    options.set_option("unwinding-assertions", true);
+   // options.set_option("unwinding-assertions", true);
   }
   if(cmdline.isset("incremental-check"))
   {
     options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental-check", cmdline.get_value("incremental-check"));
-    options.set_option("unwinding-assertions", true);
+    //options.set_option("unwinding-assertions", true);
   }
   if(cmdline.isset("earliest-loop-exit"))
     options.set_option("earliest-loop-exit", true);
@@ -314,21 +314,10 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
 
   // generate unwinding assertions
   if(cmdline.isset("cover"))
-  {
-    if(options.get_bool_option("incremental")|| options.get_bool_option("incremental-check"))
-    {
-      error() << "--cover and --incremental must not be given together" << eom;
-      exit(1);
-    }  
-    options.set_option("unwinding-assertions", false);
-  }  
+    options.set_option("unwinding-assertions", false); 
   else
-  {
-    if(cmdline.isset("no-unwinding-assertions"))
-      options.set_option("unwinding-assertions", false);
-    else
-      options.set_option("unwinding-assertions", true);    
-  }
+    options.set_option("unwinding-assertions",
+      cmdline.isset("unwinding-assertions"));
 
   // generate unwinding assumptions otherwise
   options.set_option("partial-loops",
