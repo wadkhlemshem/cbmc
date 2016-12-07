@@ -66,10 +66,10 @@ safety_checkert::resultt bmc_incrementalt::step(
     }
     else
     {
-      if(options.get_bool_option("all-properties"))
-        result = all_properties(goto_functions, prop_conv);
-      else
+      if(options.get_bool_option("stop-on-fail"))
         result = stop_on_fail();
+      else
+        result = all_properties(goto_functions, prop_conv);
     }
 
     resultt term_cond = options.get_bool_option("stop-when-unsat") ? 
