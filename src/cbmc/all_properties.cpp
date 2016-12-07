@@ -122,7 +122,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
     }
   }
   
-  do_before_solving();
+//  do_before_solving();
 
   cover_goalst cover_goals(solver);
 
