@@ -8,6 +8,7 @@ Author: Peter Schrammel, Daniel Kroening, kroening@kroening.com
 
 #include <limits>
 
+#include <util/simplify_expr.h>
 #include <util/source_location.h>
 #include <util/i2string.h>
 
@@ -232,7 +233,7 @@ bool symex_bmc_incrementalt::check_break(const irep_idt &id,
     //memorise unwinding assertion for loop check
     exprt simplified_cond=not_exprt(cond);
     state.rename(simplified_cond, ns);
-    do_simplify(simplified_cond);
+    simplify(simplified_cond, ns);
     state.guard.guard_expr(simplified_cond);
 
     loop_cond.id = id;
