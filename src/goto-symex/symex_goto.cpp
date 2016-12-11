@@ -10,10 +10,12 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <algorithm>
 
 #include <util/expr_util.h>
+#include <util/simplify_expr.h>
 #include <util/std_expr.h>
 #include <util/i2string.h>
 
 #include "goto_symex.h"
+
 
 /*******************************************************************\
 
@@ -41,7 +43,9 @@ bool goto_symext::symex_goto(statet &state)
   
   const irep_idt loop_id = goto_programt::loop_id(state.source.pc);
 
-  if(new_guard.is_false() ||
+  // Testing for "is_false", we need to explicitly simplify despite "no-simplify".
+  const exprt incr_test_guard=simplify_expr(old_guard, ns);
+  if(incr_test_guard.is_false() ||
      state.guard.is_false())
   {
     if(!state.guard.is_false())
