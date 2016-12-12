@@ -540,8 +540,8 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
   {
     // perform symbolic execution
     symex(goto_functions);
-
-    // add a partial ordering, if required
+ 
+    // add a partial ordering, if required    
     if(equation.has_threads())
     {
       memory_model->set_message_handler(get_message_handler());
@@ -571,7 +571,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
     // perform slicing
     slice(); 
- 
+
     {
       statistics() << "Generated " << symex.total_vccs
                    << " VCC(s), " << symex.remaining_vccs
@@ -584,7 +584,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       if(result != UNKNOWN)
         return result;
     }
- 
+    
     // any properties to check at all?
     if(symex.remaining_vccs==0)
     {
@@ -617,7 +617,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
     //do all properties
     if(options.get_bool_option("stop-on-fail"))
-    return stop_on_fail();
+        return stop_on_fail();
     else	
       return all_properties(goto_functions, prop_conv);
 

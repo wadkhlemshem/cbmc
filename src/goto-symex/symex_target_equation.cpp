@@ -618,7 +618,7 @@ Function: symex_target_equationt::convert
 
  Outputs:
 
- Purpose:
+ Purpose: 
 
 \*******************************************************************/
 
@@ -664,6 +664,7 @@ void symex_target_equationt::convert_assignments(
     {
       it.converted=true;
       decision_procedure.set_to_true(it.cond_expr);
+    }
   }
   }
 }
@@ -863,12 +864,12 @@ void symex_target_equationt::convert_assertions(
 #endif
 
         if(is_incremental) 
-    {
+        { 
           prop_conv.set_to_true(or_exprt(literal_exprt(activation_literal),
             not_exprt(it->cond_expr)));
 	}
         else 
-      {
+        {
           prop_conv.set_to_false(it->cond_expr);
 	}
         it->cond_literal=const_literal(false);

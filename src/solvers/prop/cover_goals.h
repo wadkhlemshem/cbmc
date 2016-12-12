@@ -52,7 +52,6 @@ public:
   typedef std::list<goalt> goalst;
   goalst goals;
   literalt activation_literal; //for incremental solving
-
   // statistics
 
   inline std::size_t number_covered() const

@@ -53,7 +53,6 @@ public:
   {
     loop_limits[id]=limit;
   }
-
 protected:
   // use gui format
   language_uit::uit ui;
