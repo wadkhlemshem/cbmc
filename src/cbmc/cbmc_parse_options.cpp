@@ -459,7 +459,7 @@ Function: cbmc_parse_optionst::options_exclusive
 
 bool cbmc_parse_optionst::options_exclusive(const char *opt1, const char *opt2)
 {
-  if(cmdline.isset(opt1) && cmdline.isset(opt2)) 
+  if(cmdline.isset(opt1) && cmdline.isset(opt2))
   {
     error() << "--" << opt1 << " cannot be used with --" << opt2 << eom;
     return true;
@@ -481,95 +481,7 @@ Function: cbmc_parse_optionst::options_inclusive
 
 bool cbmc_parse_optionst::options_inclusive(const char *opt1, const char *opt2)
 {
-  if(cmdline.isset(opt1) && !cmdline.isset(opt2)) 
-  {
-    error() << "--" << opt1 << " can only be used with --" << opt2 << eom;
-    return true;
-  }
-  return false;
-}
-
-/*******************************************************************\
-
-Function: cbmc_parse_optionst::options_exclusive
-
-  Inputs:
-
- Outputs:
-
- Purpose: check conflicts between options: not allowed together
-
-\*******************************************************************/
-
-bool cbmc_parse_optionst::options_exclusive(const char *opt1, const char *opt2)
-{
-  if(cmdline.isset(opt1) && cmdline.isset(opt2)) 
-  {
-    error() << "--" << opt1 << " cannot be used with --" << opt2 << eom;
-    return true;
-  }
-  return false;
-}
-
-/*******************************************************************\
-
-Function: cbmc_parse_optionst::options_inclusive
-
-  Inputs:
-
- Outputs:
-
- Purpose: check conflicts between options: opt1 only if opt2
-
-\*******************************************************************/
-
-bool cbmc_parse_optionst::options_inclusive(const char *opt1, const char *opt2)
-{
-  if(cmdline.isset(opt1) && !cmdline.isset(opt2)) 
-  {
-    error() << "--" << opt1 << " can only be used with --" << opt2 << eom;
-    return true;
-  }
-  return false;
-}
-
-/*******************************************************************\
-
-Function: cbmc_parse_optionst::options_exclusive
-
-  Inputs:
-
- Outputs:
-
- Purpose: check conflicts between options: not allowed together
-
-\*******************************************************************/
-
-bool cbmc_parse_optionst::options_exclusive(const char *opt1, const char *opt2)
-{
-  if(cmdline.isset(opt1) && cmdline.isset(opt2)) 
-  {
-    error() << "--" << opt1 << " cannot be used with --" << opt2 << eom;
-    return true;
-  }
-  return false;
-}
-
-/*******************************************************************\
-
-Function: cbmc_parse_optionst::options_inclusive
-
-  Inputs:
-
- Outputs:
-
- Purpose: check conflicts between options: opt1 only if opt2
-
-\*******************************************************************/
-
-bool cbmc_parse_optionst::options_inclusive(const char *opt1, const char *opt2)
-{
-  if(cmdline.isset(opt1) && !cmdline.isset(opt2)) 
+  if(cmdline.isset(opt1) && !cmdline.isset(opt2))
   {
     error() << "--" << opt1 << " can only be used with --" << opt2 << eom;
     return true;
@@ -629,27 +541,27 @@ int cbmc_parse_optionst::doit()
   if(options_exclusive("incremental","unwind") ||
      options_exclusive("incremental","incremental-check") ||
      options_inclusive("earliest-loop-exit","incremental")
-    ) 
+    )
   {
     return 1;
   }
-  
+
   if(options_exclusive("incremental","unwind") ||
      options_exclusive("incremental","incremental-check") ||
      options_inclusive("earliest-loop-exit","incremental")
-    ) 
+    )
   {
     return 1;
   }
-  
+
   if(options_exclusive("incremental","unwind") ||
      options_exclusive("incremental","incremental-check") ||
      options_inclusive("earliest-loop-exit","incremental")
-    ) 
+    )
   {
     return 1;
   }
-  
+
   register_languages();
 
   if(cmdline.isset("test-preprocessor"))
@@ -685,11 +597,11 @@ int cbmc_parse_optionst::doit()
   std::unique_ptr<bmct> bmc;
   if(options.get_option("incremental-check")!="")
     bmc = std::unique_ptr<bmct>(
-      new bmc_incremental_one_loopt(options, symbol_table, ui_message_handler, 
+      new bmc_incremental_one_loopt(options, symbol_table, ui_message_handler,
 				    prop_conv, goto_functions));
   else if(options.get_bool_option("incremental"))
     bmc = std::unique_ptr<bmct>(
-      new bmc_incrementalt(options, symbol_table, ui_message_handler, 
+      new bmc_incrementalt(options, symbol_table, ui_message_handler,
 			   prop_conv, goto_functions));
   else
     bmc = std::unique_ptr<bmct>(
