@@ -70,7 +70,7 @@ Function: bmct::error_trace
 void bmct::error_trace()
 {
   if(options.get_bool_option("stop-when-unsat"))
-  	return; 
+  	return;
 
   status() << "Building error trace" << eom;
 
@@ -515,33 +515,33 @@ safety_checkert::resultt bmct::initialize()
   status() << "Starting Bounded Model Checking" << eom;
 
   symex.last_source_location.make_nil();
- 
+
   // get unwinding info
   setup_unwind();
- 
+
   return UNKNOWN;
  }
- 
+
  /*******************************************************************\
- 
+
 Function: bmct::step
- 
-  Inputs: 
- 
- Outputs: 
- 
+
+  Inputs:
+
+ Outputs:
+
  Purpose: do BMC
- 
+
  \*******************************************************************/
- 
+
 safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 {
   try
   {
     // perform symbolic execution
     symex(goto_functions);
- 
-    // add a partial ordering, if required    
+
+    // add a partial ordering, if required
     if(equation.has_threads())
     {
       memory_model->set_message_handler(get_message_handler());
@@ -559,7 +559,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     error() << error_str << eom;
     return ERROR;
   }
- 
+
   catch(std::bad_alloc)
   {
     error() << "Out of memory" << eom;
@@ -570,21 +570,21 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 		 << " steps" << eom;
 
     // perform slicing
-    slice(); 
+    slice();
 
     {
       statistics() << "Generated " << symex.total_vccs
                    << " VCC(s), " << symex.remaining_vccs
                    << " remaining after simplification" << eom;
     }
- 
+
     // do diverse other options
     {
       resultt result = show(goto_functions);
       if(result != UNKNOWN)
         return result;
     }
-    
+
     // any properties to check at all?
     if(symex.remaining_vccs==0)
     {
@@ -606,7 +606,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
         goto_functions, *this, options);
       return fault_localization();
     }
-    
+
     // any properties to check at all?
     if(!options.get_bool_option("program-only") &&
        symex.remaining_vccs==0)
@@ -618,7 +618,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     //do all properties
     if(options.get_bool_option("stop-on-fail"))
         return stop_on_fail();
-    else	
+    else
       return all_properties(goto_functions, prop_conv);
 
   assert(false);
@@ -627,10 +627,10 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 /*******************************************************************\
 
 Function: bmc_incrementalt::run
- 
-  Inputs: 
 
- Outputs: 
+  Inputs:
+
+ Outputs:
 
  Purpose: initialize and do BMC
 
@@ -661,13 +661,13 @@ Function: bmct::stop_on_fail
 safety_checkert::resultt bmct::stop_on_fail(bool show_report)
 {
   prop_conv.set_message_handler(get_message_handler());
- 
+
   switch(run_decision_procedure(prop_conv))
   {
   case decision_proceduret::D_UNSATISFIABLE:
     if(show_report)
       report_success();
- 
+
     return SAFE;
 
   case decision_proceduret::D_SATISFIABLE:
@@ -676,7 +676,7 @@ safety_checkert::resultt bmct::stop_on_fail(bool show_report)
       if(options.get_bool_option("beautify"))
         counterexample_beautificationt()(
           dynamic_cast<bv_cbmct &>(prop_conv), equation, ns);
-   
+
       error_trace();
       report_failure();
     }
