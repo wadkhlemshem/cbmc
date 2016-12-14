@@ -177,7 +177,7 @@ void individual_to_danger_solution_deserialisert::operator ()(
 {
   program_individualt ind;
   deserialise(ind, sdu);
-(??)
+  operand_variable_idst ids;
   get_invariant_variable_ids(prog.st, ids);
   const instruction_sett &instrs=info_fac.get_instructions();
   create_danger_solution(result, prog, ind, instrs, ids);
