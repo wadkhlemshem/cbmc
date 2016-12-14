@@ -585,14 +585,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
         return result;
     }
 
-    // any properties to check at all?
-    if(symex.remaining_vccs==0)
-    {
-      report_success();
-      return SAFE;
-    }
-
-    if(options.get_option("cover")!="")
+   if(!options.get_list_option("cover").empty())
     {
       const optionst::value_listt criteria=
         options.get_list_option("cover");
@@ -605,6 +598,14 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       fault_localizationt fault_localization(
         goto_functions, *this, options);
       return fault_localization();
+    }
+
+    // any properties to check at all?
+    if(!options.get_bool_option("program-only") &&
+       symex.remaining_vccs==0)
+    {
+      report_success();
+      return safety_checkert::SAFE;
     }
 
     //do all properties
