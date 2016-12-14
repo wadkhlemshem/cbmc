@@ -610,7 +610,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
     //do all properties
     if(options.get_bool_option("stop-on-fail"))
-        return stop_on_fail();
+        return stop_on_fail(goto_functions, prop_conv);
     else
       return all_properties(goto_functions, prop_conv);
 
@@ -651,28 +651,28 @@ Function: bmct::stop_on_fail
 
 \*******************************************************************/
 
-safety_checkert::resultt bmct::stop_on_fail(bool show_report)
+safety_checkert::resultt bmct::stop_on_fail(
+  const goto_functionst &goto_functions,
+  prop_convt &prop_conv)
 {
-  prop_conv.set_message_handler(get_message_handler());
-
   switch(run_decision_procedure(prop_conv))
   {
   case decision_proceduret::D_UNSATISFIABLE:
-    if(show_report)
-      report_success();
-
+    report_success();
     return SAFE;
 
   case decision_proceduret::D_SATISFIABLE:
-    if(show_report)
+    if(options.get_bool_option("trace"))
     {
       if(options.get_bool_option("beautify"))
         counterexample_beautificationt()(
           dynamic_cast<bv_cbmct &>(prop_conv), equation, ns);
 
       error_trace();
-      report_failure();
+      output_graphml(UNSAFE, goto_functions);
     }
+
+    report_failure();
     return UNSAFE;
 
   default:

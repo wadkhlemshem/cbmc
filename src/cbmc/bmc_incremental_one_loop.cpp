@@ -71,7 +71,7 @@ safety_checkert::resultt bmc_incremental_one_loopt::step(
     else
     {
       if(options.get_bool_option("stop-on-fail"))
-        result = stop_on_fail();
+        result = stop_on_fail(goto_functions, prop_conv);
       else
         result = all_properties(goto_functions, prop_conv);
     }

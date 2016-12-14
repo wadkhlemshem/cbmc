@@ -129,8 +129,9 @@ protected:
   virtual resultt all_properties(
     const goto_functionst &goto_functions,
     prop_convt &solver);
-  virtual resultt stop_on_fail(bool show_report=true);
-
+  virtual resultt stop_on_fail(
+    const goto_functionst &goto_functions,
+    prop_convt &solver);
   virtual void show_program();
   virtual void report_success();
   virtual void report_failure();

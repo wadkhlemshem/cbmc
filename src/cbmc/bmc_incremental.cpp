@@ -67,7 +67,7 @@ safety_checkert::resultt bmc_incrementalt::step(
     else
     {
       if(options.get_bool_option("stop-on-fail"))
-        result = stop_on_fail();
+        result = stop_on_fail(goto_functions, prop_conv);
       else
         result = all_properties(goto_functions, prop_conv);
     }
@@ -124,9 +124,9 @@ safety_checkert::resultt bmc_incrementalt::run(
     if(result == safety_checkert::UNKNOWN &&
        symex.add_loop_check())
     {
-      resultt loop_check_result = 
-        stop_on_fail(false);
-      bool earliest_loop_exit = 
+      resultt loop_check_result =
+            stop_on_fail(goto_functions, prop_conv);
+      bool earliest_loop_exit =
         options.get_bool_option("earliest-loop-exit");
       if(loop_check_result==SAFE)
         symex.update_loop_info(earliest_loop_exit ? false : true);
