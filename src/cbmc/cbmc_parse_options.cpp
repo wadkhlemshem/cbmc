@@ -226,14 +226,12 @@ void cbmc_parse_optionst::get_command_line_options(optionst &options)
     options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental", true);
-   // options.set_option("unwinding-assertions", true);
   }
   if(cmdline.isset("incremental-check"))
   {
     options.set_option("refine", true);
     options.set_option("refine-arrays", true);
     options.set_option("incremental-check", cmdline.get_value("incremental-check"));
-    //options.set_option("unwinding-assertions", true);
   }
   if(cmdline.isset("earliest-loop-exit"))
     options.set_option("earliest-loop-exit", true);
