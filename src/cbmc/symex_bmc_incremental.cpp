@@ -71,10 +71,10 @@ bool symex_bmc_incrementalt::get_unwind(
   // and 'infinity' when we have none.
 
   unsigned this_loop_limit=std::numeric_limits<unsigned>::max();
-  
+
   loop_limitst &this_thread_limits=
     thread_loop_limits[source.thread_nr];
-    
+
   loop_limitst::const_iterator l_it=this_thread_limits.find(id);
   if(l_it!=this_thread_limits.end())
     this_loop_limit=l_it->second;
@@ -87,7 +87,7 @@ bool symex_bmc_incrementalt::get_unwind(
       this_loop_limit=max_unwind;
   }
 
-  // use the incremental limits if 
+  // use the incremental limits if
   // it is the specified incremental loop or
   // there was no non-incremental limit
   if(this_loop_limit==std::numeric_limits<unsigned>::max())
@@ -135,7 +135,7 @@ bool symex_bmc_incrementalt::get_unwind_recursion(
 
   loop_limitst &this_thread_limits=
     thread_loop_limits[thread_nr];
-    
+
   loop_limitst::const_iterator l_it=this_thread_limits.find(id);
   if(l_it!=this_thread_limits.end())
     this_loop_limit=l_it->second;
@@ -148,7 +148,7 @@ bool symex_bmc_incrementalt::get_unwind_recursion(
       this_loop_limit=max_unwind;
   }
 
-  // use the incremental limits if 
+  // use the incremental limits if
   // it is the specified incremental loop or
   // there was no non-incremental limit
   if(this_loop_limit==std::numeric_limits<unsigned>::max())
@@ -167,7 +167,7 @@ bool symex_bmc_incrementalt::get_unwind_recursion(
                  << " recursion "
                  << symbol.display_name()
                  << " iteration " << unwind;
-    
+
     if(this_loop_limit!=std::numeric_limits<unsigned>::max())
       statistics() << " (" << this_loop_limit << " max)";
 
@@ -183,39 +183,39 @@ Function: symex_bmc_incrementalt::check_break
 
  Inputs: source of the current symbolic execution state
 
- Outputs: true if the back edge encountered during symbolic execution 
+ Outputs: true if the back edge encountered during symbolic execution
             corresponds to the a loop that is handled incrementally
 
- Purpose: defines condition for interrupting symbolic execution 
+ Purpose: defines condition for interrupting symbolic execution
             for incremental BMC
 
 \*******************************************************************/
 
 bool symex_bmc_incrementalt::check_break(const irep_idt &id,
-                             bool is_function, 
-                             statet& state, 
-                             const exprt &cond, 
-                             unsigned unwind) 
+                             bool is_function,
+                             statet& state,
+                             const exprt &cond,
+                             unsigned unwind)
 {
   if(unwind < incr_min_unwind) return false;
 
 #if 0
-  std::cout << "loop limit for " << id 
-            << (loop_limits.find(id)!=loop_limits.end() ? 
+  std::cout << "loop limit for " << id
+            << (loop_limits.find(id)!=loop_limits.end() ?
                " exists" : " does not exist") << std::endl;
 #endif
 
   loop_limitst &this_thread_limits=
     thread_loop_limits[state.source.thread_nr];
   if(this_thread_limits.find(id)==this_thread_limits.end() &&
-     loop_limits.find(id)==loop_limits.end()) 
+     loop_limits.find(id)==loop_limits.end())
   {
 #if 0
     std::cout << "not statically unwound" << std::endl;
     //not a statically unwound loop when --incremental
 #endif
 
-    if(loop_cond.checked_function) 
+    if(loop_cond.checked_function)
     {
       loop_cond.checked_function = false;
       return false;
@@ -224,7 +224,7 @@ bool symex_bmc_incrementalt::check_break(const irep_idt &id,
 #if 1
     if(options.get_bool_option("magic-numbers") &&
          magic_numbers.find(unwind)==magic_numbers.end())
-    { 
+    {
       return false;
     }
 #endif
@@ -268,18 +268,18 @@ bool symex_bmc_incrementalt::add_loop_check()
   debug() << "Loop/recursive call condition: " << from_expr(ns,"",loop_cond.cond) << eom;
 #endif
 
-  if(loop_cond.cond.is_false()) 
+  if(loop_cond.cond.is_false())
   {
-    debug() << "Loop/recursive call " << loop_cond.id 
+    debug() << "Loop/recursive call " << loop_cond.id
             << " not fully unwound" << eom;
     return false;
   }
 
   if(options.get_bool_option("earliest-loop-exit"))
-    target.assertion(loop_cond.guard, not_exprt(loop_cond.cond), 
+    target.assertion(loop_cond.guard, not_exprt(loop_cond.cond),
       "loop_condition_check", loop_cond.source);
-  else 
-    target.assertion(loop_cond.guard, loop_cond.cond, 
+  else
+    target.assertion(loop_cond.guard, loop_cond.cond,
       "loop_condition_check", loop_cond.source);
 
   return true;
@@ -299,8 +299,8 @@ Function: symex_bmc_incrementalt::update_loop_info
 
 void symex_bmc_incrementalt::update_loop_info(bool fully_unwound)
 {
-  status() << "Loop/recursive call " << loop_cond.id 
-	  << (fully_unwound ? " fully unwound" : 
+  status() << "Loop/recursive call " << loop_cond.id
+	  << (fully_unwound ? " fully unwound" :
 	      " not fully unwound") << eom;
 
   loop_cond.loop_info->fully_unwound = fully_unwound;
