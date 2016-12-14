@@ -1,4 +1,4 @@
-void main()
+main()
 {
   unsigned int N;
   __CPROVER_assume(N>0);
