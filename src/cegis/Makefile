@@ -107,8 +107,11 @@ OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../util/util$(LIBEXT) \
       ../goto-instrument/dump_c$(OBJEXT) ../goto-instrument/goto_program2code$(OBJEXT) \
       ../goto-instrument/nondet_static$(OBJEXT) ../goto-instrument/cover$(OBJEXT) \
-      ../cbmc/cbmc_parse_options$(OBJEXT) ../cbmc/bmc$(OBJEXT) ../cbmc/cbmc_solvers$(OBJEXT) \
-      ../cbmc/symex_bmc$(OBJEXT) ../cbmc/xml_interface$(OBJEXT) ../cbmc/bmc_cover$(OBJEXT) \
+      ../cbmc/cbmc_parse_options$(OBJEXT) ../cbmc/cbmc_solvers$(OBJEXT) \
+      ../cbmc/bmc$(OBJEXT) ../cbmc/bmc_incremental$(OBJEXT) ../cbmc/bmc_incremental_one_loop$(OBJEXT) \
+      ../cbmc/symex_bmc$(OBJEXT) ../cbmc/symex_bmc_incremental$(OBJEXT) \
+      ../cbmc/symex_bmc_incremental_one_loop$(OBJEXT) \
+       ../cbmc/xml_interface$(OBJEXT) ../cbmc/bmc_cover$(OBJEXT) \
       ../cbmc/bv_cbmc$(OBJEXT) ../cbmc/counterexample_beautification$(OBJEXT) \
       ../cbmc/show_vcc$(OBJEXT) \
       ../cbmc/cbmc_dimacs$(OBJEXT) ../cbmc/all_properties$(OBJEXT) \

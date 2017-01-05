@@ -122,7 +122,7 @@ public:
     result.symbol_table=symbol_table;
     result.goto_functions.clear();
     result.goto_functions.copy_from(goto_functions);
-    bmc_result=bmc.run(result.goto_functions);
+    bmc_result=bmc(result.goto_functions);
     result.trace=bmc.safety_checkert::error_trace;
     return 0;
   }
