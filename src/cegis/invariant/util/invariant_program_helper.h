@@ -46,6 +46,5 @@ void restrict_bv_size(class invariant_programt &prog, size_t width_in_bits);
 template<class loop_itert>
 void restrict_bv_size(invariant_programt &prog, loop_itert first_loop,
     const loop_itert &last_loop, size_t width_in_bits);
-(??)
 
 #endif // CPROVER_CEGIS_INVARIANT_UTIL_INVARIANT_PROGRAM_HELPER_H
