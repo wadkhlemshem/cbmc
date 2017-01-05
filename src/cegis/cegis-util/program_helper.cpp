@@ -348,9 +348,8 @@ goto_programt::targett insert_after_preserving_source_location(
 goto_programt::targett insert_before_preserving_source_location(
     goto_programt &body, goto_programt::targett pos)
 {
-  const auto op=std::bind1st(std::mem_fun(&goto_programt::insert_before),
-      &body);
-  return insert_preserving_source_location(pos, op);
+  typedef goto_programt::targett(goto_programt::*ftype)(goto_programt::targett);
+  const auto op=std::bind1st(std::mem_fun(static_cast<ftype>(&goto_programt::insert_before)), &body);
 }
 
 void assign_in_cprover_init(goto_functionst &gf, symbolt &symbol,
