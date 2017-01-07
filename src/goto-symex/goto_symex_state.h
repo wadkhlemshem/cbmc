@@ -21,6 +21,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "symex_target.h"
 
+#define SYMEX_CONTINUATION_CHECK "loop_condition_check"
+
 // central data structure: state
 class goto_symex_statet
 {

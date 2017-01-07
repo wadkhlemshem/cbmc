@@ -277,10 +277,10 @@ bool symex_bmc_incrementalt::add_loop_check()
 
   if(options.get_bool_option("earliest-loop-exit"))
     target.assertion(loop_cond.guard, not_exprt(loop_cond.cond),
-      "loop_condition_check", loop_cond.source);
+      SYMEX_CONTINUATION_CHECK, loop_cond.source);
   else
     target.assertion(loop_cond.guard, loop_cond.cond,
-      "loop_condition_check", loop_cond.source);
+      SYMEX_CONTINUATION_CHECK, loop_cond.source);
 
   return true;
 }

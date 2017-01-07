@@ -221,7 +221,7 @@ void build_goto_trace(
         SSA_step.assignment_type==symex_target_equationt::GUARD))
       continue;
 
-    if(SSA_step.comment=="loop_condition_check") continue;
+    if(SSA_step.comment==SYMEX_CONTINUATION_CHECK) continue;
 
     goto_tracet::stepst &steps=time_map[current_time];
     steps.push_back(goto_trace_stept());
@@ -324,7 +324,7 @@ void build_goto_trace(
       s_it1!=goto_trace.steps.end();
       s_it1++)
     if(s_it1->is_assert() && !s_it1->cond_value && 
-       s_it1->comment!="loop_condition_check")
+       s_it1->comment!=SYMEX_CONTINUATION_CHECK)
     {
       s_it1++;
 

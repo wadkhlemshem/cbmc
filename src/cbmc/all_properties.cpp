@@ -98,7 +98,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
       it++)
   {
     if(it->is_assert() &&
-       it->comment!="loop_condition_check")
+       it->comment!=SYMEX_CONTINUATION_CHECK)
     {
       irep_idt property_id;
 
