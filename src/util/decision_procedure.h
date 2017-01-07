@@ -9,30 +9,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_UTIL_DECISION_PROCEDURE_H
 #define CPROVER_UTIL_DECISION_PROCEDURE_H
 
-#if 0
-#include <iostream>
-#include <langapi/language_util.h>
-#include "std_expr.h"
-#endif
-
-#if 0
-#include <iostream>
-#include <langapi/language_util.h>
-#include "std_expr.h"
-#endif
-
-#if 0
-#include <iostream>
-#include <langapi/language_util.h>
-#include "std_expr.h"
-#endif
-
-#if 0
-#include <iostream>
-#include <langapi/language_util.h>
-#include "std_expr.h"
-#endif
-
 #include "message.h"
 
 class exprt;
@@ -58,17 +34,11 @@ public:
 
   inline void set_to_true(const exprt &expr)
   { 
-#if 0
-    std::cout << "DP: " << from_expr(ns,"",expr) << std::endl;
-#endif
     set_to(expr, true); 
   }
 
   inline void set_to_false(const exprt &expr)
   { 
-#if 0
-    std::cout << "DP: " << from_expr(ns,"",not_exprt(expr)) << std::endl;
-#endif
     set_to(expr, false); 
   }
 
