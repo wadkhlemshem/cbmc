@@ -408,10 +408,6 @@ Function: undo_slice
 void undo_slice(symex_target_equationt &equation)
 {
   //set ignore to false
-  for(symex_target_equationt::SSA_stepst::iterator
-      it=equation.SSA_steps.begin();
-      it!=equation.SSA_steps.end();
-      it++) {
-    it->ignore = false;
-  }
+  for(auto & it : equation.SSA_steps)
+    it.ignore=false;
 } 

@@ -72,7 +72,7 @@ void goto_symext::parameter_assignments(
 
   // iterates over the types of the parameters
   for(code_typet::parameterst::const_iterator
-      it2=parameter_types.begin();
+        it2=parameter_types.begin();
       it2!=parameter_types.end();
       it2++)
   {
@@ -161,8 +161,9 @@ void goto_symext::parameter_assignments(
     // These are va_arg arguments; their types may differ from call to call
     unsigned va_count=0;
     const symbolt *va_sym=0;
-    while(!ns.lookup(id2string(function_identifier)+"::va_arg"+i2string(va_count),
-                    va_sym))
+    while(!ns.lookup(
+            id2string(function_identifier)+"::va_arg"+i2string(va_count),
+            va_sym))
       ++va_count;
 
     for( ; it1!=arguments.end(); it1++, va_count++)
@@ -359,7 +360,7 @@ bool goto_symext::symex_function_call_code(
 
   const goto_symex_statet::framet &p_frame=state.previous_frame();
   for(goto_symex_statet::framet::loop_iterationst::const_iterator
-      it=p_frame.loop_iterations.begin();
+        it=p_frame.loop_iterations.begin();
       it!=p_frame.loop_iterations.end();
       ++it)
     if(it->second.is_recursion)
@@ -402,9 +403,9 @@ void goto_symext::pop_frame(statet &state)
 
     // clear function-locals from L2 renaming
     for(goto_symex_statet::renaming_levelt::current_namest::iterator
-        c_it=state.level2.current_names.begin();
+          c_it=state.level2.current_names.begin();
         c_it!=state.level2.current_names.end();
-       ) // no ++c_it
+      ) // no ++c_it
     {
       const irep_idt l1_o_id=c_it->second.first.get_l1_object_identifier();
       // could use iteration over local_objects as l1_o_id is prefix
@@ -475,7 +476,7 @@ void goto_symext::locality(
   statet::framet &frame=state.top();
 
   for(std::set<irep_idt>::const_iterator
-      it=local_identifiers.begin();
+        it=local_identifiers.begin();
       it!=local_identifiers.end();
       it++)
   {
@@ -549,9 +550,9 @@ void goto_symext::return_assignment(statet &state)
       if(!base_type_eq(assignment.lhs().type(),
                        assignment.rhs().type(), ns))
         throw "goto_symext::return_assignment type mismatch at "+
-              instruction.source_location.as_string()+":\n"+
-              "assignment.lhs().type():\n"+assignment.lhs().type().pretty()+"\n"+
-              "assignment.rhs().type():\n"+assignment.rhs().type().pretty();
+          instruction.source_location.as_string()+":\n"+
+          "assignment.lhs().type():\n"+assignment.lhs().type().pretty()+"\n"+
+          "assignment.rhs().type():\n"+assignment.rhs().type().pretty();
 
       symex_assign_rec(state, assignment);
     }

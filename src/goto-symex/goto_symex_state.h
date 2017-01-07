@@ -97,7 +97,7 @@ public:
     {
       current_namest::iterator it=current_names.begin();
       for(current_namest::const_iterator
-          ito=other.begin();
+            ito=other.begin();
           ito!=other.end();
           ++ito)
       {
@@ -205,7 +205,7 @@ public:
     void level2_get_variables(hash_set_cont<ssa_exprt, irep_hash> &vars) const
     {
       for(level2t::current_namest::const_iterator
-          it=level2_current_names.begin();
+            it=level2_current_names.begin();
           it!=level2_current_names.end();
           it++)
         vars.insert(it->second.first);
@@ -221,7 +221,8 @@ public:
 
   // gotos
   typedef std::list<goto_statet> goto_state_listt;
-  typedef std::map<goto_programt::const_targett, goto_state_listt> goto_state_mapt;
+  typedef std::map<goto_programt::const_targett, goto_state_listt>
+    goto_state_mapt;
 
   // stack frames -- these are used for function calls and
   // for exceptions
@@ -257,7 +258,7 @@ public:
     {
       loop_infot():
         count(0),
-	fully_unwound(false),
+        fully_unwound(false),
         is_recursion(false)
       {
       }

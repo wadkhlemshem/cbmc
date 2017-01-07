@@ -248,30 +248,30 @@ public:
   unsigned count_assertions() const
   {
     unsigned i=0;
-    for(SSA_stepst::const_iterator
-        it=SSA_steps.begin();
-        it!=SSA_steps.end(); it++)
-      if(it->is_assert() && !it->ignore  && !it->converted) i++;
+    for(const auto & it : SSA_steps)
+      if(it.is_assert() && !it.ignore  && !it.converted)
+        i++;
+
     return i;
   }
 
   unsigned count_ignored_SSA_steps() const
   {
     unsigned i=0;
-    for(SSA_stepst::const_iterator
-        it=SSA_steps.begin();
-        it!=SSA_steps.end(); it++)
-      if(it->ignore) i++;
+    for(const auto & it : SSA_steps)
+      if(it.ignore)
+        i++;
+
     return i;
   }
 
   unsigned count_converted_SSA_steps() const
   {
     unsigned i=0;
-    for(SSA_stepst::const_iterator
-        it=SSA_steps.begin();
-        it!=SSA_steps.end(); it++)
-      if(it->converted) i++;
+    for(const auto & it : SSA_steps)
+      if(it.converted)
+        i++;
+
     return i;
   }
 

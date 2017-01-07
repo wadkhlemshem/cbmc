@@ -41,7 +41,7 @@ bool goto_symext::symex_goto(statet &state)
   state.rename(new_guard, ns);
   do_simplify(new_guard);
 
-  const irep_idt loop_id = goto_programt::loop_id(state.source.pc);
+  const irep_idt loop_id=goto_programt::loop_id(state.source.pc);
 
   // Testing for "is_false", we need to explicitly simplify despite "no-simplify".
   const exprt incr_test_guard=simplify_expr(old_guard, ns);
@@ -54,7 +54,7 @@ bool goto_symext::symex_goto(statet &state)
     // reset unwinding counter
     if(instruction.is_backwards_goto())
     {
-      goto_symex_statet::framet::loop_infot &loop_info =
+      goto_symex_statet::framet::loop_infot &loop_info=
         frame.loop_iterations[loop_id];
       loop_info.count=0;
       loop_info.fully_unwound=false;
@@ -80,9 +80,9 @@ bool goto_symext::symex_goto(statet &state)
 
   if(!forward) // backwards?
   {
-    goto_symex_statet::framet::loop_infot &loop_info =
+    goto_symex_statet::framet::loop_infot &loop_info=
       frame.loop_iterations[loop_id];
-    unsigned &unwind = loop_info.count;
+    unsigned &unwind=loop_info.count;
     unwind++;
 
     // continue unwinding?
@@ -101,7 +101,7 @@ bool goto_symext::symex_goto(statet &state)
 
     if(new_guard.is_true()) //continue looping
     {
-      bool do_break = check_break(loop_id,false,state,new_guard,unwind);
+      bool do_break=check_break(loop_id,false,state,new_guard,unwind);
       state.source.pc=goto_target;
       return do_break;
     }
@@ -202,11 +202,12 @@ Function: goto_symext::check_break
 
 \*******************************************************************/
 
-bool goto_symext::check_break(const irep_idt &id,
-                           bool is_function,
-                           statet& state,
-                           const exprt &cond,
-                           unsigned unwind)
+bool goto_symext::check_break(
+  const irep_idt &id,
+  bool is_function,
+  statet &state,
+  const exprt &cond,
+  unsigned unwind)
 {
   //dummy implementation
   return false;
@@ -268,7 +269,7 @@ void goto_symext::merge_gotos(statet &state)
   statet::goto_state_listt &state_list=state_map_it->second;
 
   for(statet::goto_state_listt::reverse_iterator
-      list_it=state_list.rbegin();
+        list_it=state_list.rbegin();
       list_it!=state_list.rend();
       list_it++)
   {
@@ -342,7 +343,7 @@ void goto_symext::phi_function(
   dest_state.level2.get_variables(variables);
 
   for(hash_set_cont<ssa_exprt, irep_hash>::const_iterator
-      it=variables.begin();
+        it=variables.begin();
       it!=variables.end();
       it++)
   {
