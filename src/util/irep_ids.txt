@@ -716,7 +716,6 @@ noreturn
 C_noreturn #noreturn
 process
 signal
-suffix
 weak
 is_weak
 C_spec_loop_invariant #spec_loop_invariant

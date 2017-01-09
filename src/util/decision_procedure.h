@@ -33,14 +33,10 @@ public:
   virtual void set_to(const exprt &expr, bool value)=0;
 
   inline void set_to_true(const exprt &expr)
-  { 
-    set_to(expr, true); 
-  }
+  { set_to(expr, true); }
 
   inline void set_to_false(const exprt &expr)
-  { 
-    set_to(expr, false); 
-  }
+  { set_to(expr, false); }
 
   // solve the problem
   typedef enum { D_SATISFIABLE, D_UNSATISFIABLE, D_ERROR } resultt;
