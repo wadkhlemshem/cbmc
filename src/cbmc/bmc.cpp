@@ -344,11 +344,9 @@ void bmct::slice()
       }
     }
   }
-  {
-    statistics() << "Generated " << symex.total_vccs
-		 << " VCC(s), " << symex.remaining_vccs
-		 << " remaining after simplification" << eom;
-  }
+  statistics() << "Generated " << symex.total_vccs
+               << " VCC(s), " << symex.remaining_vccs
+               << " remaining after simplification" << eom;
 }
 
 /*******************************************************************\
@@ -520,9 +518,9 @@ safety_checkert::resultt bmct::initialize()
   setup_unwind();
 
   return UNKNOWN;
- }
+}
 
- /*******************************************************************\
+/*******************************************************************\
 
 Function: bmct::step
 
@@ -532,7 +530,7 @@ Function: bmct::step
 
  Purpose: do BMC
 
- \*******************************************************************/
+\*******************************************************************/
 
 safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 {
@@ -547,7 +545,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
       memory_model->set_message_handler(get_message_handler());
       (*memory_model)(equation);
     }
- }
+  }
   catch(std::string &error_str)
   {
     error() << error_str << eom;
@@ -565,54 +563,54 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     error() << "Out of memory" << eom;
     return ERROR;
   }
-    statistics() << "size of program expression: "
-                 << equation.SSA_steps.size()
-                 << " steps" << eom;
+  statistics() << "size of program expression: "
+               << equation.SSA_steps.size()
+               << " steps" << eom;
 
-    // perform slicing
-    slice();
+  // perform slicing
+  slice();
 
-    {
-      statistics() << "Generated " << symex.total_vccs
-                   << " VCC(s), " << symex.remaining_vccs
-                   << " remaining after simplification" << eom;
-    }
+  {
+    statistics() << "Generated " << symex.total_vccs
+                 << " VCC(s), " << symex.remaining_vccs
+                 << " remaining after simplification" << eom;
+  }
 
-    // do diverse other options
-    {
-      resultt result=show(goto_functions);
-      if(result!=UNKNOWN)
-        return result;
-    }
+  // do diverse other options
+  {
+    resultt result=show(goto_functions);
+    if(result!=UNKNOWN)
+      return result;
+  }
 
-   if(!options.get_list_option("cover").empty())
-    {
-      const optionst::value_listt criteria=
-        options.get_list_option("cover");
-      return cover(goto_functions, criteria)?
-        safety_checkert::ERROR:safety_checkert::SAFE;
-    }
+  if(!options.get_list_option("cover").empty())
+  {
+    const optionst::value_listt criteria=
+      options.get_list_option("cover");
+    return cover(goto_functions, criteria)?
+      safety_checkert::ERROR:safety_checkert::SAFE;
+  }
 
-    if(options.get_option("localize-faults")!="")
-    {
-      fault_localizationt fault_localization(
-        goto_functions, *this, options);
-      return fault_localization();
-    }
+  if(options.get_option("localize-faults")!="")
+  {
+    fault_localizationt fault_localization(
+      goto_functions, *this, options);
+    return fault_localization();
+  }
 
-    // any properties to check at all?
-    if(!options.get_bool_option("program-only") &&
-       symex.remaining_vccs==0)
-    {
-      report_success();
-      return safety_checkert::SAFE;
-    }
+  // any properties to check at all?
+  if(!options.get_bool_option("program-only") &&
+     symex.remaining_vccs==0)
+  {
+    report_success();
+    return safety_checkert::SAFE;
+  }
 
-    //do all properties
-    if(options.get_bool_option("stop-on-fail"))
-      return stop_on_fail(goto_functions, prop_conv);
-    else
-      return all_properties(goto_functions, prop_conv);
+  //do all properties
+  if(options.get_bool_option("stop-on-fail"))
+    return stop_on_fail(goto_functions, prop_conv);
+  else
+    return all_properties(goto_functions, prop_conv);
 
   assert(false);
 }

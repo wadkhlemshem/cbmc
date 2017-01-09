@@ -117,7 +117,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
 
       //need to convert again as the context of the expression
       //  may have changed
-      it->cond_literal = solver.convert(it->cond_expr);
+      it->cond_literal=solver.convert(it->cond_expr);
       goal_map[property_id].instances.push_back(it);
     }
   }
@@ -127,7 +127,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
   cover_goalst cover_goals(solver);
 
   //set activation literal for incremental checking
-  cover_goals.activation_literal = bmc.equation.current_activation_literal();
+  cover_goals.activation_literal=bmc.equation.current_activation_literal();
 
 #if 0
   std::cout << "cover_goals.activation_literal = "
