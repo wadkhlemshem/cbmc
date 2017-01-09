@@ -1,8 +1,5 @@
-DIRS =  cbmc-incr-oneloop 
-# array-refinement \
-       cbmc-incr
-#       cbmc cbmc-with-incr \
-#       array-refinement-with-incr \
+DIRS = ansi-c cbmc cpp goto-instrument goto-instrument-unwind \
+       cbmc-incr-oneloop cbmc-with-incr
 
 test:
 	$(foreach var,$(DIRS), make -C $(var) test;)
