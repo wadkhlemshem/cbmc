@@ -11,7 +11,8 @@ Author: Peter Schrammel, Daniel Kroening, kroening@kroening.com
  
 #include "symex_bmc.h"
  
-class symex_bmc_incrementalt : public symex_bmct
+class symex_bmc_incrementalt:
+  public symex_bmct
 {
  public:
   symex_bmc_incrementalt(
@@ -29,14 +30,16 @@ protected:
   // incremental unwinding
 
   // returns true if the symbolic execution is to be interrupted for checking
-  virtual bool check_break(const irep_idt &id, 
-                           bool is_function, 
-                           statet& state, 
-                           const exprt &cond, 
-                           unsigned unwind);
+  virtual bool check_break(
+    const irep_idt &id,
+    bool is_function,
+    statet &state,
+    const exprt &cond,
+    unsigned unwind);
 
   // stores info to check whether loop has been fully unwound
-  typedef struct {
+  typedef struct
+  {
     irep_idt id;
     exprt guard;
     exprt cond;
@@ -47,9 +50,8 @@ protected:
 
   loop_condt loop_cond;
 
-#if 1
+  // set of unwindings to check incrementally
   std::set<unsigned> magic_numbers;
-#endif
 
   // for loop unwinding
   virtual bool get_unwind(

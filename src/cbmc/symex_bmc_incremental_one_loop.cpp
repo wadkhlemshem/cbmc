@@ -58,8 +58,9 @@ bool symex_bmc_incremental_one_loopt::get_unwind(
   // there was no non-incremental limit
   if(id==incr_loop_id)
   {
-    this_loop_limit = incr_max_unwind;
-    if(unwind+1>=incr_min_unwind) ignore_assertions = false;
+    this_loop_limit=incr_max_unwind;
+    if(unwind+1>=incr_min_unwind)
+      ignore_assertions=false;
   }
 
   bool abort=unwind>=this_loop_limit;
@@ -99,18 +100,20 @@ Function: symex_bmct::check_break
 
 \*******************************************************************/
 
-bool symex_bmc_incremental_one_loopt::check_break(const irep_idt &id,
-                             bool is_function, 
-                             statet& state, 
-                             const exprt &cond, 
-                             unsigned unwind) 
+bool symex_bmc_incremental_one_loopt::check_break(
+  const irep_idt &id,
+  bool is_function,
+  statet &state,
+  const exprt &cond,
+  unsigned unwind)
 {
-  if(unwind < incr_min_unwind) return false;
+  if(unwind < incr_min_unwind)
+    return false;
 
 #if 0
+  bool loop_limit_exists=loop_limits.find(id)!=loop_limits.end();
   std::cout << "loop limit for " << id 
-            << (loop_limits.find(id)!=loop_limits.end() ? 
-               " exists" : " does not exist") << std::endl;
+            << (loop_limit_exists ? " exists" : " does not exist") << std::endl;
 #endif
 
 #if 0
@@ -126,5 +129,5 @@ bool symex_bmc_incremental_one_loopt::check_break(const irep_idt &id,
 #endif
 
   //loop specified by incrementalcheck
-  return (id == incr_loop_id);
+  return (id==incr_loop_id);
 }

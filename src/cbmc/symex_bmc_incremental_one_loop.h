@@ -26,14 +26,13 @@ public:
     const namespacet &_ns,
     symbol_tablet &_new_symbol_table,
     symex_targett &_target,
-    prop_convt& _prop_conv)
-  :
-  symex_bmct(_ns, _new_symbol_table, _target),
-  ignore_assertions(false),
-  incr_loop_id(""),
-  incr_max_unwind(std::numeric_limits<unsigned>::max()),
-  incr_min_unwind(0),
-  prop_conv(_prop_conv)
+    prop_convt& _prop_conv):
+    symex_bmct(_ns, _new_symbol_table, _target),
+    ignore_assertions(false),
+    incr_loop_id(""),
+    incr_max_unwind(std::numeric_limits<unsigned>::max()),
+    incr_min_unwind(0),
+    prop_conv(_prop_conv)
   {}
 
   bool ignore_assertions;
@@ -46,11 +45,12 @@ protected:
   prop_convt& prop_conv;
  
   // returns true if the symbolic execution is to be interrupted for checking
-  virtual bool check_break(const irep_idt &id, 
-                           bool is_function, 
-                           goto_symext::statet& state, 
-                           const exprt &cond, 
-                           unsigned unwind);
+  virtual bool check_break(
+    const irep_idt &id,
+    bool is_function,
+    goto_symext::statet &state,
+    const exprt &cond,
+    unsigned unwind);
 
   // for loop unwinding
   virtual bool get_unwind(

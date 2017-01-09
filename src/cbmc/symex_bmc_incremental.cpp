@@ -26,13 +26,11 @@ Function: symex_bmc_incrementalt::symex_bmct
 \*******************************************************************/
 
 symex_bmc_incrementalt::symex_bmc_incrementalt(
-    const namespacet &_ns,
-    symbol_tablet &_new_symbol_table,
-    symex_targett &_target)
-  :
-    symex_bmct(_ns, _new_symbol_table, _target)
+  const namespacet &_ns,
+  symbol_tablet &_new_symbol_table,
+  symex_targett &_target):
+  symex_bmct(_ns, _new_symbol_table, _target)
 {
-#if 1
   magic_numbers.insert(0);
   magic_numbers.insert(1);
   magic_numbers.insert(2);
@@ -46,7 +44,6 @@ symex_bmc_incrementalt::symex_bmc_incrementalt(
   magic_numbers.insert(100);
   magic_numbers.insert(200);
   magic_numbers.insert(1025);
-#endif
 }
 
 /*******************************************************************\
@@ -92,8 +89,9 @@ bool symex_bmc_incrementalt::get_unwind(
   // there was no non-incremental limit
   if(this_loop_limit==std::numeric_limits<unsigned>::max())
   {
-    this_loop_limit = incr_max_unwind;
-    if(unwind+1>=incr_min_unwind) ignore_assertions = false;
+    this_loop_limit=incr_max_unwind;
+    if(unwind+1>=incr_min_unwind)
+      ignore_assertions=false;
   }
 
   bool abort=unwind>=this_loop_limit;
@@ -153,8 +151,9 @@ bool symex_bmc_incrementalt::get_unwind_recursion(
   // there was no non-incremental limit
   if(this_loop_limit==std::numeric_limits<unsigned>::max())
   {
-    this_loop_limit = incr_max_unwind;
-    if(unwind+1>=incr_min_unwind) ignore_assertions = false;
+    this_loop_limit=incr_max_unwind;
+    if(unwind+1>=incr_min_unwind)
+      ignore_assertions=false;
   }
 
   bool abort=unwind>this_loop_limit;
@@ -191,13 +190,15 @@ Function: symex_bmc_incrementalt::check_break
 
 \*******************************************************************/
 
-bool symex_bmc_incrementalt::check_break(const irep_idt &id,
-                             bool is_function,
-                             statet& state,
-                             const exprt &cond,
-                             unsigned unwind)
+bool symex_bmc_incrementalt::check_break(
+  const irep_idt &id,
+  bool is_function,
+  statet &state,
+  const exprt &cond,
+  unsigned unwind)
 {
-  if(unwind < incr_min_unwind) return false;
+  if(unwind<incr_min_unwind)
+    return false;
 
 #if 0
   std::cout << "loop limit for " << id
@@ -217,7 +218,7 @@ bool symex_bmc_incrementalt::check_break(const irep_idt &id,
 
     if(loop_cond.checked_function)
     {
-      loop_cond.checked_function = false;
+      loop_cond.checked_function=false;
       return false;
     }
 
@@ -235,12 +236,13 @@ bool symex_bmc_incrementalt::check_break(const irep_idt &id,
     state.rename(simplified_cond, ns);
     state.guard.guard_expr(simplified_cond);
 
-    loop_cond.id = id;
-    loop_cond.cond = simplified_cond;
-    loop_cond.guard = state.guard.as_expr();
-    loop_cond.loop_info = &(state.top().loop_iterations[id]);
-    loop_cond.source = state.source;
-    if(is_function) loop_cond.checked_function = true;
+    loop_cond.id=id;
+    loop_cond.cond=simplified_cond;
+    loop_cond.guard=state.guard.as_expr();
+    loop_cond.loop_info=&(state.top().loop_iterations[id]);
+    loop_cond.source=state.source;
+    if(is_function)
+      loop_cond.checked_function=true;
 
     return true;
   }
@@ -265,7 +267,8 @@ bool symex_bmc_incrementalt::add_loop_check()
   status() << "Checking loop/recursive call " << loop_cond.id << eom;
 
 #if 0
-  debug() << "Loop/recursive call condition: " << from_expr(ns,"",loop_cond.cond) << eom;
+  debug() << "Loop/recursive call condition: "
+          << from_expr(ns,"",loop_cond.cond) << eom;
 #endif
 
   if(loop_cond.cond.is_false())
@@ -300,9 +303,8 @@ Function: symex_bmc_incrementalt::update_loop_info
 void symex_bmc_incrementalt::update_loop_info(bool fully_unwound)
 {
   status() << "Loop/recursive call " << loop_cond.id
-	  << (fully_unwound ? " fully unwound" :
-	      " not fully unwound") << eom;
+           << (fully_unwound ? " fully unwound" : " not fully unwound") << eom;
 
-  loop_cond.loop_info->fully_unwound = fully_unwound;
-  loop_cond.id = "";
+  loop_cond.loop_info->fully_unwound=fully_unwound;
+  loop_cond.id="";
 }
