@@ -6,8 +6,8 @@ Author: Daniel Kroening, kroening@kroening.com
 
 \*******************************************************************/
 
-#ifndef CPROVER_CBMC_PARSE_OPTIONS_H
-#define CPROVER_CBMC_PARSE_OPTIONS_H
+#ifndef CPROVER_CBMC_CBMC_PARSE_OPTIONS_H
+#define CPROVER_CBMC_CBMC_PARSE_OPTIONS_H
 
 #include <util/ui_message.h>
 #include <util/parse_options.h>
@@ -25,7 +25,6 @@ class optionst;
 #define CBMC_OPTIONS \
   "(program-only)(function):(preprocess)(slice-by-trace):" \
   "(no-simplify)(unwind):(unwindset):(slice-formula)(full-slice)" \
-  "(unwind-max):(unwind-min):" \
   "(debug-level):(no-propagation)(no-simplify-if)" \
   "(document-subgoals)(outfile):(test-preprocessor)" \
   "D:I:(c89)(c99)(c11)(cpp89)(cpp99)(cpp11)" \
@@ -50,6 +49,7 @@ class optionst;
   "(version)" \
   "(incremental-check):(incremental)(earliest-loop-exit)" \
   "(ignore-assertions-before-unwind-min)(stop-when-unsat)" \
+  "(unwind-max):(unwind-min):" \
   "(magic-numbers)" \
   "(cover):" \
   "(mm):" \

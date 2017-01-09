@@ -536,10 +536,9 @@ int cbmc_parse_optionst::doit()
     return 1; // should contemplate EX_USAGE from sysexits.h
   }
 
-  if(options_exclusive("incremental","unwind") ||
-     options_exclusive("incremental","incremental-check") ||
-     options_inclusive("earliest-loop-exit","incremental")
-    )
+  if(options_exclusive("incremental", "unwind") ||
+     options_exclusive("incremental", "incremental-check") ||
+     options_inclusive("earliest-loop-exit", "incremental"))
   {
     return 1;
   }
@@ -579,12 +578,12 @@ int cbmc_parse_optionst::doit()
   std::unique_ptr<bmct> bmc;
   if(options.get_option("incremental-check")!="")
     bmc = std::unique_ptr<bmct>(
-      new bmc_incremental_one_loopt(options, symbol_table, ui_message_handler,
-				    prop_conv, goto_functions));
+      new bmc_incremental_one_loopt(
+        options, symbol_table, ui_message_handler, prop_conv, goto_functions));
   else if(options.get_bool_option("incremental"))
     bmc = std::unique_ptr<bmct>(
-      new bmc_incrementalt(options, symbol_table, ui_message_handler,
-			   prop_conv, goto_functions));
+      new bmc_incrementalt(
+        options, symbol_table, ui_message_handler, prop_conv, goto_functions));
   else
     bmc = std::unique_ptr<bmct>(
       new bmct(options, symbol_table, ui_message_handler, prop_conv));
