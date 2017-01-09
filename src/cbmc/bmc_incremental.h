@@ -24,20 +24,23 @@ Author: Peter Schrammel, Daniel Kroening, kroening@kroening.com
  
 class bmc_incrementalt:public bmct
 {
- public:
+public:
   bmc_incrementalt(
     const optionst &_options,
     const symbol_tablet &_symbol_table,
     message_handlert &_message_handler,
     prop_convt& _prop_conv,
-    const goto_functionst &_goto_functions)
-  :
-    bmct(_options,_symbol_table,
-      _message_handler,_prop_conv,
-	 new symex_bmc_incrementalt(ns, new_symbol_table, equation)),
+    const goto_functionst &_goto_functions):
+    bmct(
+      _options,
+      _symbol_table,
+      _message_handler,
+      _prop_conv,
+      new symex_bmc_incrementalt(ns, new_symbol_table, equation)),
     goto_functions(_goto_functions),
     symex(dynamic_cast<symex_bmc_incrementalt &>(*symex_ptr))  
-  { }
+  {}
+
   virtual ~bmc_incrementalt() { }
   
   // make public
@@ -45,7 +48,7 @@ class bmc_incrementalt:public bmct
   virtual resultt initialize() { return bmct::initialize(); }
   virtual resultt step() { return step(goto_functions); }
   
- protected:
+protected:
   const goto_functionst &goto_functions;
 
   //ENHANCE: move this into symex_bmc
@@ -57,6 +60,7 @@ class bmc_incrementalt:public bmct
 
   // unwinding
   virtual void setup_unwind();
+
  private:
   symex_bmc_incrementalt &symex;
 };

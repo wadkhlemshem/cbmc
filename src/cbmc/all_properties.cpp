@@ -122,7 +122,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
     }
   }
 
-//  do_before_solving();
+  do_before_solving();
 
   cover_goalst cover_goals(solver);
 
@@ -130,7 +130,8 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
   cover_goals.activation_literal = bmc.equation.current_activation_literal();
 
 #if 0
-  std::cout << "cover_goals.activation_literal = " << cover_goals.activation_literal << std::endl;
+  std::cout << "cover_goals.activation_literal = "
+            << cover_goals.activation_literal << std::endl;
 #endif
 
   cover_goals.set_message_handler(get_message_handler());

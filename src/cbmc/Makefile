@@ -5,7 +5,6 @@ SRC = cbmc_main.cpp cbmc_parse_options.cpp bmc.cpp cbmc_dimacs.cpp \
       symex_bmc_incremental_one_loop.cpp bmc_incremental_one_loop.cpp \
       symex_bmc_incremental.cpp bmc_incremental.cpp fault_localization.cpp
 
-
 OBJ += ../ansi-c/ansi-c$(LIBEXT) \
       ../cpp/cpp$(LIBEXT) \
       ../linking/linking$(LIBEXT) \

@@ -23,22 +23,25 @@ Author: Peter Schrammel, Daniel Kroening, kroening@kroening.com
 #include "bmc.h"
 #include <goto-symex/memory_model.h>
  
-class bmc_incremental_one_loopt : public bmct
+class bmc_incremental_one_loopt:public bmct
 {
- public:
+public:
   bmc_incremental_one_loopt(
-     const optionst &_options,
-     const symbol_tablet &_symbol_table,
-     message_handlert &_message_handler,
-     prop_convt& _prop_conv,
-     const goto_functionst &_goto_functions)
-   :
-   bmct(_options,_symbol_table,_message_handler,_prop_conv,
-	new symex_bmc_incremental_one_loopt(ns, new_symbol_table, 
-					    equation, prop_conv)),
-   goto_functions(_goto_functions),
-   symex(dynamic_cast<symex_bmc_incremental_one_loopt &>(*symex_ptr))  
-   { }
+    const optionst &_options,
+    const symbol_tablet &_symbol_table,
+    message_handlert &_message_handler,
+    prop_convt& _prop_conv,
+    const goto_functionst &_goto_functions):
+    bmct(
+      _options,
+      _symbol_table,
+      _message_handler,
+      _prop_conv,
+      new symex_bmc_incremental_one_loopt(
+        ns, new_symbol_table, equation, prop_conv)),
+    goto_functions(_goto_functions),
+    symex(dynamic_cast<symex_bmc_incremental_one_loopt &>(*symex_ptr))
+  {}
 
   virtual ~bmc_incremental_one_loopt() {}
 
@@ -47,7 +50,7 @@ class bmc_incremental_one_loopt : public bmct
   virtual resultt initialize() { return bmct::initialize(); }
   virtual resultt step() { return step(goto_functions); }
  
- protected:
+protected:
   const goto_functionst &goto_functions;
 
   //ENHANCE: move this into symex_bmc
@@ -59,7 +62,8 @@ class bmc_incremental_one_loopt : public bmct
      
   // unwinding
   virtual void setup_unwind();
- private:
+
+private:
   symex_bmc_incremental_one_loopt &symex;
 };
  

@@ -566,8 +566,8 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
     return ERROR;
   }
     statistics() << "size of program expression: "
-		 << equation.SSA_steps.size()
-		 << " steps" << eom;
+                 << equation.SSA_steps.size()
+                 << " steps" << eom;
 
     // perform slicing
     slice();
@@ -580,8 +580,8 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
     // do diverse other options
     {
-      resultt result = show(goto_functions);
-      if(result != UNKNOWN)
+      resultt result=show(goto_functions);
+      if(result!=UNKNOWN)
         return result;
     }
 
@@ -610,7 +610,7 @@ safety_checkert::resultt bmct::step(const goto_functionst &goto_functions)
 
     //do all properties
     if(options.get_bool_option("stop-on-fail"))
-        return stop_on_fail(goto_functions, prop_conv);
+      return stop_on_fail(goto_functions, prop_conv);
     else
       return all_properties(goto_functions, prop_conv);
 
@@ -632,8 +632,8 @@ Function: bmc_incrementalt::run
 safety_checkert::resultt bmct::run(
   const goto_functionst &goto_functions)
 {
-  safety_checkert::resultt result = initialize();
-  if(result != UNKNOWN)
+  safety_checkert::resultt result=initialize();
+  if(result!=UNKNOWN)
     return result;
 
   return step(goto_functions);
