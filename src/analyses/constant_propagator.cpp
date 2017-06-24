@@ -515,7 +515,10 @@ void constant_propagator_ait::replace(
 
     if(it->is_goto() || it->is_assume() || it->is_assert())
     {
+#if 0
+      //TODO: No idea what this is for. In any case it is wrong.
       replace_array_symbol(it->guard);
+#endif
       s_it->second.values.replace_const(it->guard);
       it->guard=simplify_expr(it->guard, ns);
     }
