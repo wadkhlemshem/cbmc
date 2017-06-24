@@ -31,7 +31,8 @@ public:
     goto_functions(goto_functions),
     ns(ns),
     adjust_function(adjust_function),
-    caching(caching)
+    caching(caching),
+    is_recursion_detected(false)
   {
   }
 
@@ -62,6 +63,8 @@ public:
   void goto_inline(
     const inline_mapt &inline_map,
     const bool force_full=false);
+
+  bool recursion_detected() { return is_recursion_detected; }
 
   void output_inline_map(
     std::ostream &out,
@@ -133,6 +136,7 @@ protected:
 
   const bool adjust_function;
   const bool caching;
+  bool is_recursion_detected;
 
   goto_inline_logt inline_log;
 
