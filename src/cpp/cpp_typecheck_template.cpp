@@ -51,10 +51,10 @@ void cpp_typecheckt::typecheck_class_template(
   cpp_declarationt &declaration)
 {
 #ifdef DEBUG
-  std::cout << "class_template: " << declaration.pretty() 
+  std::cout << "class_template: " << declaration.pretty()
     << std::endl << std::endl;
 #endif
-  
+
   // Do template parameters. This also sets up the template scope.
   cpp_scopet &template_scope=
     typecheck_template_parameters(declaration.template_type());
@@ -197,7 +197,7 @@ void cpp_typecheckt::typecheck_class_template(
   std::cout << "template_decl: " << symbol
 	    << std::endl << std::endl;
 #endif
-  
+
   symbolt *new_symbol;
   if(symbol_table.move(symbol, new_symbol))
   {
@@ -227,10 +227,10 @@ void cpp_typecheckt::typecheck_function_template(
   assert(declaration.declarators().size()==1);
 
 #ifdef DEBUG
-  std::cout << "function_template: " << declaration.pretty() 
+  std::cout << "function_template: " << declaration.pretty()
     << std::endl << std::endl;
 #endif
-  
+
   cpp_declaratort &declarator=declaration.declarators()[0];
   const cpp_namet &cpp_name=to_cpp_name(declarator.add(ID_name));
 
@@ -335,10 +335,10 @@ void cpp_typecheckt::typecheck_class_template_member(
   assert(declaration.declarators().size()==1);
 
 #ifdef DEBUG
-  std::cout << "class_template_member: " << declaration.pretty() 
+  std::cout << "class_template_member: " << declaration.pretty()
     << std::endl << std::endl;
 #endif
-  
+
   cpp_declaratort &declarator=declaration.declarators()[0];
   const cpp_namet &cpp_name=to_cpp_name(declarator.add(ID_name));
 
@@ -412,10 +412,10 @@ void cpp_typecheckt::typecheck_class_template_member(
     symbol_table.symbols.find(cpp_id.identifier)->second;
 
 #ifdef DEBUG
-  std::cout << "template_symbol: " << template_symbol 
+  std::cout << "template_symbol: " << template_symbol
     << std::endl << std::endl;
 #endif
-  
+
   exprt &template_methods=static_cast<exprt &>(
     template_symbol.value.add("template_methods"));
 
@@ -534,10 +534,10 @@ void cpp_typecheckt::convert_class_template_specialization(
 {
 
 #ifdef DEBUG
-  std::cout << "class_template_specialization: " << declaration.pretty() 
+  std::cout << "class_template_specialization: " << declaration.pretty()
     << std::endl << std::endl;
 #endif
-  
+
   cpp_save_scopet saved_scope(cpp_scopes);
 
   typet &type=declaration.type();
@@ -768,9 +768,9 @@ cpp_scopet &cpp_typecheckt::typecheck_template_parameters(
   //        The counter must only be incremented once per template keyword
   //        otherwise we get too many names for the same template parameter
   //        which causes trouble when different names appear in different scopes
-  std::string id_suffix="template::"+i2string(template_counter++); 
+  std::string id_suffix="template::"+std::to_string(template_counter++);
 #if 0
-  std::string id_suffix="template::"+i2string(template_counter); 
+  std::string id_suffix="template::"+std::to_string(template_counter);
 #endif
 #ifdef DEBUG
   std::cout << "typecheck_template_parameters: suffix = " << id_suffix << std::endl;
@@ -909,7 +909,7 @@ cpp_template_args_tct cpp_typecheckt::typecheck_template_args(
 #ifdef DEBUG
   std::cout << "template args: " << template_args << std::endl;
 #endif
-  
+
   // old stuff
   assert(template_args.id()!=ID_already_typechecked);
 
