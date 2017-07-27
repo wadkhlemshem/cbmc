@@ -2106,59 +2106,6 @@ bool Parser::optAlignas(typet &cv)
   return true;
 }
 
-/*
-  dcl.align
-  : ALIGNAS unary.expr
-  | ALIGNAS '(' type.name ')'
-*/
-bool Parser::optAlignas(typet &cv)
-{
-  if(lex.LookAhead(0)!=TOK_ALIGNAS)
-    return true;
-
-  cpp_tokent tk;
-  lex.get_token(tk);
-
-  if(lex.LookAhead(0)!='(')
-    return false;
-
-  typet tname;
-  cpp_tokent op, cp;
-
-  cpp_token_buffert::post pos=lex.Save();
-  lex.get_token(op);
-
-  if(rTypeName(tname))
-    if(lex.get_token(cp)==')')
-    {
-      // TODO
-      return true;
-    }
-
-  lex.Restore(pos);
-
-  exprt unary;
-
-  if(!rUnaryExpr(unary))
-    return false;
-
-  // TODO
-
-  return true;
-}
-
-/*******************************************************************\
-
-Function:
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
-
 bool Parser::rAttribute()
 {
   cpp_tokent tk;
@@ -2214,50 +2161,6 @@ bool Parser::optAttribute(cpp_declarationt &declaration)
 
   return true;
 }
-
-bool Parser::optAttribute(cpp_declarationt &declaration)
-{
-  if(lex.LookAhead(0)!='[' ||
-     lex.LookAhead(1)!='[')
-    return true;
-
-  lex.get_token();
-  lex.get_token();
-
-  for(;;)
-  {
-    cpp_tokent tk;
-    lex.get_token(tk);
-
-    switch(tk.kind)
-    {
-    case ']':
-      lex.get_token();
-      return true;
-
-    case TOK_NORETURN:
-      // TODO
-      break;
-
-    default:
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/*******************************************************************\
-
-Function:
-
-  Inputs:
-
- Outputs:
-
- Purpose:
-
-\*******************************************************************/
 
 /*
 

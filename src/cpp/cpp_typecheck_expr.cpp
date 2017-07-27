@@ -2460,7 +2460,7 @@ void cpp_typecheckt::typecheck_method_application(
     const irept &template_args=tag_symbol.type.find(ID_C_template_arguments);
     template_map.build(static_cast<const template_typet &>(template_type),
 		       static_cast<const cpp_template_args_tct &>(template_args));
-    add_function_body(&method_symbol);
+    add_method_body(&method_symbol);
 #ifdef DEBUG
     std::cout << "MAP for " << symbol << ":" << std::endl;
     template_map.print(std::cout);
