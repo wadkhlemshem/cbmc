@@ -467,13 +467,6 @@ literalt boolbvt::convert_rest(const exprt &expr)
 
     return bv[0];
   }
-  else if(expr.id()==ID_byte_extract_little_endian ||
-          expr.id()==ID_byte_extract_big_endian)
-  {
-    bvt bv;
-    convert_byte_extract(to_byte_extract_expr(expr), bv);
-    return bv[0];
-  }
   else if(expr.id()==ID_member)
   {
     bvt bv=convert_member(to_member_expr(expr));
