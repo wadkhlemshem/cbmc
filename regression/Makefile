@@ -1,6 +1,7 @@
 DIRS = ansi-c \
        cbmc \
        cpp \
+       systemc \
        cbmc-java \
        goto-analyzer \
        goto-instrument \
