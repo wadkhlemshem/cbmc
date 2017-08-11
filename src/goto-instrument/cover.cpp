@@ -50,6 +50,11 @@ public:
          source_location_map.find(block_count)==source_location_map.end())
         source_location_map[block_count]=it->source_location;
 
+      if(!it->function.empty() &&
+         source_location_map.find(block_count)!=source_location_map.end() &&
+         source_location_map[block_count].get_function().empty())
+        source_location_map[block_count].set_function(it->function);
+
       next_is_target=
 #if 0
         // Disabled for being too messy
@@ -91,6 +96,23 @@ public:
   inline unsigned operator[](goto_programt::const_targett t)
   {
     return block_map[t];
+  }
+
+  bool is_bytecode_index_duplicate(goto_programt::const_targett t)
+  {
+    if(t->source_location.get_java_bytecode_index().empty())
+      return false;
+
+    const unsigned block_nr=block_map[t];
+    for(const auto &block : source_location_map)
+    {
+      if(block.first<block_nr &&
+         block.second.get_java_bytecode_index()==
+         t->source_location.get_java_bytecode_index())
+        return true;
+    }
+
+    return false;
   }
 
   void output(std::ostream &out)
@@ -1011,6 +1033,7 @@ void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
   coverage_criteriont criterion,
+  message_handlert &msgh,
   bool function_only)
 {
   coverage_goalst goals; // empty already covered goals
@@ -1019,6 +1042,7 @@ void instrument_cover_goals(
     goto_program,
     criterion,
     goals,
+    msgh,
     function_only,
     false);
 }
@@ -1054,6 +1078,7 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont criterion,
   coverage_goalst &goals,
+  message_handlert &msgh,
   bool function_only,
   bool ignore_trivial)
 {
@@ -1061,6 +1086,7 @@ void instrument_cover_goals(
   if(ignore_trivial && program_is_trivial(goto_program))
     return;
 
+  messaget msg(msgh);
   const namespacet ns(symbol_table);
   basic_blockst basic_blocks(goto_program);
   std::set<unsigned> blocks_done;
@@ -1130,6 +1156,17 @@ void instrument_cover_goals(
         unsigned block_nr=basic_blocks[i_it];
         if(blocks_done.insert(block_nr).second)
         {
+          if(basic_blocks.is_bytecode_index_duplicate(i_it))
+          {
+            msg.warning() << "Ignoring location "
+                          << i_it->location_number << " "
+                          << i_it->source_location
+                          << " (bytecode-index already instrumented)" << messaget::eom;
+            // The location numbers printed here are those
+            // before the coverage instrumentation.
+            break;
+          }
+
           std::string b=std::to_string(block_nr);
           std::string id=id2string(i_it->function)+"#"+b;
           source_locationt source_location=
@@ -1141,9 +1178,9 @@ void instrument_cover_goals(
              !source_location.is_built_in() &&
              cover_curr_function)
           {
+            const irep_idt function=source_location.get_function();
             std::string comment=
-              "function "+id2string(i_it->function)+" block "+b;
-            const irep_idt function=i_it->function;
+              "function "+id2string(function)+" block "+b;
             goto_program.insert_before_swap(i_it);
             i_it->make_assertion(false_exprt());
             i_it->source_location=source_location;
@@ -1151,7 +1188,6 @@ void instrument_cover_goals(
             i_it->source_location.set(
               ID_coverage_criterion, coverage_criterion);
             i_it->source_location.set_property_class(property_class);
-            i_it->source_location.set_function(function);
             i_it++;
           }
         }
@@ -1398,6 +1434,7 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
   coverage_goalst &goals,
+  message_handlert &msgh,
   bool function_only,
   bool ignore_trivial)
 {
@@ -1413,6 +1450,7 @@ void instrument_cover_goals(
       f_it->second.body,
       criterion,
       goals,
+      msgh,
       function_only,
       ignore_trivial);
   }
@@ -1422,6 +1460,7 @@ void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
+  message_handlert &msgh,
   bool function_only)
 {
   // empty set of existing goals
@@ -1431,6 +1470,7 @@ void instrument_cover_goals(
     goto_functions,
     criterion,
     goals,
+    msgh,
     function_only,
     false);
 }
@@ -1534,6 +1574,7 @@ bool instrument_cover_goals(
       goto_functions,
       criterion,
       existing_goals,
+      msgh,
       cmdline.isset("cover-function-only"),
       cmdline.isset("no-trivial-tests"));
   }

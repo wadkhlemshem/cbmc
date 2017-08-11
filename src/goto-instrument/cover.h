@@ -49,12 +49,14 @@ void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
   coverage_criteriont,
+  message_handlert &msgh,
   bool function_only=false);
 
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
   coverage_criteriont,
+  message_handlert &msgh,
   bool function_only=false);
 
 void instrument_cover_goals(
@@ -62,6 +64,7 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont,
   coverage_goalst &goals,
+  message_handlert &msgh,
   bool function_only=false,
   bool ignore_trivial=false);
 
@@ -70,6 +73,7 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont,
   coverage_goalst &goals,
+  message_handlert &msgh,
   bool function_only=false,
   bool ignore_trivial=false);
 
