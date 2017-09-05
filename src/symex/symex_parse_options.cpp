@@ -159,7 +159,8 @@ int symex_parse_optionst::doit()
     const namespacet ns(goto_model.symbol_table);
     locst locs(ns);
     locs.build(goto_model.goto_functions);
-    locs.output(std::cout);
+    locs.output(status());
+    status() << eom;
     return 0;
   }
 
