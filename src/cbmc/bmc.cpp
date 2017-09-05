@@ -216,27 +216,34 @@ void bmct::report_failure()
 
 void bmct::show_program()
 {
+  if(ui!=ui_message_handlert::uit::PLAIN)
+  {
+    // TODO: implement other output formats
+    error() << "Only plain text output supported" << eom;
+    return;
+  }
+
   unsigned count=1;
 
-  std::cout << "\n" << "Program constraints:" << "\n";
+  status() << preformatted_output << "\n" << "Program constraints:" << "\n";
 
   for(const auto &step : equation.SSA_steps)
   {
-    std::cout << "// " << step.source.pc->location_number << " ";
-    std::cout << step.source.pc->source_location.as_string() << "\n";
+    status() << "// " << step.source.pc->location_number << " ";
+    status() << step.source.pc->source_location.as_string() << "\n";
 
     if(step.is_assignment())
     {
       std::string string_value=
         from_expr(ns, "", step.cond_expr);
-      std::cout << "(" << count << ") " << string_value << "\n";
+      status() << "(" << count << ") " << string_value << "\n";
 
       if(!step.guard.is_true())
       {
         std::string string_value=
           from_expr(ns, "", step.guard);
-        std::cout << std::string(std::to_string(count).size()+3, ' ');
-        std::cout << "guard: " << string_value << "\n";
+        status() << std::string(std::to_string(count).size()+3, ' ');
+        status() << "guard: " << string_value << "\n";
       }
 
       count++;
@@ -245,15 +252,15 @@ void bmct::show_program()
     {
       std::string string_value=
         from_expr(ns, "", step.cond_expr);
-      std::cout << "(" << count << ") ASSERT("
+      status() << "(" << count << ") ASSERT("
                 << string_value <<") " << "\n";
 
       if(!step.guard.is_true())
       {
         std::string string_value=
           from_expr(ns, "", step.guard);
-        std::cout << std::string(std::to_string(count).size()+3, ' ');
-        std::cout << "guard: " << string_value << "\n";
+        status() << std::string(std::to_string(count).size()+3, ' ');
+        status() << "guard: " << string_value << "\n";
       }
 
       count++;
@@ -262,15 +269,15 @@ void bmct::show_program()
     {
       std::string string_value=
         from_expr(ns, "", step.cond_expr);
-      std::cout << "(" << count << ") ASSUME("
+      status() << "(" << count << ") ASSUME("
                 << string_value <<") " << "\n";
 
       if(!step.guard.is_true())
       {
         std::string string_value=
           from_expr(ns, "", step.guard);
-        std::cout << std::string(std::to_string(count).size()+3, ' ');
-        std::cout << "guard: " << string_value << "\n";
+        status() << std::string(std::to_string(count).size()+3, ' ');
+        status() << "guard: " << string_value << "\n";
       }
 
       count++;
@@ -279,7 +286,7 @@ void bmct::show_program()
     {
       std::string string_value=
         from_expr(ns, "", step.cond_expr);
-      std::cout << "(" << count << ") CONSTRAINT("
+      status() << "(" << count << ") CONSTRAINT("
                 << string_value <<") " << "\n";
 
       count++;
@@ -288,7 +295,7 @@ void bmct::show_program()
     {
       std::string string_value=
         from_expr(ns, "", step.ssa_lhs);
-      std::cout << "(" << count << ") SHARED_"
+      status() << "(" << count << ") SHARED_"
                 << (step.is_shared_write()?"WRITE":"READ")
                 << "(" << string_value <<")\n";
 
@@ -296,13 +303,15 @@ void bmct::show_program()
       {
         std::string string_value=
           from_expr(ns, "", step.guard);
-        std::cout << std::string(std::to_string(count).size()+3, ' ');
-        std::cout << "guard: " << string_value << "\n";
+        status() << std::string(std::to_string(count).size()+3, ' ');
+        status() << "guard: " << string_value << "\n";
       }
 
       count++;
     }
   }
+
+  status() << eom;
 }
 
 safety_checkert::resultt bmct::run(
