@@ -479,7 +479,7 @@ void goto_diff_parse_optionst::help()
   std::cout <<
     "\n"
     // NOLINTNEXTLINE(whitespace/line_length)
-    "* *           GOTO_DIFF " CBMC_VERSION " - Copyright (C) 2016            * *\n"
+    "* *           GOTO-DIFF " CBMC_VERSION " - Copyright (C) 2016-2017       * *\n"
     "* *            Daniel Kroening, Peter Schrammel             * *\n"
     "* *                 kroening@kroening.com                   * *\n"
     "\n"

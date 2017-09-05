@@ -564,11 +564,11 @@ void symex_parse_optionst::help()
 {
   std::cout <<
     "\n"
-    "* *     Symex " CBMC_VERSION " - Copyright (C) 2013 ";
+    "* *     Symex " CBMC_VERSION " - Copyright (C) 2013-2017 ";
 
   std::cout << "(" << (sizeof(void *)*8) << "-bit version)";
 
-  std::cout << "     * *\n";
+  std::cout << " * *\n";
 
   std::cout <<
     "* *                    Daniel Kroening                      * *\n"

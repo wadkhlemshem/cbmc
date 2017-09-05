@@ -1443,7 +1443,7 @@ void goto_instrument_parse_optionst::help()
 {
   std::cout <<
     "\n"
-    "* *     Goto-Instrument " CBMC_VERSION " - Copyright (C) 2008-2013       * *\n" // NOLINT(*)
+    "* *     Goto-Instrument " CBMC_VERSION " - Copyright (C) 2008-2017       * *\n" // NOLINT(*)
     "* *                    Daniel Kroening                      * *\n"
     "* *                 kroening@kroening.com                   * *\n"
     "\n"
