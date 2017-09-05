@@ -173,8 +173,7 @@ void bmct::report_success()
     {
       xmlt xml("cprover-status");
       xml.data="SUCCESS";
-      std::cout << xml;
-      std::cout << "\n";
+      status() << preformatted_output << xml << eom;
     }
     break;
 
@@ -182,7 +181,7 @@ void bmct::report_success()
     {
       json_objectt json_result;
       json_result["cProverStatus"]=json_stringt("success");
-      std::cout << ",\n" << json_result;
+      status() << preformatted_output << json_result << eom;
     }
     break;
   }
@@ -201,8 +200,7 @@ void bmct::report_failure()
     {
       xmlt xml("cprover-status");
       xml.data="FAILURE";
-      std::cout << xml;
-      std::cout << "\n";
+      status() << preformatted_output << xml << eom;
     }
     break;
 
@@ -210,7 +208,7 @@ void bmct::report_failure()
     {
       json_objectt json_result;
       json_result["cProverStatus"]=json_stringt("failure");
-      std::cout << ",\n" << json_result;
+      status() << preformatted_output << json_result << eom;
     }
     break;
   }

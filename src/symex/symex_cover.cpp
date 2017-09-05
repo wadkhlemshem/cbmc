@@ -11,8 +11,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "symex_parse_options.h"
 
-#include <iostream>
-
 #include <util/json_expr.h>
 #include <util/xml_expr.h>
 
@@ -122,7 +120,7 @@ void symex_parse_optionst::report_cover(
           }
         }
 
-        std::cout << xml_result << "\n";
+        status() << preformatted_output << xml_result << eom;
       }
 
       break;
@@ -174,7 +172,7 @@ void symex_parse_optionst::report_cover(
       json_result["totalGoals"]=
         json_numbert(std::to_string(property_map.size()));
       json_result["goalsCovered"]=json_numbert(std::to_string(goals_covered));
-      std::cout << ",\n" << json_result;
+      status() << preformatted_output << json_result << eom;
       break;
     }
   }
@@ -195,9 +193,10 @@ void symex_parse_optionst::report_cover(
       if(prop_pair.second.is_failure())
         tests.insert(get_test(prop_pair.second.error_trace));
 
-    std::cout << "Test suite:" << '\n';
+    status() << preformatted_output << "Test suite:" << '\n';
 
     for(const auto &t : tests)
-      std::cout << t << '\n';
+      status() << t << '\n';
+    status() << eom;
   }
 }

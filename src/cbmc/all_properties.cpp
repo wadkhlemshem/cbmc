@@ -11,8 +11,6 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "all_properties_class.h"
 
-#include <iostream>
-
 #include <util/time_stopping.h>
 #include <util/xml.h>
 #include <util/json.h>
@@ -176,8 +174,9 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
         for(const auto &g : goal_map)
           if(g.second.status==goalt::statust::FAILURE)
           {
-            std::cout << "\n" << "Trace for " << g.first << ":" << "\n";
-            show_goto_trace(std::cout, bmc.ns, g.second.goto_trace);
+            status() << preformatted_output
+                     << "\n" << "Trace for " << g.first << ":" << "\n";
+            show_goto_trace(status(), bmc.ns, g.second.goto_trace);
           }
       }
 
@@ -200,8 +199,9 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
         if(g.second.status==goalt::statust::FAILURE)
           convert(bmc.ns, g.second.goto_trace, xml_result.new_element());
 
-        std::cout << xml_result << "\n";
+        status() << preformatted_output << xml_result << "\n";
       }
+      status() << preformatted_output << eom;
       break;
     }
 
@@ -224,7 +224,7 @@ void bmc_all_propertiest::report(const cover_goalst &cover_goals)
         }
       }
 
-      std::cout << ",\n" << json_result;
+      status() << preformatted_output << json_result << eom;
     }
     break;
   }

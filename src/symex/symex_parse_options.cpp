@@ -424,7 +424,23 @@ void symex_parse_optionst::report_properties(
       it!=property_map.end();
       it++)
   {
-    if(get_ui()==ui_message_handlert::uit::XML_UI)
+    switch(get_ui())
+    {
+    case ui_message_handlert::uit::PLAIN:
+    {
+      status() << "[" << it->first << "] "
+               << it->second.description << ": ";
+      switch(it->second.status)
+      {
+      case path_searcht::SUCCESS: status() << "SUCCESS"; break;
+      case path_searcht::FAILURE: status() << "FAILURE"; break;
+      case path_searcht::NOT_REACHED: status() << "SUCCESS"; break;
+      }
+      status() << eom;
+    }
+    break;
+
+    case ui_message_handlert::uit::XML_UI:
     {
       xmlt xml_result("result");
       xml_result.set_attribute("claim", id2string(it->first));
@@ -440,19 +456,12 @@ void symex_parse_optionst::report_properties(
 
       xml_result.set_attribute("status", status_string);
 
-      std::cout << xml_result << "\n";
+      status() << preformatted_output << xml_result << eom;
     }
-    else
-    {
-      status() << "[" << it->first << "] "
-               << it->second.description << ": ";
-      switch(it->second.status)
-      {
-      case path_searcht::SUCCESS: status() << "SUCCESS"; break;
-      case path_searcht::FAILURE: status() << "FAILURE"; break;
-      case path_searcht::NOT_REACHED: status() << "SUCCESS"; break;
-      }
-      status() << eom;
+    break;
+
+    default:
+      UNREACHABLE;
     }
 
     if((cmdline.isset("show-trace") ||
@@ -493,8 +502,7 @@ void symex_parse_optionst::report_success()
     {
       xmlt xml("cprover-status");
       xml.data="SUCCESS";
-      std::cout << xml;
-      std::cout << '\n';
+      result() << preformatted_output << xml << eom;
     }
     break;
 
@@ -511,15 +519,16 @@ void symex_parse_optionst::show_counterexample(
   switch(get_ui())
   {
   case ui_message_handlert::uit::PLAIN:
-    std::cout << '\n' << "Counterexample:" << '\n';
-    show_goto_trace(std::cout, ns, error_trace);
+    status() << preformatted_output << '\n' << "Counterexample:" << '\n';
+    show_goto_trace(status(), ns, error_trace);
+    status() << eom;
     break;
 
   case ui_message_handlert::uit::XML_UI:
     {
       xmlt xml;
       convert(ns, error_trace, xml);
-      std::cout << xml << std::flush;
+      status() << preformatted_output << xml << eom;
     }
     break;
 
@@ -541,8 +550,7 @@ void symex_parse_optionst::report_failure()
     {
       xmlt xml("cprover-status");
       xml.data="FAILURE";
-      std::cout << xml;
-      std::cout << '\n';
+      result() << preformatted_output << xml << eom;
     }
     break;
 
