@@ -681,7 +681,7 @@ int cbmc_parse_optionst::get_goto_program(
 
     status() << "Generating GOTO Program" << eom;
 
-    goto_convert(symbol_table, goto_functions, ui_message_handler);
+    goto_convert(symbol_table, goto_functions, get_message_handler());
 
     if(process_goto_program(options, goto_functions))
       return 6;
