@@ -382,7 +382,7 @@ bool symex_parse_optionst::process_goto_program(const optionst &options)
     // show it?
     if(cmdline.isset("show-goto-functions"))
     {
-      show_goto_functions(goto_model, get_ui());
+      show_goto_functions(goto_model, ui_message_handler);
       return true;
     }
   }

@@ -26,11 +26,11 @@ class goto_modelt;
 
 void show_goto_functions(
   const namespacet &ns,
-  ui_message_handlert::uit ui,
+  ui_message_handlert &ui_message_handler,
   const goto_functionst &goto_functions);
 
 void show_goto_functions(
   const goto_modelt &,
-  ui_message_handlert::uit ui);
+  ui_message_handlert &ui_message_handler);
 
 #endif // CPROVER_GOTO_PROGRAMS_SHOW_GOTO_FUNCTIONS_H

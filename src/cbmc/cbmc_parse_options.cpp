@@ -697,7 +697,7 @@ int cbmc_parse_optionst::get_goto_program(
     if(cmdline.isset("show-goto-functions"))
     {
       namespacet ns(symbol_table);
-      show_goto_functions(ns, get_ui(), goto_functions);
+      show_goto_functions(ns, ui_message_handler, goto_functions);
       return 0;
     }
 

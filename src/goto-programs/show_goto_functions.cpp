@@ -11,8 +11,6 @@ Author: Peter Schrammel
 
 #include "show_goto_functions.h"
 
-#include <iostream>
-
 #include <util/xml.h>
 #include <util/json.h>
 #include <util/json_expr.h>
@@ -29,35 +27,42 @@ Author: Peter Schrammel
 
 void show_goto_functions(
   const namespacet &ns,
-  ui_message_handlert::uit ui,
+  ui_message_handlert &ui_message_handler,
   const goto_functionst &goto_functions)
 {
-  switch(ui)
+  messaget message(ui_message_handler);
+
+  switch(ui_message_handler.get_ui())
   {
   case ui_message_handlert::uit::XML_UI:
   {
     show_goto_functions_xmlt xml_show_functions(ns);
-    xml_show_functions(goto_functions, std::cout);
+    message.status() << messaget::preformatted_output;
+    xml_show_functions(goto_functions, message.status());
+    message.status() << messaget::eom;
   }
   break;
 
   case ui_message_handlert::uit::JSON_UI:
   {
     show_goto_functions_jsont json_show_functions(ns);
-    json_show_functions(goto_functions, std::cout);
+    message.status() << messaget::preformatted_output;
+    json_show_functions(goto_functions, message.status());
+    message.status() << messaget::eom;
   }
   break;
 
   case ui_message_handlert::uit::PLAIN:
-    goto_functions.output(ns, std::cout);
+    goto_functions.output(ns, message.status());
+    message.status() << messaget::eom;
     break;
   }
 }
 
 void show_goto_functions(
   const goto_modelt &goto_model,
-  ui_message_handlert::uit ui)
+  ui_message_handlert &ui_message_handler)
 {
   const namespacet ns(goto_model.symbol_table);
-  show_goto_functions(ns, ui, goto_model.goto_functions);
+  show_goto_functions(ns, ui_message_handler, goto_model.goto_functions);
 }

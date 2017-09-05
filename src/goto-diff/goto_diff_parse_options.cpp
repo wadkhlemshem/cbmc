@@ -281,8 +281,8 @@ int goto_diff_parse_optionst::doit()
 
   if(cmdline.isset("show-goto-functions"))
   {
-    show_goto_functions(goto_model1, get_ui());
-    show_goto_functions(goto_model2, get_ui());
+    show_goto_functions(goto_model1, ui_message_handler);
+    show_goto_functions(goto_model2, ui_message_handler);
     return 0;
   }
 
@@ -442,7 +442,7 @@ bool goto_diff_parse_optionst::process_goto_program(
     // show it?
     if(cmdline.isset("show-goto-functions"))
     {
-      show_goto_functions(ns, get_ui(), goto_functions);
+      show_goto_functions(ns, ui_message_handler, goto_functions);
       return true;
     }
   }
