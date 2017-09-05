@@ -19,12 +19,12 @@ class goto_programt;
 class value_set_analysist;
 
 void show_value_sets(
-  ui_message_handlert::uit ui,
+  ui_message_handlert &ui_message_handler,
   const goto_functionst &goto_functions,
   const value_set_analysist &value_set_analysis);
 
 void show_value_sets(
-  ui_message_handlert::uit ui,
+  ui_message_handlert &ui_message_handler,
   const goto_programt &goto_program,
   const value_set_analysist &value_set_analysis);
 

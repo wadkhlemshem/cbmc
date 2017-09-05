@@ -268,7 +268,7 @@ int goto_instrument_parse_optionst::doit()
       value_set_analysist value_set_analysis(ns);
       value_set_analysis(goto_functions);
 
-      show_value_sets(get_ui(), goto_functions, value_set_analysis);
+      show_value_sets(ui_message_handler, goto_functions, value_set_analysis);
       return 0;
     }
 
