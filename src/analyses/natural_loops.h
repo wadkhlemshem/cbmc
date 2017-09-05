@@ -15,6 +15,7 @@ Author: Georg Weissenbacher, georg@weissenbacher.name
 #include <stack>
 #include <iosfwd>
 #include <set>
+#include <ostream>
 
 #include <goto-programs/goto_program.h>
 #include <goto-programs/goto_functions.h>
@@ -70,7 +71,9 @@ class natural_loopst:
 typedef natural_loops_templatet<goto_programt, goto_programt::targett>
     natural_loops_mutablet;
 
-void show_natural_loops(const goto_functionst &goto_functions);
+void show_natural_loops(
+  const goto_functionst &goto_functions,
+  std::ostream &out);
 
 /// Finds all back-edges and computes the natural loops
 #ifdef DEBUG

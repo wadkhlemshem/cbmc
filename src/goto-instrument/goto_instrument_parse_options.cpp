@@ -575,7 +575,7 @@ int goto_instrument_parse_optionst::doit()
     if(cmdline.isset("show-natural-loops"))
     {
       const namespacet ns(symbol_table);
-      show_natural_loops(goto_functions);
+      show_natural_loops(goto_functions, std::cout);
       return 0;
     }
 
