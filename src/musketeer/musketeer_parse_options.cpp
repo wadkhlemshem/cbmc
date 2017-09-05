@@ -189,14 +189,12 @@ void goto_fence_inserter_parse_optionst::instrument_goto_program(
 
     if(cmdline.isset("const-function-pointer-propagation"))
     {
-      /* propagate const pointers to functions */
+      // propagate const pointers to functions
       status() << "Propagate Constant Function Pointers" << eom;
       propagate_const_function_pointers(symbol_table, goto_functions,
         get_message_handler());
     }
 
-    // goto_functions.output(ns, std::cout);
-    // return;
 #if 0
     status() << "Function Pointer Removal" << eom;
     remove_function_pointers(
