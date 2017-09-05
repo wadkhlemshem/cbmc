@@ -326,7 +326,9 @@ int goto_diff_parse_optionst::doit()
 
   (*goto_diff)();
 
-  goto_diff->output_functions(std::cout);
+  status() << preformatted_output;
+  goto_diff->output_functions(status());
+  status() << eom;
 
   return 0;
 }
