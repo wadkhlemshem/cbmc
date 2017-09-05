@@ -492,7 +492,7 @@ int cbmc_parse_optionst::doit()
      cmdline.isset("show-properties")) // use this one
   {
     const namespacet ns(symbol_table);
-    show_properties(ns, get_ui(), goto_functions);
+    show_properties(ns, ui_message_handler, goto_functions);
     return 0; // should contemplate EX_OK from sysexits.h
   }
 

@@ -20,11 +20,11 @@ class goto_modelt;
 
 void show_properties(
   const namespacet &ns,
-  ui_message_handlert::uit ui,
+  ui_message_handlert &,
   const goto_functionst &goto_functions);
 
 void show_properties(
   const goto_modelt &,
-  ui_message_handlert::uit ui);
+  ui_message_handlert &);
 
 #endif // CPROVER_GOTO_PROGRAMS_SHOW_PROPERTIES_H

@@ -278,7 +278,7 @@ int goto_analyzer_parse_optionst::doit()
 
   if(cmdline.isset("show-properties"))
   {
-    show_properties(goto_model, get_ui());
+    show_properties(goto_model, ui_message_handler);
     return 0;
   }
 
