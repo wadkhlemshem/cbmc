@@ -38,7 +38,7 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont criterion,
   message_handlert &message_handler,
-  coverage_goalst &goals)
+  existing_goalst &existing_goals)
 {
   // ignore if built-in library
   if(!goto_program.instructions.empty() &&
@@ -64,7 +64,8 @@ void instrument_cover_goals(
       break;
 
     case coverage_criteriont::LOCATION:
-      cover_instrument_location(goto_program, i_it, basic_blocks, goals);
+      cover_instrument_location(
+        goto_program, i_it, basic_blocks, existing_goals);
       break;
 
     case coverage_criteriont::BRANCH:
@@ -96,13 +97,13 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   message_handlert &message_handler)
 {
-  coverage_goalst goals; // empty already covered goals
+  existing_goalst existing_goals; // empty already covered goals
   instrument_cover_goals(
     symbol_table,
     goto_program,
     criterion,
     message_handler,
-    goals);
+    existing_goals);
 }
 
 void instrument_cover_goals(
@@ -110,7 +111,7 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
   message_handlert &message_handler,
-  coverage_goalst &goals,
+  existing_goalst &goals,
   bool ignore_trivial,
   const std::string &cover_include_pattern)
 {
@@ -150,13 +151,13 @@ void instrument_cover_goals(
   message_handlert &message_handler)
 {
   // empty set of existing goals
-  coverage_goalst goals;
+  existing_goalst existing_goals;
   instrument_cover_goals(
     symbol_table,
     goto_functions,
     criterion,
     message_handler,
-    goals,
+    existing_goals,
     false,
     "");
 }
@@ -241,7 +242,7 @@ bool instrument_cover_goals(
   }
 
   // check existing test goals
-  coverage_goalst existing_goals;
+  existing_goalst existing_goals;
   if(cmdline.isset("existing-coverage"))
   {
     // get the mode to ensure invariants
@@ -251,11 +252,14 @@ bool instrument_cover_goals(
 
     // get file with covered test goals
     const std::string coverage=cmdline.get_value("existing-coverage");
-    // get a coverage_goalst object
-    if(coverage_goalst::get_coverage_goals(
-       coverage, message_handler, existing_goals, mode))
+    // load existing goals
+    try
     {
-      msg.error() << "Loading existing coverage goals failed" << messaget::eom;
+      existing_goalst::load(coverage, message_handler, existing_goals, mode);
+    }
+    catch(const std::string &e)
+    {
+      msg.error() << e << messaget::eom;
       return true;
     }
   }
@@ -275,7 +279,7 @@ bool instrument_cover_goals(
   }
 
   // check whether all existing goals match with instrumented goals
-  existing_goals.check_existing_goals(message_handler);
+  existing_goals.report_anomalies(message_handler);
 
   if(cmdline.isset("cover-traces-must-terminate"))
   {

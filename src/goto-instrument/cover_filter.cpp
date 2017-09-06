@@ -43,110 +43,103 @@ bool program_is_trivial(const goto_programt &goto_program)
 }
 
 
-bool coverage_goalst::get_coverage_goals(
-  const std::string &coverage_file,
+void existing_goalst::load(
+  const std::string &filename,
   message_handlert &message_handler,
-  coverage_goalst &goals,
+  existing_goalst &existing_goals,
   const irep_idt &mode)
 {
   messaget message(message_handler);
-  jsont json;
-  source_locationt source_location;
 
   message.status() << "Load existing coverage goals\n";
 
   // check coverage file
-  if(parse_json(coverage_file, message_handler, json))
+  jsont json;
+  if(parse_json(filename, message_handler, json))
   {
-    message.error() << coverage_file << " file is not a valid json file"
-                    << messaget::eom;
-    return true;
+    throw filename+" file is not a valid json file";
   }
 
   // make sure that we have an array of elements
   if(!json.is_array())
   {
-    message.error() << "expecting an array in the " <<  coverage_file
-                    << " file, but got "
-                    << json << messaget::eom;
-    return true;
+    std::stringstream s;
+    s << "expecting an array in file " << filename
+      << ", but got " << json;
+    throw s.str();
   }
 
   // traverse the given JSON file
   for(const auto &each_goal : json.array)
   {
-    // ensure minimal requirements for a goal entry
-    PRECONDITION(
-      (!each_goal["goal"].is_null()) ||
-      (!each_goal["sourceLocation"]["bytecodeIndex"].is_null()) ||
-      (!each_goal["sourceLocation"]["file"].is_null() &&
-       !each_goal["sourceLocation"]["function"].is_null() &&
-       !each_goal["sourceLocation"]["line"].is_null()));
+    source_locationt source_location;
 
     // check whether bytecodeIndex is provided for Java programs
-    if(mode==ID_java &&
-       each_goal["sourceLocation"]["bytecodeIndex"].is_null())
+    if(mode==ID_java)
     {
-      messaget message(message_handler);
-      message.error() << coverage_file
-                      << " file does not contain bytecodeIndex"
-                      << messaget::eom;
-      return true;
-    }
+      if(each_goal["sourceLocation"]["bytecodeIndex"].is_null())
+      {
+        std::stringstream s;
+        s << filename << " does not contain bytecodeIndex for" << each_goal;
+        throw s.str();
+      }
 
-    if(!each_goal["sourceLocation"]["bytecodeIndex"].is_null())
-    {
       // get and set the bytecodeIndex
       irep_idt bytecode_index=
         each_goal["sourceLocation"]["bytecodeIndex"].value;
       source_location.set_java_bytecode_index(bytecode_index);
     }
-
-    if(!each_goal["sourceLocation"]["file"].is_null())
+    else
     {
+      if(each_goal["sourceLocation"]["file"].is_null())
+      {
+        std::stringstream s;
+        s << filename << " does not contain file for" << each_goal;
+        throw s.str();
+      }
+
       // get and set the file
       irep_idt file=each_goal["sourceLocation"]["file"].value;
       source_location.set_file(file);
-    }
 
-    if(!each_goal["sourceLocation"]["function"].is_null())
-    {
+      if(each_goal["sourceLocation"]["function"].is_null())
+      {
+        std::stringstream s;
+        s << filename << " does not contain function for" << each_goal;
+        throw s.str();
+      }
+
       // get and set the function
       irep_idt function=each_goal["sourceLocation"]["function"].value;
       source_location.set_function(function);
-    }
 
-    if(!each_goal["sourceLocation"]["line"].is_null())
-    {
+      if(each_goal["sourceLocation"]["line"].is_null())
+      {
+        std::stringstream s;
+        s << filename << " does not contain line for" << each_goal;
+        throw s.str();
+      }
+
       // get and set the line
       irep_idt line=each_goal["sourceLocation"]["line"].value;
       source_location.set_line(line);
     }
 
     // store the existing goal
-    goals.add_goal(source_location);
+    existing_goals.goals[source_location]=false;
     message.status() << "  " << source_location << "\n";
   }
   message.status() << messaget::eom;
-
-  return false;
-}
-
-/// store existing goal
-/// \param goal: source location of the existing goal
-void coverage_goalst::add_goal(source_locationt goal)
-{
-  existing_goals[goal]=false;
 }
 
 /// check whether we have an existing goal that does not match
 /// an instrumented goal
 /// \param msg: Message stream
-void coverage_goalst::check_existing_goals(message_handlert &message_handler)
+void existing_goalst::report_anomalies(message_handlert &message_handler)
 {
   messaget msg(message_handler);
 
-  for(const auto &existing_loc : existing_goals)
+  for(const auto &existing_loc : goals)
   {
     if(!existing_loc.second)
     {
@@ -158,11 +151,12 @@ void coverage_goalst::check_existing_goals(message_handlert &message_handler)
 }
 
 /// compare the value of the current goal to the existing ones
+/// and mark the matched existing goal
 /// \param source_loc: source location of the current goal
 /// \return true : if the current goal exists false : otherwise
-bool coverage_goalst::is_existing_goal(source_locationt source_loc)
+bool existing_goalst::contains(const source_locationt &source_loc)
 {
-  for(const auto &existing_loc : existing_goals)
+  for(const auto &existing_loc : goals)
   {
     if((source_loc.get_file()==existing_loc.first.get_file()) &&
        (source_loc.get_function()==existing_loc.first.get_function()) &&
@@ -171,10 +165,9 @@ bool coverage_goalst::is_existing_goal(source_locationt source_loc)
          (source_loc.get_java_bytecode_index()==
            existing_loc.first.get_java_bytecode_index())))
     {
-      existing_goals[existing_loc.first]=true;
+      goals[existing_loc.first]=true;
       return true;
     }
   }
   return false;
 }
-
