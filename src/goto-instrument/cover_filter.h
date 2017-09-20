@@ -13,6 +13,7 @@ Author: Daniel Kroening
 #define CPROVER_GOTO_INSTRUMENT_COVER_FILTER_H
 
 #include <regex>
+#include <memory>
 
 #include <util/message.h>
 #include <util/invariant.h>
@@ -33,11 +34,10 @@ public:
   /// Returns true if the function passes the filter criteria
   virtual bool operator()(
     const irep_idt &identifier,
-    const goto_functionst::goto_functiont &goto_function) const
-  {
-    UNREACHABLE;
-  }
+    const goto_functionst::goto_functiont &goto_function) const=0;
 
+  /// Can be called after final filter application to report
+  /// on unexpected situations encountered
   virtual void report_anomalies() const
   {
     // do nothing by default
@@ -55,75 +55,89 @@ public:
   virtual ~goal_filter_baset() {}
 
   /// Returns true if the goal passes the filter criteria
-  virtual bool operator()(const source_locationt &) const
-  {
-    UNREACHABLE;
-  }
+  virtual bool operator()(const source_locationt &) const=0;
 
+  /// Can be called after final filter application to report
+  /// on unexpected situations encountered
   virtual void report_anomalies() const
   {
     // do nothing by default
   }
 };
 
+/// A collection of function filters to be applied in conjunction
 class function_filterst
 {
 public:
-  void add(const function_filter_baset &filter)
+  /// Adds a function filter
+  /// \param filter: transfers ownership of filter to the filter collection
+  void add(std::unique_ptr<function_filter_baset> filter)
   {
-    filters.push_back(filter);
+    filters.push_back(std::move(filter));
   }
 
+  /// Applies the filters to the given function
+  /// \param identifier: function name
+  /// \param goto_function: goto function
   bool operator()(
     const irep_idt &identifier,
     const goto_functionst::goto_functiont &goto_function) const
   {
     for(const auto &filter : filters)
-      if(!filter(identifier, goto_function))
+      if(!(*filter)(identifier, goto_function))
         return false;
-    
+
     return true;
   }
 
+  /// Can be called after final filter application to report
+  /// on unexpected situations encountered
   void report_anomalies() const
   {
     for(const auto &filter : filters)
-      filter.report_anomalies();
+      filter->report_anomalies();
   }
 
 private:
-  std::vector<function_filter_baset> filters;
+  std::vector<std::unique_ptr<function_filter_baset>> filters;
 };
 
+/// A collection of goal filters to be applied in conjunction
 class goal_filterst
 {
 public:
-  void add(const goal_filter_baset &filter)
+  /// Adds a function filter
+  /// \param filter: transfers ownership of filter to the filter collection
+  void add(std::unique_ptr<goal_filter_baset> filter)
   {
-    filters.push_back(filter);
+    filters.push_back(std::move(filter));
   }
 
+  /// Applies the filters to the given source location
+  /// \param source_location: a source location where a goal is instrumented
   bool operator()(
     const source_locationt &source_location) const
   {
     for(const auto &filter : filters)
-      if(!filter(source_location))
+      if(!(*filter)(source_location))
         return false;
-    
+
     return true;
   }
 
+  /// Can be called after final filter application to report
+  /// on unexpected situations encountered
   void report_anomalies() const
   {
     for(const auto &filter : filters)
-      filter.report_anomalies();
+      filter->report_anomalies();
   }
-  
+
 private:
-  std::vector<goal_filter_baset> filters;
+  std::vector<std::unique_ptr<goal_filter_baset>> filters;
 };
 
-  
+
 /// Filters out CPROVER internal functions
 class internal_functions_filtert:public function_filter_baset
 {
@@ -164,7 +178,7 @@ public:
     message_handlert &message_handler,
     const std::string &filename,
     const irep_idt &mode);
-  
+
   bool operator()(const source_locationt &) const override;
   void report_anomalies() const override;
 
@@ -189,10 +203,10 @@ public:
 class internal_goals_filtert:public goal_filter_baset
 {
 public:
-  internal_goals_filtert(message_handlert &message_handler):
+  explicit internal_goals_filtert(message_handlert &message_handler):
     goal_filter_baset(message_handler)
   {}
-  
+
   bool operator()(const source_locationt &) const override;
 };
 

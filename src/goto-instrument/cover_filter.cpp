@@ -15,43 +15,87 @@ Author: Daniel Kroening
 
 #include <util/message.h>
 
-
-/// Call a goto_program trivial unless it has: * Any declarations * At least 2
-/// branches * At least 5 assignments
-/// \par parameters: Program `goto_program`
-/// \return Returns true if trivial
-bool program_is_trivial(const goto_programt &goto_program)
+/// Filter out functions that are not considered provided by the user
+/// \param identifier: a function name
+/// \param goto_function: a goto function
+/// \return: returns true if function is considered user-provided
+bool internal_functions_filtert::operator()(
+  const irep_idt &identifier,
+  const goto_functionst::goto_functiont &goto_function) const
 {
-  unsigned long count_assignments=0, count_goto=0;
-  forall_goto_program_instructions(i_it, goto_program)
-  {
-    if(i_it->is_goto())
-    {
-      if((++count_goto)>=2)
-        return false;
-    }
-    else if(i_it->is_assign())
-    {
-      if((++count_assignments)>=5)
-        return false;
-    }
-    else if(i_it->is_decl())
-      return false;
-  }
+  if(identifier==goto_functionst::entry_point())
+    return false;
+
+  if(identifier==(CPROVER_PREFIX "initialize"))
+    return false;
+
+  if(goto_function.is_hidden())
+    return false;
+
+  // ignore Java array built-ins
+  if(has_prefix(id2string(identifier), "java::array"))
+    return false;
+
+  // ignore if built-in library
+  if(!goto_function.body.instructions.empty() &&
+     goto_function.body.instructions.front().source_location.is_built_in())
+    return false;
 
   return true;
 }
 
-
-void existing_goalst::load(
-  const std::string &filename,
-  message_handlert &message_handler,
-  existing_goalst &existing_goals,
-  const irep_idt &mode)
+/// Filter functions whose name match the regex
+/// \param identifier: a function name
+/// \param goto_function: a goto function
+/// \return: returns true if the function name matches
+bool include_pattern_filtert::operator()(
+  const irep_idt &identifier,
+  const goto_functionst::goto_functiont &goto_function) const
 {
-  messaget message(message_handler);
+  std::smatch string_matcher;
+  return std::regex_match(
+    id2string(identifier), string_matcher, regex_matcher);
+}
 
-  message.status() << "Load existing coverage goals\n";
+/// Call a goto_program non-trivial if it has:
+///  * Any declarations
+///  * At least 2 branches
+///  * At least 5 assignments
+/// \param identifier: a function name
+/// \param goto_function: a goto function
+/// \return: returns true if non-trivial
+bool trivial_functions_filtert::operator()(
+  const irep_idt &identifier,
+  const goto_functionst::goto_functiont &goto_function) const
+{
+  unsigned long count_assignments=0, count_goto=0;
+  forall_goto_program_instructions(i_it, goto_function.body)
+  {
+    if(i_it->is_goto())
+    {
+      if((++count_goto)>=2)
+        return true;
+    }
+    else if(i_it->is_assign())
+    {
+      if((++count_assignments)>=5)
+        return true;
+    }
+    else if(i_it->is_decl())
+      return true;
+  }
+
+  return false;
+}
+
+
+existing_goals_filtert::existing_goals_filtert(
+  message_handlert &message_handler,
+  const std::string &filename,
+  const irep_idt &mode):
+  goal_filter_baset(message_handler)
+{
+  status() << "Load existing coverage goals\n";
 
   // check coverage file
   jsont json;
@@ -126,24 +170,21 @@ void existing_goalst::load(
     }
 
     // store the existing goal
-    existing_goals.goals[source_location]=false;
-    message.status() << "  " << source_location << "\n";
+    goals[source_location]=false;
+    status() << "  " << source_location << "\n";
   }
-  message.status() << messaget::eom;
+  status() << messaget::eom;
 }
 
 /// check whether we have an existing goal that does not match
 /// an instrumented goal
-/// \param msg: Message stream
-void existing_goalst::report_anomalies(message_handlert &message_handler)
+void existing_goals_filtert::report_anomalies() const
 {
-  messaget msg(message_handler);
-
   for(const auto &existing_loc : goals)
   {
     if(!existing_loc.second)
     {
-      msg.warning()
+      warning()
         << "Warning: unmatched existing goal "
         << existing_loc.first << messaget::eom;
     }
@@ -153,8 +194,9 @@ void existing_goalst::report_anomalies(message_handlert &message_handler)
 /// compare the value of the current goal to the existing ones
 /// and mark the matched existing goal
 /// \param source_loc: source location of the current goal
-/// \return true : if the current goal exists false : otherwise
-bool existing_goalst::contains(const source_locationt &source_loc)
+/// \return true : if the given goal is non-existing, false : otherwise
+bool existing_goals_filtert::operator()(
+  const source_locationt &source_loc) const
 {
   for(const auto &existing_loc : goals)
   {
@@ -166,8 +208,23 @@ bool existing_goalst::contains(const source_locationt &source_loc)
            existing_loc.first.get_java_bytecode_index())))
     {
       goals[existing_loc.first]=true;
-      return true;
+      return false;
     }
   }
-  return false;
+  return true;
+}
+
+/// Filter goals at source locations considered internal
+/// \param source_location: source location of the current goal
+/// \return true : if the given source location is considered internal
+bool internal_goals_filtert::operator()(
+  const source_locationt &source_location) const
+{
+  if(source_location.get_file().empty())
+    return false;
+
+  if(source_location.is_built_in())
+    return false;
+
+  return true;
 }

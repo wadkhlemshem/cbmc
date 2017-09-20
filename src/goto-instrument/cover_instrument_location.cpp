@@ -36,7 +36,7 @@ void cover_instrument_location(
       basic_blocks.source_location_of(block_nr);
 
     // filter goals
-    if(!goal_filters(source_location))
+    if(goal_filters(source_location))
     {
       std::string comment="block "+b;
       const irep_idt function=i_it->function;

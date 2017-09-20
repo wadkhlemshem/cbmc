@@ -16,7 +16,6 @@ Date: May 2016
 
 #include <iterator>
 #include <unordered_set>
-#include <regex>
 
 #include <util/config.h>
 #include <util/cprover_prefix.h>
@@ -38,13 +37,8 @@ void instrument_cover_goals(
   goto_programt &goto_program,
   coverage_criteriont criterion,
   message_handlert &message_handler,
-  existing_goalst &existing_goals)
+  const goal_filterst &goal_filters)
 {
-  // ignore if built-in library
-  if(!goto_program.instructions.empty() &&
-     goto_program.instructions.front().source_location.is_built_in())
-    return;
-
   const namespacet ns(symbol_table);
   cover_basic_blockst basic_blocks(goto_program);
   basic_blocks.select_unique_java_bytecode_indices(
@@ -65,7 +59,7 @@ void instrument_cover_goals(
 
     case coverage_criteriont::LOCATION:
       cover_instrument_location(
-        goto_program, i_it, basic_blocks, existing_goals);
+        goto_program, i_it, basic_blocks, goal_filters);
       break;
 
     case coverage_criteriont::BRANCH:
@@ -97,13 +91,15 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   message_handlert &message_handler)
 {
-  existing_goalst existing_goals; // empty already covered goals
+  goal_filterst goal_filters;
+  goal_filters.add(util_make_unique<internal_goals_filtert>(message_handler));
+
   instrument_cover_goals(
     symbol_table,
     goto_program,
     criterion,
     message_handler,
-    existing_goals);
+    goal_filters);
 }
 
 void instrument_cover_goals(
@@ -111,28 +107,12 @@ void instrument_cover_goals(
   goto_functionst &goto_functions,
   coverage_criteriont criterion,
   message_handlert &message_handler,
-  existing_goalst &goals,
-  bool ignore_trivial,
-  const std::string &cover_include_pattern)
+  const function_filterst &function_filters,
+  const goal_filterst &goal_filters)
 {
-  std::smatch string_matcher;
-  std::regex regex_matcher(cover_include_pattern);
-  bool do_include_pattern_match=!cover_include_pattern.empty();
-
   Forall_goto_functions(f_it, goto_functions)
   {
-    // exclude trivial coverage goals of a goto program
-    if(ignore_trivial && program_is_trivial(f_it->second.body))
-      continue;
-
-    if(f_it->first==goto_functions.entry_point() ||
-       f_it->first==(CPROVER_PREFIX "initialize") ||
-       f_it->second.is_hidden() ||
-       (do_include_pattern_match &&
-        !std::regex_match(
-          id2string(f_it->first), string_matcher, regex_matcher)) ||
-       // ignore Java array built-ins
-       has_prefix(id2string(f_it->first), "java::array"))
+    if(!function_filters(f_it->first, f_it->second))
       continue;
 
     instrument_cover_goals(
@@ -140,7 +120,7 @@ void instrument_cover_goals(
       f_it->second.body,
       criterion,
       message_handler,
-      goals);
+      goal_filters);
   }
 }
 
@@ -150,16 +130,21 @@ void instrument_cover_goals(
   coverage_criteriont criterion,
   message_handlert &message_handler)
 {
-  // empty set of existing goals
-  existing_goalst existing_goals;
+  function_filterst function_filters;
+  function_filters.add(
+    util_make_unique<internal_functions_filtert>(message_handler));
+
+  goal_filterst goal_filters;
+  goal_filters.add(
+    util_make_unique<internal_goals_filtert>(message_handler));
+
   instrument_cover_goals(
     symbol_table,
     goto_functions,
     criterion,
     message_handler,
-    existing_goals,
-    false,
-    "");
+    function_filters,
+    goal_filters);
 }
 
 bool instrument_cover_goals(
@@ -169,6 +154,15 @@ bool instrument_cover_goals(
   message_handlert &message_handler)
 {
   messaget msg(message_handler);
+
+  function_filterst function_filters;
+  function_filters.add(
+    util_make_unique<internal_functions_filtert>(message_handler));
+
+  goal_filterst goal_filters;
+  goal_filters.add(
+    util_make_unique<internal_goals_filtert>(message_handler));
+
   std::list<std::string> criteria_strings=cmdline.get_values("cover");
   std::set<coverage_criteriont> criteria;
   bool keep_assertions=false;
@@ -240,9 +234,14 @@ bool instrument_cover_goals(
     cover_include_pattern=
       ".*"+std::regex_replace(config.main, special_characters, "\\$&")+".*";
   }
+  if(!cover_include_pattern.empty())
+  {
+    function_filters.add(
+      util_make_unique<include_pattern_filtert>(
+        message_handler, cover_include_pattern));
+  }
 
   // check existing test goals
-  existing_goalst existing_goals;
   if(cmdline.isset("existing-coverage"))
   {
     // get the mode to ensure invariants
@@ -255,7 +254,9 @@ bool instrument_cover_goals(
     // load existing goals
     try
     {
-      existing_goalst::load(coverage, message_handler, existing_goals, mode);
+      goal_filters.add(
+        util_make_unique<existing_goals_filtert>(
+          message_handler, coverage, mode));
     }
     catch(const std::string &e)
     {
@@ -263,6 +264,10 @@ bool instrument_cover_goals(
       return true;
     }
   }
+
+  if(cmdline.isset("no-trivial-tests"))
+    function_filters.add(
+      util_make_unique<trivial_functions_filtert>(message_handler));
 
   msg.status() << "Instrumenting coverage goals" << messaget::eom;
 
@@ -273,13 +278,12 @@ bool instrument_cover_goals(
       goto_functions,
       criterion,
       message_handler,
-      existing_goals,
-      cmdline.isset("no-trivial-tests"),
-      cover_include_pattern);
+      function_filters,
+      goal_filters);
   }
 
-  // check whether all existing goals match with instrumented goals
-  existing_goals.report_anomalies(message_handler);
+  function_filters.report_anomalies();
+  goal_filters.report_anomalies();
 
   if(cmdline.isset("cover-traces-must-terminate"))
   {
