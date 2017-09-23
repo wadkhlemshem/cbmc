@@ -9,19 +9,17 @@ Author: Daniel Kroening
 /// \file
 /// Coverage Instrumentation for Decisions
 
-#include "cover_instrument_decision.h"
+#include "cover_instrument.h"
 
 #include "cover_util.h"
 
-void cover_instrument_decision(
-  const namespacet &ns,
+void cover_decision_instrumentert::instrument(
   goto_programt &goto_program,
-  goto_programt::targett &i_it)
+  goto_programt::targett &i_it,
+  const cover_basic_blockst &basic_blocks) const
 {
-  const irep_idt coverage_criterion="decision";
-  const irep_idt property_class="coverage";
-
-  if(i_it->is_assert())
+  if(i_it->is_assert() &&
+     i_it->source_location.get_property_class()!=property_class)
     i_it->make_skip();
 
   // Decisions are maximal Boolean combinations of conditions.

@@ -9,7 +9,7 @@ Author: Daniel Kroening
 /// \file
 /// Coverage Instrumentation for MC/DC
 
-#include "cover_instrument_mcdc.h"
+#include "cover_instrument.h"
 
 #include <algorithm>
 
@@ -641,15 +641,13 @@ void minimize_mcdc_controlling(
   }
 }
 
-void cover_instrument_mcdc(
-  const namespacet &ns,
+void cover_mcdc_instrumentert::instrument(
   goto_programt &goto_program,
-  goto_programt::targett &i_it)
+  goto_programt::targett &i_it,
+  const cover_basic_blockst &basic_blocks) const
 {
-  const irep_idt coverage_criterion="MC/DC";
-  const irep_idt property_class="coverage";
-
-  if(i_it->is_assert())
+  if(i_it->is_assert() &&
+     i_it->source_location.get_property_class()!=property_class)
     i_it->make_skip();
 
   // 1. Each entry and exit point is invoked

@@ -9,22 +9,20 @@ Author: Daniel Kroening
 /// \file
 /// Coverage Instrumentation for Location, i.e. Basic Blocks
 
-#include "cover_instrument_location.h"
+#include "cover_instrument.h"
 
 #include "cover_basic_blocks.h"
 #include "cover_filter.h"
 
-void cover_instrument_location(
+void cover_location_instrumentert::instrument(
   goto_programt &goto_program,
   goto_programt::targett &i_it,
-  const cover_basic_blockst &basic_blocks,
-  const goal_filterst &goal_filters)
+  const cover_basic_blockst &basic_blocks) const
 {
-  const irep_idt coverage_criterion="location";
-  const irep_idt property_class="coverage";
-
-  if(i_it->is_assert())
+  if(i_it->is_assert() &&
+     i_it->source_location.get_property_class()!=property_class)
     i_it->make_skip();
+
   unsigned block_nr=basic_blocks.block_of(i_it);
   goto_programt::const_targett in_t=basic_blocks.instruction_of(block_nr);
   // we only instrument the selected instruction
