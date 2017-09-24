@@ -14,20 +14,18 @@ Date: May 2016
 
 #include "cover.h"
 
-#include <iterator>
-#include <unordered_set>
-
 #include <util/config.h>
-#include <util/cprover_prefix.h>
-#include <util/format_number_range.h>
 #include <util/message.h>
-#include <util/prefix.h>
 #include <util/make_unique.h>
 
 #include "cover_basic_blocks.h"
 #include "cover_filter.h"
 #include "cover_instrument.h"
 
+/// Applies instrumenters to given goto program
+/// \param goto_program: the goto program
+/// \param instrumenters: the instrumenters
+/// \param message_handler: a message handler
 void instrument_cover_goals(
   goto_programt &goto_program,
   const cover_instrumenterst &instrumenters,
@@ -41,6 +39,11 @@ void instrument_cover_goals(
   instrumenters(goto_program, basic_blocks);
 }
 
+/// Instruments goto program for a given coverage criterion
+/// \param symbol_table: the symbol table
+/// \param goto_program: the goto program
+/// \param criterion: the coverage criterion
+/// \param message_handler: a message handler
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_programt &goto_program,
@@ -56,6 +59,11 @@ void instrument_cover_goals(
   instrument_cover_goals(goto_program, instrumenters, message_handler);
 }
 
+/// Applies instrumenters to given goto functions
+/// \param goto_functions: the goto functions
+/// \param instrumenters: the instrumenters
+/// \param function_filters: function filters to discard certain functions
+/// \param message_handler: a message handler
 void instrument_cover_goals(
   goto_functionst &goto_functions,
   const cover_instrumenterst &instrumenters,
@@ -71,6 +79,11 @@ void instrument_cover_goals(
   }
 }
 
+/// Instruments goto program for a given coverage criterion
+/// \param symbol_table: the symbol table
+/// \param goto_functions: the goto functions
+/// \param criterion: the coverage criterion
+/// \param message_handler: a message handler
 void instrument_cover_goals(
   const symbol_tablet &symbol_table,
   goto_functionst &goto_functions,
@@ -95,6 +108,10 @@ void instrument_cover_goals(
     message_handler);
 }
 
+/// Create and add an instrumenter based on the given criterion
+/// \param criterion: the coverage criterion
+/// \param symbol_table: the symbol table
+/// \param goal_filters: goal filters to discard certain goals
 void cover_instrumenterst::add_from_criterion(
   coverage_criteriont criterion,
   const symbol_tablet &symbol_table,
@@ -144,6 +161,9 @@ void cover_instrumenterst::add_from_criterion(
   }
 }
 
+/// Parses a coverage criterion
+/// \param criterion_string: a string
+/// \return a coverage criterion or throws an exception
 coverage_criteriont parse_coverage_criterion(
   const std::string &criterion_string)
 {
@@ -176,6 +196,11 @@ coverage_criteriont parse_coverage_criterion(
   return c;
 }
 
+/// Instruments goto functions based on given command line options
+/// \param cmdline: the command line
+/// \param symbol_table: the symbol table
+/// \param goto_functions: the goto functions
+/// \param message_handler: a message handler
 bool instrument_cover_goals(
   const cmdlinet &cmdline,
   const symbol_tablet &symbol_table,
@@ -316,6 +341,10 @@ bool instrument_cover_goals(
   return false;
 }
 
+/// Instruments a goto model based on given command line options
+/// \param cmdline: the command line
+/// \param goto_model: the goto model
+/// \param message_handler: a message handler
 bool instrument_cover_goals(
   const cmdlinet &cmdline,
   goto_modelt &goto_model,
