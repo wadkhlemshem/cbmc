@@ -687,22 +687,14 @@ void cover_mcdc_instrumentert::instrument(
       // i_it->make_assertion(p);
       i_it->make_assertion(not_exprt(p));
       i_it->source_location=source_location;
-      i_it->source_location.set_comment(comment_t);
-      i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-      i_it->source_location.set_property_class(property_class);
-      i_it->source_location.set_function(function);
-      i_it->function=function;
+      initialize_source_location(i_it, comment_t, function);
 
       std::string comment_f=description+" `"+p_string+"' false";
       goto_program.insert_before_swap(i_it);
       // i_it->make_assertion(not_exprt(p));
       i_it->make_assertion(p);
       i_it->source_location=source_location;
-      i_it->source_location.set_comment(comment_f);
-      i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-      i_it->source_location.set_property_class(property_class);
-      i_it->source_location.set_function(function);
-      i_it->function=function;
+      initialize_source_location(i_it, comment_f, function);
     }
 
     std::set<exprt> controlling;
@@ -725,11 +717,7 @@ void cover_mcdc_instrumentert::instrument(
       i_it->make_assertion(not_exprt(p));
       // i_it->make_assertion(p);
       i_it->source_location=source_location;
-      i_it->source_location.set_comment(description);
-      i_it->source_location.set(ID_coverage_criterion, coverage_criterion);
-      i_it->source_location.set_property_class(property_class);
-      i_it->source_location.set_function(function);
-      i_it->function=function;
+      initialize_source_location(i_it, description, function);
     }
 
     for(std::size_t i=0; i<both.size()*2+controlling.size(); i++)
