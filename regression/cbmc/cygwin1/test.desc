@@ -1,0 +1,7 @@
+CORE
+main.c
+--xml-ui --unwinding-assertions --unwind 3 --gcc -D__CYGWIN__ --cover condition --function blk_flattened_execute
+^EXIT=0$
+^SIGNAL=0$
+--
+^warning: ignoring
