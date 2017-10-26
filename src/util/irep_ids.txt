@@ -734,3 +734,4 @@ verilog_array
 low
 high
 bswap
+overflow_shl
