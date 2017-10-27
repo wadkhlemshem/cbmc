@@ -211,7 +211,7 @@ jobs:
             name: "diffblue/cbmc"
             description: "Travis build of ${TRAVIS_COMMIT}"
           notification_email: "coverity-scan@diffblue.com"
-          build_command_prepend: "make -C src minisat2-download"
+          build_command_prepend: "make -C src glucose-download"
           build_command: "make -C src -j2"
           branch_pattern: "develop"
       before_install:
@@ -236,7 +236,7 @@ jobs:
 
 install:
   - ccache --max-size=1G
-  - make -C src minisat2-download
+  - make -C src glucose-download
   - make -C src/ansi-c library_check
   - make -C src "CXX=${COMPILER}" "CXXFLAGS=-Wall -Werror -pedantic -O2 -g ${EXTRA_CXXFLAGS}" -j2
   - make -C src "CXX=${COMPILER}" "CXXFLAGS=-Wall -Werror -pedantic -O2 -g ${EXTRA_CXXFLAGS}" -j2 clobber.dir memory-models.dir
