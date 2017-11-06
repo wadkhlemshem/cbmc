@@ -533,7 +533,7 @@ void graphml_witnesst::operator()(const symex_target_equationt &equation)
         ; /* ignore */
     }
 
-    it=next; 
+    it=next;
     step_nr=next_step_nr;
   }
 }
