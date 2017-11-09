@@ -4,6 +4,8 @@ BUILD_ENV = AUTO
 # Enable all warnings and treat them as errors
 ifeq ($(BUILD_ENV),MSVC)
   #CXXFLAGS += /Wall /WX
+else ifeq ($(BUILD_ENV),OSX_Universal)
+  CXXFLAGS += -Wall -Werror -Wno-parentheses
 else
   CXXFLAGS += -Wall -Werror -Wno-parentheses -Wno-error=misleading-indentation
 endif
