@@ -7,7 +7,7 @@ ifeq ($(BUILD_ENV),MSVC)
 else ifeq ($(BUILD_ENV),OSX_Universal)
   CXXFLAGS += -Wall -Werror -Wno-parentheses
 else
-  CXXFLAGS += -Wall -Werror -Wno-parentheses
+  CXXFLAGS += -Wall -Werror -Wno-parentheses -Wno-error=misleading-indentation
 endif
 
 # Select optimisation or debug info
