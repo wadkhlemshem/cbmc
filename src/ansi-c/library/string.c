@@ -531,8 +531,8 @@ void *memcpy(void *dst, const void *src, size_t n)
   #else
   __CPROVER_assert(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src) ||
-    __CPROVER_POINTER_OFFSET(src) + n < __CPROVER_POINTER_OFFSET(dst) ||
-    __CPROVER_POINTER_OFFSET(dst) + n < __CPROVER_POINTER_OFFSET(src),
+    __CPROVER_POINTER_OFFSET(src) + n <= __CPROVER_POINTER_OFFSET(dst) ||
+    __CPROVER_POINTER_OFFSET(dst) + n <= __CPROVER_POINTER_OFFSET(src),
     "memcpy src/dst overlap");
   (void)*(char *)dst; // check that the memory is accessible
   (void)*(const char *)src; // check that the memory is accessible
@@ -566,8 +566,8 @@ void *__builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __C
   #else
   __CPROVER_assert(
     __CPROVER_POINTER_OBJECT(dst) != __CPROVER_POINTER_OBJECT(src) ||
-    __CPROVER_POINTER_OFFSET(src) + n < __CPROVER_POINTER_OFFSET(dst) ||
-    __CPROVER_POINTER_OFFSET(dst) + n < __CPROVER_POINTER_OFFSET(src),
+    __CPROVER_POINTER_OFFSET(src) + n <= __CPROVER_POINTER_OFFSET(dst) ||
+    __CPROVER_POINTER_OFFSET(dst) + n <= __CPROVER_POINTER_OFFSET(src),
      "__builtin___memcpy_chk src/dst overlap");
   (void)*(char *)dst; // check that the memory is accessible
   (void)*(const char *)src; // check that the memory is accessible
