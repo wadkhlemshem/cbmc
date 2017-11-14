@@ -61,6 +61,7 @@ protected:
     const typet &type,
     const std::string &suffix,
     goto_programt &dest,
+    const irep_idt &symbol_mode,
     const source_locationt &);
 
   symbol_exprt make_compound_literal(
@@ -86,6 +87,7 @@ protected:
   void make_temp_symbol(
     exprt &expr,
     const std::string &suffix,
+    const irep_idt &symbol_mode,
     goto_programt &);
 
   void rewrite_boolean(exprt &dest);

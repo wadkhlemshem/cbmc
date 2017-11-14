@@ -2126,6 +2126,7 @@ symbolt &goto_convertt::new_tmp_symbol(
   const typet &type,
   const std::string &suffix,
   goto_programt &dest,
+  const irep_idt &symbol_mode,
   const source_locationt &source_location)
 {
   symbolt &new_symbol=
@@ -2134,7 +2135,7 @@ symbolt &goto_convertt::new_tmp_symbol(
       tmp_symbol_prefix,
       "tmp_"+suffix,
       source_location,
-      irep_idt(),
+      symbol_mode,
       symbol_table);
 
   code_declt decl;
@@ -2148,12 +2149,13 @@ symbolt &goto_convertt::new_tmp_symbol(
 void goto_convertt::make_temp_symbol(
   exprt &expr,
   const std::string &suffix,
+  const irep_idt &symbol_mode,
   goto_programt &dest)
 {
   const source_locationt source_location=expr.find_source_location();
 
   symbolt &new_symbol=
-    new_tmp_symbol(expr.type(), suffix, dest, source_location);
+    new_tmp_symbol(expr.type(), suffix, dest, symbol_mode, source_location);
 
   code_assignt assignment;
   assignment.lhs()=new_symbol.symbol_expr();

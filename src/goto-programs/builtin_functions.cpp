@@ -469,7 +469,7 @@ void goto_convertt::do_cpp_new(
            code_type.parameters().size()==2);
 
     const symbolt &tmp_symbol=
-      new_tmp_symbol(return_type, "new", dest, rhs.source_location());
+      new_tmp_symbol(return_type, "new", dest, ID_cpp, rhs.source_location());
 
     tmp_symbol_expr=tmp_symbol.symbol_expr();
 
@@ -500,7 +500,7 @@ void goto_convertt::do_cpp_new(
            code_type.parameters().size()==3);
 
     const symbolt &tmp_symbol=
-      new_tmp_symbol(return_type, "new", dest, rhs.source_location());
+      new_tmp_symbol(return_type, "new", dest, ID_cpp, rhs.source_location());
 
     tmp_symbol_expr=tmp_symbol.symbol_expr();
 
@@ -695,6 +695,7 @@ void goto_convertt::do_java_new_array(
       data_java_new_expr.type(),
       "new_array_data",
       dest,
+      ID_java,
       location)
     .symbol_expr();
   goto_programt::targett t_p2=dest.add_instruction(ASSIGN);
@@ -735,7 +736,7 @@ void goto_convertt::do_java_new_array(
     goto_programt tmp;
 
     symbol_exprt tmp_i=
-      new_tmp_symbol(length.type(), "index", tmp, location).symbol_expr();
+      new_tmp_symbol(length.type(), "index", tmp, ID_java, location).symbol_expr();
 
     code_fort for_loop;
 
@@ -758,7 +759,7 @@ void goto_convertt::do_java_new_array(
 
     code_blockt for_body;
     symbol_exprt init_sym=
-      new_tmp_symbol(sub_type, "subarray_init", tmp, location).symbol_expr();
+      new_tmp_symbol(sub_type, "subarray_init", tmp, ID_java, location).symbol_expr();
 
     code_assignt init_subarray(init_sym, sub_java_new);
     code_assignt assign_subarray(

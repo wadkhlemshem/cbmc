@@ -319,7 +319,7 @@ void goto_convertt::remove_post(
   if(result_is_used)
   {
     exprt tmp=expr.op0();
-    make_temp_symbol(tmp, "post", dest);
+    make_temp_symbol(tmp, "post", ID_C, dest);
     expr.swap(tmp);
   }
   else
@@ -520,7 +520,7 @@ void goto_convertt::remove_temporary_object(
   }
 
   symbolt &new_symbol=
-    new_tmp_symbol(expr.type(), "obj", dest, expr.find_source_location());
+    new_tmp_symbol(expr.type(), "obj", dest, ID_C, expr.find_source_location());
 
   new_symbol.mode=expr.get(ID_mode);
 
@@ -600,7 +600,7 @@ void goto_convertt::remove_statement_expression(
   source_locationt source_location=last.find_source_location();
 
   symbolt &new_symbol=
-    new_tmp_symbol(expr.type(), "statement_expression", dest, source_location);
+    new_tmp_symbol(expr.type(), "statement_expression", dest, ID_C, source_location);
 
   symbol_exprt tmp_symbol_expr(new_symbol.name, new_symbol.type);
   tmp_symbol_expr.add_source_location()=source_location;
