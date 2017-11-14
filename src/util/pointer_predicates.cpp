@@ -188,25 +188,16 @@ exprt dynamic_object_upper_bound(
 
   exprt object_offset=pointer_offset(pointer);
 
+  exprt size=size_of_expr(dereference_type, ns);
+
   // need to add size
-  irep_idt op=ID_ge;
-  exprt sum=object_offset;
-
-  if(access_size.is_not_nil())
-  {
-    op=ID_gt;
-
-    if(ns.follow(object_offset.type())!=
-       ns.follow(access_size.type()))
-      object_offset.make_typecast(access_size.type());
-    sum=plus_exprt(object_offset, access_size);
-  }
+  exprt sum=plus_exprt(object_offset, size);
 
   if(ns.follow(sum.type())!=
      ns.follow(malloc_size.type()))
     sum.make_typecast(malloc_size.type());
 
-  return binary_relation_exprt(sum, op, malloc_size);
+  return binary_relation_exprt(sum, ID_gt, malloc_size);
 }
 
 exprt object_upper_bound(
