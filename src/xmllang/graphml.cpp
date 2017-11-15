@@ -67,13 +67,13 @@ static bool build_graph_rec(
   {
     const std::string node_name=xml.get_attribute("id");
 
-    const std::size_t n=add_node(node_name, name_to_node, dest);
+    const graphmlt::node_indext n=
+      add_node(node_name, name_to_node, dest);
 
     graphmlt::nodet &node=dest[n];
     node.node_name=node_name;
     node.is_violation=false;
     node.has_invariant=false;
-    node.thread_nr=0;
 
     for(xmlt::elementst::const_iterator
         e_it=xml.elements.begin();
@@ -85,8 +85,6 @@ static bool build_graph_rec(
       if(e_it->get_attribute("key")=="violation" &&
          e_it->data=="true")
         node.is_violation=e_it->data=="true";
-      else if(e_it->get_attribute("key")=="threadNumber")
-        node.thread_nr=safe_string2unsigned(e_it->data);
       else if(e_it->get_attribute("key")=="entry" &&
               e_it->data=="true")
         entrynode=node_name;
@@ -277,8 +275,12 @@ Function: write_graphml
 bool write_graphml(const graphmlt &src, std::ostream &os)
 {
   xmlt graphml("graphml");
-  graphml.set_attribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-  graphml.set_attribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
+  graphml.set_attribute(
+    "xmlns:xsi",
+    "http://www.w3.org/2001/XMLSchema-instance");
+  graphml.set_attribute(
+    "xmlns",
+    "http://graphml.graphdrawing.org/xmlns");
 
   // <key attr.name="originFileName" attr.type="string" for="edge"
   //      id="originfile">
@@ -306,7 +308,7 @@ bool write_graphml(const graphmlt &src, std::ostream &os)
     key.set_attribute("id", "invariant");
   }
 
-  //<key attr.name="invariant.scope" attr.type="string" for="node"
+  // <key attr.name="invariant.scope" attr.type="string" for="node"
   //     id="invariant.scope"/>
   {
     xmlt &key=graphml.new_element("key");
@@ -398,13 +400,24 @@ bool write_graphml(const graphmlt &src, std::ostream &os)
   }
 
   // <key attr.name="threadId" attr.type="string" for="edge" id="threadId"/>
-  // TODO: format for multi-threaded programs not defined yet
   {
     xmlt &key=graphml.new_element("key");
-    key.set_attribute("attr.name", "threadNumber");
+    key.set_attribute("attr.name", "threadId");
     key.set_attribute("attr.type", "int");
-    key.set_attribute("for", "node");
-    key.set_attribute("id", "thread");
+    key.set_attribute("for", "edge");
+    key.set_attribute("id", "threadId");
+
+    key.new_element("default").data="0";
+  }
+
+  // <key attr.name="createThread" attr.type="string"
+  //      for="edge" id="createThread"/>
+  {
+    xmlt &key=graphml.new_element("key");
+    key.set_attribute("attr.name", "createThread");
+    key.set_attribute("attr.type", "int");
+    key.set_attribute("for", "edge");
+    key.set_attribute("id", "createThread");
 
     key.new_element("default").data="0";
   }
@@ -584,13 +597,6 @@ bool write_graphml(const graphmlt &src, std::ostream &os)
       entry.data="true";
 
       entry_done=true;
-    }
-
-    if(n.thread_nr!=0)
-    {
-      xmlt &entry=node.new_element("data");
-      entry.set_attribute("key", "threadNumber");
-      entry.data=i2string(n.thread_nr);
     }
 
     // <node id="A14">
