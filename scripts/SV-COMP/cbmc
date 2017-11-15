@@ -14,7 +14,7 @@ run()
     return
   fi
 
-gtimeout 850 bash -c ' \
+timeout 850 bash -c ' \
 \
 ulimit -v 15000000 ; \
 \
