@@ -1794,6 +1794,7 @@ std::string expr2ct::convert_constant(
             type!=signed_int_type() &&
             type!=unsigned_int_type())
     {
+#if 0
       if(int_value=='\n')
         dest+="'\\n'";
       else if(int_value=='\r')
@@ -1811,7 +1812,8 @@ std::string expr2ct::convert_constant(
         dest+='\'';
       }
       else
-        dest=integer2string(int_value);
+#endif
+      dest=integer2string(int_value);
     }
     else
     {
