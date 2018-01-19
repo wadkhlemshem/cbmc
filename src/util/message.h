@@ -209,7 +209,7 @@ public:
       return *this;
     }
 
-    mstreamt &operator << (const json_objectt &data)
+    mstreamt &operator << (const jsont &data)
     {
       *this << eom; // force end of previous message
       if(message.message_handler)
