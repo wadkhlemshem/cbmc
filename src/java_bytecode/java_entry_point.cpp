@@ -97,7 +97,7 @@ static void java_static_lifetime_init(
   symbol_table_baset &symbol_table,
   const source_locationt &source_location,
   bool assume_init_pointers_not_null,
-  const object_factory_parameterst &object_factory_parameters,
+  object_factory_parameterst object_factory_parameters, // copy
   const select_pointer_typet &pointer_type_selector)
 {
   symbolt &initialize_symbol=*symbol_table.get_writeable(INITIALIZE_FUNCTION);
@@ -132,6 +132,8 @@ static void java_static_lifetime_init(
           if(allow_null && is_non_null_library_global(nameid))
             allow_null=false;
         }
+        if(!allow_null)
+          object_factory_parameters.max_nonnull_tree_depth = 1;
         gen_nondet_init(
           sym.symbol_expr(),
           code_block,
@@ -139,7 +141,6 @@ static void java_static_lifetime_init(
           source_location,
           false,
           allocation_typet::GLOBAL,
-          allow_null,
           object_factory_parameters,
           pointer_type_selector,
           update_in_placet::NO_UPDATE_IN_PLACE);
@@ -168,7 +169,7 @@ exprt::operandst java_build_arguments(
   code_blockt &init_code,
   symbol_table_baset &symbol_table,
   bool assume_init_pointers_not_null,
-  object_factory_parameterst object_factory_parameters,
+  const object_factory_parameterst &object_factory_parameters,
   const select_pointer_typet &pointer_type_selector)
 {
   const code_typet::parameterst &parameters=
@@ -189,12 +190,15 @@ exprt::operandst java_build_arguments(
     bool named_main=has_suffix(config.main, ".main");
     const typet &string_array_type=
       java_type_from_string("[Ljava.lang.String;");
+    // checks whether the function is static and has a single String[] parameter
     bool has_correct_type=
       to_code_type(function.type).return_type().id()==ID_empty &&
       (!to_code_type(function.type).has_this()) &&
       parameters.size()==1 &&
       parameters[0].type().full_eq(string_array_type);
-    is_main=(named_main && has_correct_type);
+    bool public_access = function.type.get(ID_access) == ID_public;
+
+    is_main=(named_main && has_correct_type && public_access);
   }
 
   // we iterate through all the parameters of the function under test, allocate
@@ -212,8 +216,18 @@ exprt::operandst java_build_arguments(
     // be null
     bool is_this=(param_number==0) && parameters[param_number].get_this();
 
-    bool allow_null=
-      !assume_init_pointers_not_null && !is_main && !is_this;
+    object_factory_parameterst parameters = object_factory_parameters;
+    // pointer itself must be non-null
+    if(assume_init_pointers_not_null || is_this)
+      parameters.max_nonnull_tree_depth = 1;
+
+    // for main, the argument array and the elements of the argument array
+    // must both be non-null, tree depth must be 2 (or more)
+    if(is_main)
+    {
+      parameters.max_nondet_tree_depth = 2;
+      parameters.max_nonnull_tree_depth = 2;
+    }
 
     // generate code to allocate and non-deterministicaly initialize the
     // argument
@@ -222,9 +236,8 @@ exprt::operandst java_build_arguments(
         p.type(),
         base_name,
         init_code,
-        allow_null,
         symbol_table,
-        object_factory_parameters,
+        parameters,
         allocation_typet::LOCAL,
         function.location,
         pointer_type_selector);
