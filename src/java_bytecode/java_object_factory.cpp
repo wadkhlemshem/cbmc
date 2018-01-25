@@ -95,7 +95,8 @@ class java_object_factoryt
     code_blockt &assignments,
     const exprt &lhs,
     const exprt &max_length_expr,
-    const typet &element_type);
+    const typet &element_type,
+    size_t depth);
 
 public:
   java_object_factoryt(
@@ -394,7 +395,7 @@ void java_object_factoryt::gen_pointer_target_init(
     gen_nondet_array_init(
       assignments,
       expr,
-      depth+1,
+      depth,
       update_in_place);
   }
   else
@@ -674,6 +675,7 @@ codet initialize_nondet_string_struct(
 /// \return false if code was added, true to signal an error when the given
 ///         object does not implement CharSequence or does not have data and
 ///         length fields, in which case it should be initialized another way.
+#include <iostream>
 static bool add_nondet_string_pointer_initialization(
   const exprt &expr,
   const std::size_t &max_nondet_string_length,
@@ -686,6 +688,9 @@ static bool add_nondet_string_pointer_initialization(
   const dereference_exprt obj(expr, expr.type().subtype());
   const struct_typet &struct_type =
     to_struct_type(ns.follow(to_symbol_type(obj.type())));
+  std::cout << expr.pretty() << std::endl;
+  std::cout << obj.pretty() << std::endl;
+  std::cout << struct_type.pretty() << std::endl;
 
   if(!struct_type.has_component("data") || !struct_type.has_component("length"))
     return true;
@@ -1195,7 +1200,8 @@ void java_object_factoryt::allocate_nondet_length_array(
   code_blockt &assignments,
   const exprt &lhs,
   const exprt &max_length_expr,
-  const typet &element_type)
+  const typet &element_type,
+  size_t depth)
 {
   symbolt &length_sym=new_tmp_symbol(
     symbol_table,
@@ -1215,7 +1221,7 @@ void java_object_factoryt::allocate_nondet_length_array(
     allocation_typet::LOCAL, // immaterial, type is primitive
     false,   // override
     typet(), // override type is immaterial
-    0,       // depth is immaterial
+    0,       // depth is immaterial, cannot be null
     update_in_placet::NO_UPDATE_IN_PLACE);
 
   // Insert assumptions to bound its length:
@@ -1269,7 +1275,8 @@ void java_object_factoryt::gen_nondet_array_init(
       assignments,
       expr,
       max_length_expr,
-      element_type);
+      element_type,
+      depth);
   }
 
   // Otherwise we're updating the array in place, and use the
@@ -1311,6 +1318,38 @@ void java_object_factoryt::gen_nondet_array_init(
   symbols_created.push_back(&counter);
   exprt counter_expr=counter.symbol_expr();
 
+  // get array element initialization code
+  exprt arraycellref=dereference_exprt(
+    plus_exprt(array_init_symexpr, counter_expr, array_init_symexpr.type()),
+    array_init_symexpr.type().subtype());
+
+  // MUST_UPDATE_IN_PLACE only applies to this object.
+  // If this is a pointer to another object, offer the chance
+  // to leave it alone by setting MAY_UPDATE_IN_PLACE instead.
+  update_in_placet child_update_in_place=
+    update_in_place==update_in_placet::MUST_UPDATE_IN_PLACE ?
+    update_in_placet::MAY_UPDATE_IN_PLACE :
+    update_in_place;
+
+  code_blockt element_assignments;
+  gen_nondet_init(
+    element_assignments,
+    arraycellref,
+    false, // is_sub
+    irep_idt(), // class_identifier
+    false, // skip_classid
+    // These are variable in number, so use dynamic allocator:
+    allocation_typet::DYNAMIC,
+    true,  // override
+    element_type,
+    depth,
+    child_update_in_place);
+
+  // check whether initialization loop is needed at all
+  if(element_assignments.operands().empty())
+    return;
+
+  // add counter initialization
   exprt java_zero=from_integer(0, java_int_type());
   assignments.copy_to_operands(code_assignt(counter_expr, java_zero));
 
@@ -1341,29 +1380,7 @@ void java_object_factoryt::gen_nondet_array_init(
     assignments.move_to_operands(max_test);
   }
 
-  exprt arraycellref=dereference_exprt(
-    plus_exprt(array_init_symexpr, counter_expr, array_init_symexpr.type()),
-    array_init_symexpr.type().subtype());
-
-  // MUST_UPDATE_IN_PLACE only applies to this object.
-  // If this is a pointer to another object, offer the chance
-  // to leave it alone by setting MAY_UPDATE_IN_PLACE instead.
-  update_in_placet child_update_in_place=
-    update_in_place==update_in_placet::MUST_UPDATE_IN_PLACE ?
-    update_in_placet::MAY_UPDATE_IN_PLACE :
-    update_in_place;
-  gen_nondet_init(
-    assignments,
-    arraycellref,
-    false, // is_sub
-    irep_idt(), // class_identifier
-    false, // skip_classid
-    // These are variable in number, so use dynamic allocator:
-    allocation_typet::DYNAMIC,
-    true,  // override
-    element_type,
-    depth,
-    child_update_in_place);
+  assignments.append(element_assignments);
 
   exprt java_one=from_integer(1, java_int_type());
   code_assignt incr(counter_expr, plus_exprt(counter_expr, java_one));
