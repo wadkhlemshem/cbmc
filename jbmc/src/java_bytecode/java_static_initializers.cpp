@@ -718,7 +718,7 @@ void stub_global_initializer_factoryt::create_stub_global_initializer_symbols(
     symbolt static_init_symbol;
     static_init_symbol.name = static_init_name;
     static_init_symbol.pretty_name = static_init_name;
-    static_init_symbol.base_name = "clinit():V";
+    static_init_symbol.base_name = "<clinit>";
     static_init_symbol.mode = ID_java;
     static_init_symbol.type = thunk_type;
     // Note this use of a type-comment to provide a back-link from a method
