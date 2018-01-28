@@ -348,6 +348,12 @@ void java_bytecode_convert_classt::add_array_types(symbol_tablet &symbol_table)
     comp2.set_base_name("data");
     struct_type.components().push_back(comp2);
 
+    irept::subt &bases=
+      struct_type.add(ID_bases).get_sub();
+    irept base(ID_base);
+    base.set(ID_type, symbol_typet("java::java.lang.Object"));
+    bases.push_back(base);
+
     INVARIANT(
       is_valid_java_array(struct_type),
       "Constructed a new type representing a Java Array "
