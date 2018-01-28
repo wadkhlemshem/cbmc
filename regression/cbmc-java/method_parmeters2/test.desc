@@ -1,6 +1,6 @@
 CORE
 method_parameters.class
---verbosity 10 --show-symbol-table
+--no-core-models --verbosity 10 --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 --

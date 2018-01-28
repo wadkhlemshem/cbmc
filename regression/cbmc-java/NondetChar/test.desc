@@ -1,6 +1,6 @@
 CORE
 NondetChar.class
---function NondetChar.main
+--no-core-models --function NondetChar.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

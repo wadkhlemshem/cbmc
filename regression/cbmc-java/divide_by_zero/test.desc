@@ -1,6 +1,6 @@
 CORE
 DivideByZero.class
-
+--no-core-models
 ^EXIT=10$
 ^SIGNAL=0$
 Denominator should be nonzero: FAILURE

@@ -1,6 +1,6 @@
 CORE
 multinewarray.class
-
+--no-core-models
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

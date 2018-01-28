@@ -1,6 +1,6 @@
-KNOWNBUG
+CORE
 instanceof2.class
-
+--lazy-methods
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

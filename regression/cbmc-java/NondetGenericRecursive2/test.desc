@@ -1,6 +1,6 @@
 CORE
 NondetGenericRecursive2.class
---function NondetGenericRecursive2.main
+--no-core-models --function NondetGenericRecursive2.main
 ^VERIFICATION SUCCESSFUL$
 --
 ^warning: ignoring

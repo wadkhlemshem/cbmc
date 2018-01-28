@@ -1,6 +1,6 @@
 KNOWNBUG
 Test.class
---program-only
+--no-core-models --program-only
 ^EXIT=0$
 ^SIGNAL=0$
 B\.f

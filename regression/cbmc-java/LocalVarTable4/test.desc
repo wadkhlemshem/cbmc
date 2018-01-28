@@ -1,6 +1,6 @@
 CORE
 live_range_exception.class
---function live_range_exception.main
+--no-core-models --function live_range_exception.main
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

@@ -1,6 +1,6 @@
 CORE
 edu/emory/mathcs/backport/java/util/concurrent/ConcurrentHashMap.class
---show-goto-functions
+--no-core-models --show-goto-functions
 ^EXIT=0$
 ^SIGNAL=0$
 --

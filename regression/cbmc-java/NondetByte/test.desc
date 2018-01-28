@@ -1,6 +1,6 @@
 CORE
 NondetByte.class
---function NondetByte.main
+--no-core-models --function NondetByte.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

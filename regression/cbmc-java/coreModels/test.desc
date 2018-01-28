@@ -1,6 +1,6 @@
 CORE
 test.class
---show-symbol-table
+--lazy-methods --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 ^Symbol\s*\.*\: java\:\:org\.cprover\.CProver\.\<clinit\>\:\(\)V$

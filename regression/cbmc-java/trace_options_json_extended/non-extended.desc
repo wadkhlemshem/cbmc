@@ -1,6 +1,6 @@
 CORE
 Test.class
---trace --json-ui
+--no-core-models --trace --json-ui
 ^EXIT=10$
 ^SIGNAL=0$
 --

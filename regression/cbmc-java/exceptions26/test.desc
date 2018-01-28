@@ -1,5 +1,6 @@
 CORE
 test.class
+--no-core-models
 ^VERIFICATION SUCCESSFUL$
 --
 ^warning: ignoring

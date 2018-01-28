@@ -1,6 +1,6 @@
 CORE
 TestGenTest.class
---function TestGenTest.f --trace --cover location --json-ui
+--no-core-models --function TestGenTest.f --trace --cover location --json-ui
 "data": "java::TestGenTest",$
 ^EXIT=0$
 ^SIGNAL=0$

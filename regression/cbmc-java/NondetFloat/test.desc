@@ -1,6 +1,6 @@
 CORE
 NondetFloat.class
---function NondetFloat.main
+--no-core-models --function NondetFloat.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

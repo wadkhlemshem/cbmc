@@ -1,6 +1,6 @@
 CORE
 Test.class
---cover location --trace --json-ui --unwind 5
+--no-core-models --cover location --trace --json-ui --unwind 5
 activate-multi-line-match
 EXIT=0
 SIGNAL=0

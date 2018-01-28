@@ -1,6 +1,6 @@
 CORE
 NullPointer3.class
---pointer-check
+--no-core-models --pointer-check
 ^EXIT=10$
 ^SIGNAL=0$
 ^.*Throw null: FAILURE$

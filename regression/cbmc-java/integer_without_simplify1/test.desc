@@ -1,6 +1,6 @@
 CORE
 test.class
---no-simplify --function test.f --cover location
+--no-core-models --no-simplify --function test.f --cover location
 ^EXIT=0$
 ^SIGNAL=0$
 --

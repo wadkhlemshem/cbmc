@@ -1,6 +1,6 @@
 CORE
 NondetShort.class
---function NondetShort.main
+--no-core-models --function NondetShort.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

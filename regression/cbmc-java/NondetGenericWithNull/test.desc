@@ -1,6 +1,6 @@
 CORE
 NondetGenericWithNull.class
---function NondetGenericWithNull.main
+--no-core-models --function NondetGenericWithNull.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

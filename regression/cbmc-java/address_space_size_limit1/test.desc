@@ -1,5 +1,5 @@
 CORE
 Test.class
---object-bits 4
+--no-core-models --object-bits 4
 too many addressed objects
 --

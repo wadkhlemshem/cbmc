@@ -1,6 +1,6 @@
 CORE
 VarLengthArrayTrace1.class
---trace
+--no-core-models --trace
 ^EXIT=10$
 ^SIGNAL=0$
 dynamic_3_array\[1.*\]=10

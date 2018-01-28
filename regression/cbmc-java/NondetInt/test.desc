@@ -1,6 +1,6 @@
 CORE
 NondetInt.class
---function NondetInt.main
+--no-core-models --function NondetInt.main
 ^VERIFICATION FAILED$
 --
 ^warning: ignoring

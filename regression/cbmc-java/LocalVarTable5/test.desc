@@ -1,6 +1,6 @@
 CORE
 test.class
---show-goto-functions
+--no-core-models --show-goto-functions
 dead anonlocal::1i
 dead anonlocal::2i
 dead anonlocal::3a
