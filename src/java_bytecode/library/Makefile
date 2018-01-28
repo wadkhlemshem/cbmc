@@ -46,5 +46,5 @@ clean_:
 converter$(EXEEXT): converter.cpp
 	$(LINKNATIVE)
 
-java_core_models.inc: converter$(EXEEXT) core-models.jar
+java_core_models.inc: converter$(EXEEXT)
 	./converter$(EXEEXT) JAVA_CORE_MODELS core-models.jar > $@
