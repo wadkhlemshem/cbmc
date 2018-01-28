@@ -1,0 +1,10 @@
+KNOWNBUG
+Main.class
+--lazy-methods --stop-on-fail
+^VERIFICATION SUCCESSFUL$
+^EXIT=0$
+^SIGNAL=0$
+--
+^warning: ignoring
+--
+ordinal() not loaded by --lazy-methods
