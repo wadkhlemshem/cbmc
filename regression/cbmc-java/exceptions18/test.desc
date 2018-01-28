@@ -1,6 +1,6 @@
 CORE
 Test.class
---function Test.goo
+--no-core-models --function Test.goo
 ^EXIT=10$
 ^SIGNAL=0$
 ^VERIFICATION FAILED$

@@ -1,6 +1,6 @@
 CORE symex-driven-lazy-loading-expected-failure
 DetectSplitPackagesTask.class
---function org.springframework.build.gradle.DetectSplitPackagesTask.detectSplitPackages --show-symbol-table
+--no-core-models --function org.springframework.build.gradle.DetectSplitPackagesTask.detectSplitPackages --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 --

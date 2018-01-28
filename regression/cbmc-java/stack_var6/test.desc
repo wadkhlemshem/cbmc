@@ -1,6 +1,6 @@
 CORE
 stack_test.class
-
+--no-core-models
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

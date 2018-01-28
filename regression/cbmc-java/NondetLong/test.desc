@@ -1,6 +1,6 @@
 CORE
 NondetLong.class
---function NondetLong.main
+--no-core-models --function NondetLong.main
 ^VERIFICATION FAILED$
 ^EXIT=10$
 ^SIGNAL=0$

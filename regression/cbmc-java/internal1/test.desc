@@ -1,6 +1,6 @@
 CORE
 com/diffblue/javatest/nestedobjects/subpackage/Order.class
---json-ui --function 'com.diffblue.javatest.nestedobjects.subpackage.Order.setItem:(Lcom/diffblue/javatest/nestedobjects/subpackage/Item;)Z' --cover location --trace
+--no-core-models --json-ui --function 'com.diffblue.javatest.nestedobjects.subpackage.Order.setItem:(Lcom/diffblue/javatest/nestedobjects/subpackage/Item;)Z' --cover location --trace
 activate-multi-line-match
 EXIT=0
 SIGNAL=0

@@ -1,6 +1,6 @@
 CORE
 enum1.class
---java-unwind-enum-static --unwind 3
+--no-core-models --java-unwind-enum-static --unwind 3
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

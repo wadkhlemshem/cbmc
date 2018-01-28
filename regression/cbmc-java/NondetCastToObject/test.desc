@@ -1,6 +1,6 @@
 CORE
 NondetCastToObject.class
---function NondetCastToObject.main
+--no-core-models --function NondetCastToObject.main
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

@@ -1,6 +1,6 @@
 CORE
 CtorLocalVar.class
---function CtorLocalVar.test
+--no-core-models --function CtorLocalVar.test
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

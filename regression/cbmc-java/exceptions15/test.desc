@@ -1,6 +1,6 @@
 CORE
 test.class
---function test.translate
+--no-core-models --function test.translate
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

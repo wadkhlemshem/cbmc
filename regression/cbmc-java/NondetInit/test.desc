@@ -1,6 +1,6 @@
 CORE
 Test.class
---function Test.check
+--no-core-models --function Test.check
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

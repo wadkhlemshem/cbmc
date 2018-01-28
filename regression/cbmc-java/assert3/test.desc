@@ -1,6 +1,6 @@
 CORE
 assert3.class
-
+--no-core-models
 ^EXIT=10$
 ^SIGNAL=0$
 ^VERIFICATION FAILED$

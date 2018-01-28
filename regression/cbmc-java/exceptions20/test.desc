@@ -1,6 +1,6 @@
 CORE
 test.class
---json-ui --trace
+--no-core-models --json-ui --trace
 ^EXIT=10$
 ^SIGNAL=0$
 .*VERIFICATION FAILED.*

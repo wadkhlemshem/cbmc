@@ -1,6 +1,6 @@
 CORE
 NondetDirectFromMethod.class
---function NondetDirectFromMethod.main
+--no-core-models --function NondetDirectFromMethod.main
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

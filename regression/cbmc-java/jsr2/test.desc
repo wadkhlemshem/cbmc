@@ -1,6 +1,6 @@
 CORE
 test.class
---function test.main --show-goto-functions
+--no-core-models --function test.main --show-goto-functions
 ^EXIT=0$
 ^SIGNAL=0$
 Labels: pc3

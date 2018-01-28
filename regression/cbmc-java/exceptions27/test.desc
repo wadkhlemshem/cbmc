@@ -1,6 +1,6 @@
 CORE
 test.class
-
+--no-core-models
 VERIFICATION SUCCESSFUL
 ^EXIT=0$
 ^SIGNAL=0$

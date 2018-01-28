@@ -1,6 +1,6 @@
 CORE
 unexpected.class
---function unexpected.test1 --verbosity 10 --show-symbol-table
+--no-core-models --function unexpected.test1 --verbosity 10 --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 --

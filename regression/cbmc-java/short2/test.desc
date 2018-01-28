@@ -1,6 +1,6 @@
 CORE
 short2.class
---function short2.f
+--no-core-models --function short2.f
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

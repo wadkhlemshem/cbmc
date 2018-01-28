@@ -1,6 +1,6 @@
 CORE
 NondetDouble.class
---function NondetDouble.main
+--no-core-models --function NondetDouble.main
 ^VERIFICATION FAILED$
 ^EXIT=10$
 ^SIGNAL=0$

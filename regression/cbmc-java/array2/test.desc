@@ -1,6 +1,6 @@
 CORE
 test.class
---function test.f --cover location
+--no-core-models --function test.f --cover location
 \d+ of \d+ covered
 ^EXIT=0$
 ^SIGNAL=0$

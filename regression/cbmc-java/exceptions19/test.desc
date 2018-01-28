@@ -1,6 +1,6 @@
 CORE
 exception_handler.class
---function exception_handler.f
+--no-core-models --function exception_handler.f
 ^EXIT=0$
 ^SIGNAL=0$
 ^VERIFICATION SUCCESSFUL$

@@ -1,6 +1,6 @@
 CORE symex-driven-lazy-loading-expected-failure
 edu/emory/mathcs/backport/java/util/concurrent/ConcurrentHashMap.class
---show-goto-functions --function edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap.put
+--no-core-models --show-goto-functions --function edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap.put
 ^EXIT=0$
 ^SIGNAL=0$
 --

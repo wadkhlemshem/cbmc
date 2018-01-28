@@ -1,7 +1,5 @@
 CORE
-main.c
-
-^EXIT=0$
-^SIGNAL=0$
+Test.class
+--no-core-models --function Test.check
 ^VERIFICATION SUCCESSFUL$
 --

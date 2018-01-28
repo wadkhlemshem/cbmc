@@ -1,6 +1,6 @@
 CORE
 NondetAssume1.class
---function NondetAssume1.main
+--no-core-models --function NondetAssume1.main
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

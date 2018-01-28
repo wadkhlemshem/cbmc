@@ -1,6 +1,6 @@
 CORE
 covered1.class
---cover location --json-ui --show-properties --function 'covered1.<init>'
+--no-core-models --cover location --json-ui --show-properties --function 'covered1.<init>'
 ^EXIT=0$
 ^SIGNAL=0$
 .*\"coveredLines\": \"22\",$

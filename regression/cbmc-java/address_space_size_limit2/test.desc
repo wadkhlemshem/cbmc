@@ -1,6 +1,6 @@
 CORE
 Test.class
---object-bits 8
+--no-core-models --object-bits 8
 ^EXIT=10$
 ^SIGNAL=0$
 ^VERIFICATION FAILED$

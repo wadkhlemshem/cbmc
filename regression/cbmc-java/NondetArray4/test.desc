@@ -1,6 +1,6 @@
 CORE
 NondetArray4.class
---function NondetArray4.main
+--no-core-models --function NondetArray4.main
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

@@ -1,6 +1,6 @@
 CORE
 NondetGenericWithoutNull.class
---function NondetGenericWithoutNull.main
+--no-core-models --function NondetGenericWithoutNull.main
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$

@@ -1,6 +1,6 @@
 CORE symex-driven-lazy-loading-expected-failure
 method_parameters.class
---function method_parameters.test1 --verbosity 10 --show-symbol-table
+--no-core-models --function method_parameters.test1 --verbosity 10 --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 --

@@ -1,6 +1,6 @@
 CORE
 NondetArray3.class
---function NondetArray3.main --unwind 5
+--no-core-models --function NondetArray3.main --unwind 5
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$
 ^SIGNAL=0$
