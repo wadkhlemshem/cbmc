@@ -1,0 +1,8 @@
+CORE symex-driven-lazy-loading-expected-failure
+Main.class
+--lazy-methods --stop-on-fail --refine-strings --string-max-length 10 --unwind 10 --classpath ../../../src/java_bytecode/library/core-models.jar:.
+^EXIT=10$
+^SIGNAL=0$
+^VERIFICATION FAILED$
+--
+Does not work with symex-driven-lazy-loading because it requires --lazy-models.
