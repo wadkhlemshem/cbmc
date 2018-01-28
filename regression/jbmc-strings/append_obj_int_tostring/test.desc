@@ -1,0 +1,7 @@
+CORE
+Main.class
+--lazy-methods --stop-on-fail --refine-strings --string-max-length 10 --unwind 10
+^EXIT=10$
+^SIGNAL=0$
+^VERIFICATION FAILED$
+--
