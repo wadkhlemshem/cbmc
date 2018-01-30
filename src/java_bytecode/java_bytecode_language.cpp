@@ -43,7 +43,7 @@ void java_bytecode_languaget::get_language_options(const cmdlinet &cmd)
 {
   assume_inputs_non_null=cmd.isset("java-assume-inputs-non-null");
   java_class_loader.use_core_models=!cmd.isset("no-core-models");
-  string_refinement_enabled=cmd.isset("refine-strings");
+  string_refinement_enabled=!cmd.isset("no-refine-strings");
   throw_runtime_exceptions=cmd.isset("java-throw-runtime-exceptions");
   if(cmd.isset("java-max-input-array-length"))
     object_factory_parameters.max_nondet_array_length=
