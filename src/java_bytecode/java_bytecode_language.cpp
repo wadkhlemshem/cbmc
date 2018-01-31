@@ -46,15 +46,28 @@ void java_bytecode_languaget::get_language_options(const cmdlinet &cmd)
   java_class_loader.use_core_models=!cmd.isset("no-core-models");
   string_refinement_enabled=!cmd.isset("no-refine-strings");
   throw_runtime_exceptions=cmd.isset("java-throw-runtime-exceptions");
-  if(cmd.isset("java-max-input-array-length"))
+
+  if(cmd.isset("java-max-input-array-length")) // will go away
     object_factory_parameters.max_nondet_array_length=
       std::stoi(cmd.get_value("java-max-input-array-length"));
-  if(cmd.isset("java-max-input-tree-depth"))
+  if(cmd.isset("max-nondet-array-length"))
+    object_factory_parameters.max_nondet_array_length=
+      std::stoi(cmd.get_value("max-nondet-array-length"));
+
+  if(cmd.isset("java-max-input-tree-depth")) // will go away
     object_factory_parameters.max_nondet_tree_depth=
       std::stoi(cmd.get_value("java-max-input-tree-depth"));
-  if(cmd.isset("string-max-input-length"))
+  if(cmd.isset("max-nondet-tree-depth"))
+    object_factory_parameters.max_nondet_tree_depth=
+      std::stoi(cmd.get_value("max-nondet-tree-depth"));
+
+  if(cmd.isset("string-max-input-length")) // will go away
     object_factory_parameters.max_nondet_string_length=
       std::stoi(cmd.get_value("string-max-input-length"));
+  if(cmd.isset("max-nondet-string-length"))
+    object_factory_parameters.max_nondet_string_length=
+      std::stoi(cmd.get_value("max-nondet-string-length"));
+
   object_factory_parameters.string_printable = cmd.isset("string-printable");
   if(cmd.isset("java-max-vla-length"))
     max_user_array_length=std::stoi(cmd.get_value("java-max-vla-length"));

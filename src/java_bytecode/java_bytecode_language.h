@@ -31,11 +31,13 @@ Author: Daniel Kroening, kroening@kroening.com
   "(no-core-models)"                                                           \
   "(java-assume-inputs-non-null)"                                              \
   "(java-throw-runtime-exceptions)"                                            \
-  "(java-max-input-array-length):"                                             \
-  "(java-max-input-tree-depth):"                                               \
+  "(java-max-input-array-length):" /* will go a away */                        \
+  "(max-nondet-array-length):"                                                 \
+  "(java-max-input-tree-depth):"   /* will go a away */                        \
+  "(max-nondet-tree-depth):"                                                   \
   "(java-max-vla-length):"                                                     \
   "(java-cp-include-files):"                                                   \
-  "(lazy-methods)"                                                             \
+  "(lazy-methods)"                 /* will go a away */                        \
   "(no-lazy-methods)"                                                          \
   "(lazy-methods-extra-entry-point):"                                          \
   "(java-load-class):"                                                         \
@@ -47,9 +49,9 @@ Author: Daniel Kroening, kroening@kroening.com
   " --java-assume-inputs-non-null    never initialize reference-typed parameter to the\n"        /* NOLINT(*) */ \
   "                                  entry point with null\n"                                    /* NOLINT(*) */ \
   " --java-throw-runtime-exceptions  make implicit runtime exceptions explicit\n"                /* NOLINT(*) */ \
-  " --java-max-input-array-length N  limit input array size to <= N\n"                           /* NOLINT(*) */ \
-  " --java-max-input-tree-depth N    object references are (deterministically) set to null in\n" /* NOLINT(*) */ \
-  "                                  the object\n"                                               /* NOLINT(*) */ \
+  " --max-nondet-array-length N      limit nondet (e.g. input) array size to <= N\n"                           /* NOLINT(*) */ \
+  " --max-nondet-tree-depth N        limit size of nondet (e.g. input) object tree;\n" /* NOLINT(*) */ \
+  "                                  at level N references are set to null\n" /* NOLINT(*) */ \
   " --java-max-vla-length            limit the length of user-code-created arrays\n"             /* NOLINT(*) */ \
   " --java-cp-include-files          regexp or JSON list of files to load (with '@' prefix)\n"   /* NOLINT(*) */ \
   " --lazy-methods                   only translate methods that appear to be reachable from\n"  /* NOLINT(*) */ \
