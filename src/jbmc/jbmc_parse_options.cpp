@@ -706,16 +706,30 @@ bool jbmc_parse_optionst::process_goto_functions(
     // don't have an instance of that here.
     object_factory_parameterst factory_params;
     factory_params.max_nondet_array_length=
-      cmdline.isset("java-max-input-array-length")
+      cmdline.isset("java-max-input-array-length") // will go away
         ? std::stoul(cmdline.get_value("java-max-input-array-length"))
         : MAX_NONDET_ARRAY_LENGTH_DEFAULT;
+    factory_params.max_nondet_array_length=
+      cmdline.isset("max-nondet-array-length")
+        ? std::stoul(cmdline.get_value("max-nondet-array-length"))
+        : MAX_NONDET_ARRAY_LENGTH_DEFAULT;
+
     factory_params.max_nondet_string_length=
-      cmdline.isset("string-max-input-length")
+      cmdline.isset("string-max-input-length") // will go away
         ? std::stoul(cmdline.get_value("string-max-input-length"))
         : MAX_NONDET_STRING_LENGTH;
+    factory_params.max_nondet_string_length=
+      cmdline.isset("max-nondet-string-length")
+        ? std::stoul(cmdline.get_value("max-nondet-string-length"))
+        : MAX_NONDET_STRING_LENGTH;
+
     factory_params.max_nondet_tree_depth=
-      cmdline.isset("java-max-input-tree-depth")
+      cmdline.isset("java-max-input-tree-depth") // will go away
         ? std::stoul(cmdline.get_value("java-max-input-tree-depth"))
+        : MAX_NONDET_TREE_DEPTH;
+    factory_params.max_nondet_tree_depth=
+      cmdline.isset("max-nondet-tree-depth")
+        ? std::stoul(cmdline.get_value("max-nondet-tree-depth"))
         : MAX_NONDET_TREE_DEPTH;
 
     replace_java_nondet(goto_model);
@@ -926,7 +940,7 @@ void jbmc_parse_optionst::help()
     " --no-refine-strings          turn off string refinement\n"
     " --string-printable           add constraint that strings are printable (experimental)\n" // NOLINT(*)
     " --string-max-length          add constraint on the length of strings\n" // NOLINT(*)
-    " --string-max-input-length    add constraint on the length of input strings\n" // NOLINT(*)
+    " --max-nondet-string-length   bound the length of nondet (e.g. input) strings\n" // NOLINT(*)
     " --outfile filename           output formula to given file\n"
     " --arrays-uf-never            never turn arrays into uninterpreted functions\n" // NOLINT(*)
     " --arrays-uf-always           always turn arrays into uninterpreted functions\n" // NOLINT(*)
