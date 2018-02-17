@@ -49,7 +49,7 @@ optionalt<source_locationt> find_property(
 /// \param ns: namespace
 /// \param identifier: function id of the goto program
 /// \param goto_program: the goto program
-void collect_properties_json(
+void convert_properties_json(
   json_arrayt &json_properties,
   const namespacet &ns,
   const irep_idt &identifier,
