@@ -35,12 +35,11 @@ class optionst;
   "(compact-output)"
 
 class goto_diff_parse_optionst:
-  public parse_options_baset,
-  public goto_diff_languagest
+  public parse_options_baset
 {
 public:
-  virtual int doit();
-  virtual void help();
+  int doit() override;
+  void help() override;
 
   goto_diff_parse_optionst(int argc, const char **argv);
   goto_diff_parse_optionst(
@@ -49,23 +48,21 @@ public:
     const std::string &extra_options);
 
 protected:
+  goto_modelt goto_model1;
+  goto_modelt goto_model2;
   ui_message_handlert ui_message_handler;
-  goto_diff_languagest languages2;
 
-  virtual void get_command_line_options(optionst &options);
+  void get_command_line_options(optionst &options);
 
-  virtual int get_goto_program(
-    const optionst &options,
-    goto_diff_languagest &languages,
-    goto_modelt &goto_model);
+  int get_goto_program(const optionst &options);
 
-  virtual bool process_goto_program(
-    const optionst &options,
-    goto_modelt &goto_model);
+  bool process_goto_program(const optionst &options, goto_modelt &goto_model);
 
   void eval_verbosity();
 
   void preprocessing();
+
+  void register_languages();
 };
 
 #endif // CPROVER_GOTO_DIFF_GOTO_DIFF_PARSE_OPTIONS_H

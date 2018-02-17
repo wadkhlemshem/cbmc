@@ -353,7 +353,6 @@ int goto_diff_parse_optionst::doit()
 
 int goto_diff_parse_optionst::get_goto_program(
   const optionst &options,
-  goto_diff_languagest &languages,
   goto_modelt &goto_model)
 {
   status() << "Reading program from `" << cmdline.args[0] << "'" << eom;
