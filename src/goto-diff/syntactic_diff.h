@@ -17,11 +17,12 @@ Author: Peter Schrammel
 class syntactic_difft:public goto_difft
 {
  public:
-  explicit syntactic_difft(
+  syntactic_difft(
     const goto_modelt &_goto_model1,
     const goto_modelt &_goto_model2,
+    const optionst &_options,
     message_handlert &_message_handler):
-    goto_difft(_goto_model1, _goto_model2, _message_handler)
+    goto_difft(_goto_model1, _goto_model2, _options, _message_handler)
   {
   }
 

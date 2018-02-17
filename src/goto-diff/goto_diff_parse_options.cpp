@@ -236,6 +236,12 @@ void goto_diff_parse_optionst::get_command_line_options(optionst &options)
             << " must not be given together" << eom;
     exit(1);
   }
+
+  if(cmdline.isset("show-properties"))
+    options.set_option("show-properties", true);
+  else
+    options.set_option("show-properties", false);
+
 }
 
 /// invoke main modules
@@ -337,7 +343,7 @@ int goto_diff_parse_optionst::doit()
     return 0;
   }
 
-  syntactic_difft sd(goto_model1, goto_model2, get_message_handler());
+  syntactic_difft sd(goto_model1, goto_model2, options, get_message_handler());
   sd.set_ui(get_ui());
   sd();
   sd.output_functions(std::cout);

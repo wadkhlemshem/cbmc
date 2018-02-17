@@ -19,18 +19,22 @@ Author: Peter Schrammel
 
 #include <ostream>
 
+class optionst;
+
 class goto_difft:public messaget
 {
 public:
-  explicit goto_difft(
+  goto_difft(
     const goto_modelt &_goto_model1,
     const goto_modelt &_goto_model2,
+    const optionst &_options,
     message_handlert &_message_handler
     )
     :
     messaget(_message_handler),
     goto_model1(_goto_model1),
     goto_model2(_goto_model2),
+    options(_options),
     ui(ui_message_handlert::uit::PLAIN),
     total_functions_count(0)
      {}
@@ -44,6 +48,7 @@ public:
 protected:
   const goto_modelt &goto_model1;
   const goto_modelt &goto_model2;
+  const optionst &options;
   ui_message_handlert::uit ui;
 
   unsigned total_functions_count;

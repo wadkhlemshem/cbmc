@@ -11,7 +11,10 @@ Author: Peter Schrammel
 
 #include "goto_diff.h"
 
+#include <goto-programs/show_properties.h>
+
 #include <util/json_expr.h>
+#include <util/options.h>
 
 std::ostream &goto_difft::output_functions(std::ostream &out) const
 {
@@ -84,22 +87,39 @@ void goto_difft::convert_function(
   json_objectt &result,
   const irep_idt &function_name) const
 {
-  // the function may be in goto_model1 or goto_model2
-  if(
-    goto_model1.goto_functions.function_map.find(function_name) !=
-    goto_model1.goto_functions.function_map.end())
-  {
-    const symbolt &symbol =
-      namespacet(goto_model1.symbol_table).lookup(function_name);
-    result["sourceLocation"] = json(symbol.location);
-  }
-  else if(
-    goto_model2.goto_functions.function_map.find(function_name) !=
-    goto_model2.goto_functions.function_map.end())
-  {
-    const symbolt &symbol =
-      namespacet(goto_model2.symbol_table).lookup(function_name);
-    result["sourceLocation"] = json(symbol.location);
-  }
   result["name"]=json_stringt(id2string(function_name));
+
+  // the function may be in goto_model2 (new) or goto_model1 (old)
+  // we take information from the new version (if available)
+  const auto gf_it2 =
+    goto_model2.goto_functions.function_map.find(function_name);
+  if(gf_it2 != goto_model1.goto_functions.function_map.end())
+  {
+    namespacet ns2(goto_model2.symbol_table);
+    const symbolt &symbol = ns2.lookup(function_name);
+    result["sourceLocation"] = json(symbol.location);
+
+    if(options.get_bool_option("show-properties"))
+    {
+      convert_properties_json(
+        result["properties"].make_array(), ns2, function_name, gf_it2->second.body);
+    }
+
+    return;
+  }
+
+  const auto gf_it1 =
+    goto_model1.goto_functions.function_map.find(function_name);
+  if(gf_it1 != goto_model1.goto_functions.function_map.end())
+  {
+    namespacet ns1(goto_model1.symbol_table);
+    const symbolt &symbol = ns1.lookup(function_name);
+    result["sourceLocation"] = json(symbol.location);
+
+    if(options.get_bool_option("show-properties"))
+    {
+      convert_properties_json(
+        result["properties"].make_array(), ns1, function_name, gf_it1->second.body);
+    }
+  }
 }
