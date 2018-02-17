@@ -496,6 +496,7 @@ void goto_diff_parse_optionst::help()
     "\n"
     "Diff options:\n"
     HELP_SHOW_GOTO_FUNCTIONS
+    HELP_SHOW_PROPERTIES
     " --syntactic                  do syntactic diff (default)\n"
     " -u | --unified               output unified diff\n"
     " --change-impact | \n"
