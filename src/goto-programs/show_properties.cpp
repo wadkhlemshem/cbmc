@@ -111,7 +111,7 @@ void show_properties(
 }
 
 
-void show_properties_json(
+void collect_properties_json(
   json_arrayt &json_properties,
   const namespacet &ns,
   const irep_idt &identifier,
@@ -157,7 +157,7 @@ void show_properties_json(
 
   for(const auto &fct : goto_functions.function_map)
     if(!fct.second.is_inlined())
-      show_properties_json(
+      collect_properties_json(
         json_properties,
         ns,
         fct.first,
