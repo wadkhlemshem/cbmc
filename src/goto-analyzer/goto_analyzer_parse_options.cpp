@@ -898,8 +898,7 @@ void goto_analyzer_parse_optionst::help()
     " --show-parse-tree            show parse tree\n"
     " --show-symbol-table          show symbol table\n"
     HELP_SHOW_GOTO_FUNCTIONS
-    // NOLINTNEXTLINE(whitespace/line_length)
-    " --show-properties            show the properties, but don't run analysis\n"
+    HELP_SHOW_PROPERTIES
     "\n"
     "Program instrumentation options:\n"
     HELP_GOTO_CHECK

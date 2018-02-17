@@ -1475,7 +1475,7 @@ void goto_instrument_parse_optionst::help()
     "\n"
     "Diagnosis:\n"
     " --show-loops                 show the loops in the program\n"
-    " --show-properties            show the properties\n"
+    HELP_SHOW_PROPERTIES
     " --show-symbol-table          show symbol table\n"
     " --list-symbols               list symbols with type information\n"
     HELP_SHOW_GOTO_FUNCTIONS
