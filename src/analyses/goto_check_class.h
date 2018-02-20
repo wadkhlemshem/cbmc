@@ -88,8 +88,10 @@ protected:
   void float_overflow_check(const exprt &expr, const guardt &guard);
   void nan_check(const exprt &expr, const guardt &guard);
 
-  virtual void do_function_call(const goto_programt::instructiont &, const irep_idt &mode);
-
+  virtual void do_function_call(
+    const goto_programt::instructiont &, const irep_idt &mode);
+  virtual void copy_source_location(
+    goto_programt::targett dest, goto_programt::const_targett src);
   std::string array_name(const exprt &expr);
 
   void add_guarded_claim(

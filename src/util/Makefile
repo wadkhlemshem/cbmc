@@ -36,6 +36,7 @@ SRC = arith_tools.cpp \
       invariant_utils.cpp \
       json.cpp \
       json_expr.cpp \
+      json_expr_java.cpp \
       json_irep.cpp \
       lispexpr.cpp \
       lispirep.cpp \

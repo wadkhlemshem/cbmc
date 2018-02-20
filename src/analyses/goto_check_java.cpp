@@ -86,3 +86,19 @@ void goto_check_javat::do_function_call(const goto_programt::instructiont &i, co
   // the call might invalidate any assertion
   assertions.clear();
 }
+
+void goto_check_javat::copy_source_location(
+  goto_programt::targett dest, goto_programt::const_targett src)
+{
+  goto_checkt::copy_source_location(dest, src);
+  java_source_locationt &dest_loc =
+    static_cast<java_source_locationt &>(dest->source_location);
+  java_source_locationt &src_loc =
+    static_cast<java_source_locationt &>(src->source_location);
+
+  if(!src_loc.get_java_bytecode_index().empty())
+  {
+    dest_loc.set_java_bytecode_index(
+      src_loc.get_java_bytecode_index());
+  }
+}

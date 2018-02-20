@@ -20,6 +20,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/std_expr.h>
 #include <util/string_constant.h>
 #include <util/optional.h>
+#include <util/java_source_location.h>
 
 #include "java_bytecode_parse_tree.h"
 #include "java_types.h"
@@ -932,7 +933,7 @@ void java_bytecode_parsert::rbytecode(
     instructiont &instruction=instructions.back();
     instruction.statement=bytecodes[bytecode].mnemonic;
     instruction.address=start_of_instruction;
-    instruction.source_location
+    static_cast<java_source_locationt &>(instruction.source_location)
       .set_java_bytecode_index(std::to_string(bytecode_index));
 
     switch(bytecodes[bytecode].format)

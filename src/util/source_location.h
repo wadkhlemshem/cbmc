@@ -70,6 +70,16 @@ public:
     return get(ID_comment);
   }
 
+  const irep_idt &get_case_number() const
+  {
+    return get(ID_switch_case_number);
+  }
+
+  const irep_idt &get_basic_block_covered_lines() const
+  {
+    return get(ID_basic_block_covered_lines);
+  }
+
   void set_file(const irep_idt &file)
   {
     set(ID_file, file);
@@ -120,6 +130,17 @@ public:
     set(ID_comment, comment);
   }
 
+  // for switch case number
+  void set_case_number(const irep_idt &number)
+  {
+    set(ID_switch_case_number, number);
+  }
+
+  void set_basic_block_covered_lines(const irep_idt &covered_lines)
+  {
+    return set(ID_basic_block_covered_lines, covered_lines);
+  }
+
   void set_hide()
   {
     set(ID_hide, true);
@@ -152,7 +173,7 @@ public:
   }
 
 protected:
-  virtual std::string as_string(bool print_cwd) const;
+  std::string as_string(bool print_cwd) const;
 };
 
 std::ostream &operator <<(std::ostream &, const source_locationt &);

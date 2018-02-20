@@ -1350,6 +1350,25 @@ void goto_checkt::do_function_call(const goto_programt::instructiont &, const ir
   assertions.clear();
 }
 
+void goto_checkt::copy_source_location(
+  goto_programt::targett dest, goto_programt::const_targett src)
+{
+  dest->source_location.id(irep_idt());
+
+  if(!src->source_location.get_file().empty())
+    dest->source_location.set_file(src->source_location.get_file());
+
+  if(!src->source_location.get_line().empty())
+    dest->source_location.set_line(src->source_location.get_line());
+
+  if(!src->source_location.get_function().empty())
+    dest->source_location.set_function(
+      src->source_location.get_function());
+
+  if(!src->source_location.get_column().empty())
+    dest->source_location.set_column(src->source_location.get_column());
+}
+
 void goto_checkt::check(const exprt &expr, const irep_idt &mode)
 {
   guardt guard;
@@ -1537,24 +1556,7 @@ void goto_checkt::goto_check(
     {
       if(i_it->source_location.is_nil())
       {
-        i_it->source_location.id(irep_idt());
-
-        if(!it->source_location.get_file().empty())
-          i_it->source_location.set_file(it->source_location.get_file());
-
-        if(!it->source_location.get_line().empty())
-          i_it->source_location.set_line(it->source_location.get_line());
-
-        if(!it->source_location.get_function().empty())
-          i_it->source_location.set_function(
-            it->source_location.get_function());
-
-        if(!it->source_location.get_column().empty())
-          i_it->source_location.set_column(it->source_location.get_column());
-
-        if(!it->source_location.get_java_bytecode_index().empty())
-          i_it->source_location.set_java_bytecode_index(
-            it->source_location.get_java_bytecode_index());
+        copy_source_location(i_it, it);
       }
 
       if(i_it->function.empty())

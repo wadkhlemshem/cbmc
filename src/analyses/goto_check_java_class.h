@@ -34,6 +34,10 @@ protected:
 
   void do_function_call(
     const goto_programt::instructiont &, const irep_idt &mode) override;
+
+  void copy_source_location(
+    goto_programt::targett dest,
+    goto_programt::const_targett src) override;
 };
 
 #endif // CPROVER_ANALYSES_GOTO_CHECK_JAVA_CLASS_H
