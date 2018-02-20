@@ -23,9 +23,6 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/initialize_goto_model.h>
 #include <goto-programs/set_properties.h>
 #include <goto-programs/remove_function_pointers.h>
-#include <goto-programs/remove_virtual_functions.h>
-#include <goto-programs/remove_exceptions.h>
-#include <goto-programs/remove_instanceof.h>
 #include <goto-programs/remove_returns.h>
 #include <goto-programs/remove_vector.h>
 #include <goto-programs/remove_complex.h>
@@ -746,13 +743,6 @@ bool goto_analyzer_parse_optionst::process_goto_program(
     status() << "Removing function pointers and virtual functions" << eom;
     remove_function_pointers(
       get_message_handler(), goto_model, cmdline.isset("pointer-check"));
-    // Java virtual functions -> explicit dispatch tables:
-    remove_virtual_functions(goto_model);
-    // remove Java throw and catch
-    // This introduces instanceof, so order is important:
-    remove_exceptions(goto_model);
-    // remove rtti
-    remove_instanceof(goto_model);
 
     // do partial inlining
     status() << "Partial Inlining" << eom;
