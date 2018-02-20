@@ -52,12 +52,6 @@ std::string source_locationt::as_string(bool print_cwd) const
       dest+=' ';
     dest+="function "+id2string(function);
   }
-  if(!bytecode.empty())
-  {
-    if(dest!="")
-      dest+=' ';
-    dest+="bytecode-index "+id2string(bytecode);
-  }
 
   return dest;
 }
