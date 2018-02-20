@@ -10,6 +10,7 @@ SRC = ai.cpp \
       flow_insensitive_analysis.cpp \
       global_may_alias.cpp \
       goto_check.cpp \
+      goto_check_java.cpp \
       goto_rw.cpp \
       interval_analysis.cpp \
       interval_domain.cpp \

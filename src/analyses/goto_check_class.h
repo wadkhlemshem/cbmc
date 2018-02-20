@@ -77,7 +77,7 @@ protected:
   void undefined_shift_check(const shift_exprt &expr, const guardt &guard);
   void pointer_rel_check(const exprt &expr, const guardt &guard);
   void pointer_overflow_check(const exprt &expr, const guardt &guard);
-  void pointer_validity_check(
+  virtual void pointer_validity_check(
     const dereference_exprt &expr,
     const guardt &guard,
     const exprt &access_lb,
@@ -87,6 +87,8 @@ protected:
   void conversion_check(const exprt &expr, const guardt &guard);
   void float_overflow_check(const exprt &expr, const guardt &guard);
   void nan_check(const exprt &expr, const guardt &guard);
+
+  virtual void do_function_call(const goto_programt::instructiont &, const irep_idt &mode);
 
   std::string array_name(const exprt &expr);
 

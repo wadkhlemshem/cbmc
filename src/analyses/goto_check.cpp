@@ -814,156 +814,137 @@ void goto_checkt::pointer_validity_check(
   if(!enable_pointer_check)
     return;
 
-  const exprt &pointer=expr.op0();
-  const pointer_typet &pointer_type=
+  const exprt &pointer = expr.op0();
+  const pointer_typet &pointer_type =
     to_pointer_type(ns.follow(pointer.type()));
 
   assert(base_type_eq(pointer_type.subtype(), expr.type(), ns));
 
-  local_bitvector_analysist::flagst flags=
+  local_bitvector_analysist::flagst flags =
     local_bitvector_analysis->get(t, pointer);
 
-  const typet &dereference_type=pointer_type.subtype();
+  const typet &dereference_type = pointer_type.subtype();
 
-  // For Java, we only need to check for null
-  if(mode==ID_java)
+  exprt allocs = false_exprt();
+
+  if(!allocations.empty())
   {
-    if(flags.is_unknown() || flags.is_null())
+    exprt::operandst disjuncts;
+
+    for(const auto &a : allocations)
     {
-      notequal_exprt not_eq_null(pointer, null_pointer_exprt(pointer_type));
+      typecast_exprt int_ptr(pointer, a.first.type());
 
-      add_guarded_claim(
-        not_eq_null,
-        "reference is null",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
-    }
-  }
-  else
-  {
-    exprt allocs=false_exprt();
-
-    if(!allocations.empty())
-    {
-      exprt::operandst disjuncts;
-
-      for(const auto &a : allocations)
+      exprt lb(int_ptr);
+      if(access_lb.is_not_nil())
       {
-        typecast_exprt int_ptr(pointer, a.first.type());
-
-        exprt lb(int_ptr);
-        if(access_lb.is_not_nil())
-        {
-          if(!base_type_eq(lb.type(), access_lb.type(), ns))
-            lb=plus_exprt(lb, typecast_exprt(access_lb, lb.type()));
-          else
-            lb=plus_exprt(lb, access_lb);
-        }
-
-        binary_relation_exprt lb_check(a.first, ID_le, lb);
-
-        exprt ub(int_ptr);
-        if(access_ub.is_not_nil())
-        {
-          if(!base_type_eq(ub.type(), access_ub.type(), ns))
-            ub=plus_exprt(ub, typecast_exprt(access_ub, ub.type()));
-          else
-            ub=plus_exprt(ub, access_ub);
-        }
-
-        binary_relation_exprt ub_check(
-          ub, ID_le, plus_exprt(a.first, a.second));
-
-        disjuncts.push_back(and_exprt(lb_check, ub_check));
+        if(!base_type_eq(lb.type(), access_lb.type(), ns))
+          lb = plus_exprt(lb, typecast_exprt(access_lb, lb.type()));
+        else
+          lb = plus_exprt(lb, access_lb);
       }
 
-      allocs=disjunction(disjuncts);
+      binary_relation_exprt lb_check(a.first, ID_le, lb);
+
+      exprt ub(int_ptr);
+      if(access_ub.is_not_nil())
+      {
+        if(!base_type_eq(ub.type(), access_ub.type(), ns))
+          ub = plus_exprt(ub, typecast_exprt(access_ub, ub.type()));
+        else
+          ub = plus_exprt(ub, access_ub);
+      }
+
+      binary_relation_exprt ub_check(
+        ub, ID_le, plus_exprt(a.first, a.second));
+
+      disjuncts.push_back(and_exprt(lb_check, ub_check));
     }
 
-    if(flags.is_unknown() || flags.is_null())
-    {
-      add_guarded_claim(
-        or_exprt(allocs, not_exprt(null_pointer(pointer))),
-        "dereference failure: pointer NULL",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
-    }
+    allocs = disjunction(disjuncts);
+  }
 
-    if(flags.is_unknown())
-      add_guarded_claim(
-        or_exprt(allocs, not_exprt(invalid_pointer(pointer))),
-        "dereference failure: pointer invalid",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
+  if(flags.is_unknown() || flags.is_null())
+  {
+    add_guarded_claim(
+      or_exprt(allocs, not_exprt(null_pointer(pointer))),
+      "dereference failure: pointer NULL",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
+  }
 
-    if(flags.is_uninitialized())
-      add_guarded_claim(
-        or_exprt(allocs, not_exprt(invalid_pointer(pointer))),
-        "dereference failure: pointer uninitialized",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
+  if(flags.is_unknown())
+    add_guarded_claim(
+      or_exprt(allocs, not_exprt(invalid_pointer(pointer))),
+      "dereference failure: pointer invalid",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
 
-    if(flags.is_unknown() || flags.is_dynamic_heap())
-      add_guarded_claim(
-        or_exprt(allocs, not_exprt(deallocated(pointer, ns))),
-        "dereference failure: deallocated dynamic object",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
+  if(flags.is_uninitialized())
+    add_guarded_claim(
+      or_exprt(allocs, not_exprt(invalid_pointer(pointer))),
+      "dereference failure: pointer uninitialized",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
 
-    if(flags.is_unknown() || flags.is_dynamic_local())
-      add_guarded_claim(
-        or_exprt(allocs, not_exprt(dead_object(pointer, ns))),
-        "dereference failure: dead object",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
+  if(flags.is_unknown() || flags.is_dynamic_heap())
+    add_guarded_claim(
+      or_exprt(allocs, not_exprt(deallocated(pointer, ns))),
+      "dereference failure: deallocated dynamic object",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
 
-    if(flags.is_unknown() || flags.is_dynamic_heap())
-    {
-      const or_exprt dynamic_bounds(
-        dynamic_object_lower_bound(pointer, ns, access_lb),
-        dynamic_object_upper_bound(pointer, dereference_type, ns, access_ub));
+  if(flags.is_unknown() || flags.is_dynamic_local())
+    add_guarded_claim(
+      or_exprt(allocs, not_exprt(dead_object(pointer, ns))),
+      "dereference failure: dead object",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
 
-      add_guarded_claim(
-        or_exprt(
-          allocs,
-          implies_exprt(
-            malloc_object(pointer, ns),
-            not_exprt(dynamic_bounds))),
-        "dereference failure: pointer outside dynamic object bounds",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
-    }
+  if(flags.is_unknown() || flags.is_dynamic_heap())
+  {
+    const or_exprt dynamic_bounds(
+      dynamic_object_lower_bound(pointer, ns, access_lb),
+      dynamic_object_upper_bound(pointer, dereference_type, ns, access_ub));
 
-    if(flags.is_unknown() ||
-       flags.is_dynamic_local() ||
-       flags.is_static_lifetime())
-    {
-      const or_exprt object_bounds(
-        object_lower_bound(pointer, ns, access_lb),
-        object_upper_bound(pointer, dereference_type, ns, access_ub));
+    add_guarded_claim(
+      or_exprt(
+        allocs,
+        implies_exprt(
+          malloc_object(pointer, ns),
+          not_exprt(dynamic_bounds))),
+      "dereference failure: pointer outside dynamic object bounds",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
+  }
 
-      add_guarded_claim(
-        or_exprt(allocs, dynamic_object(pointer), not_exprt(object_bounds)),
-        "dereference failure: pointer outside object bounds",
-        "pointer dereference",
-        expr.find_source_location(),
-        expr,
-        guard);
-    }
+  if(flags.is_unknown() ||
+     flags.is_dynamic_local() ||
+     flags.is_static_lifetime())
+  {
+    const or_exprt object_bounds(
+      object_lower_bound(pointer, ns, access_lb),
+      object_upper_bound(pointer, dereference_type, ns, access_ub));
+
+    add_guarded_claim(
+      or_exprt(allocs, dynamic_object(pointer), not_exprt(object_bounds)),
+      "dereference failure: pointer outside object bounds",
+      "pointer dereference",
+      expr.find_source_location(),
+      expr,
+      guard);
   }
 }
 
@@ -1357,6 +1338,18 @@ void goto_checkt::check_rec(
       mode);
 }
 
+void goto_checkt::do_function_call(const goto_programt::instructiont &, const irep_idt &mode)
+{
+  const code_function_callt &code_function_call=
+    to_code_function_call(t->code);
+
+  forall_operands(it, code_function_call)
+      check(*it, mode);
+
+  // the call might invalidate any assertion
+  assertions.clear();
+}
+
 void goto_checkt::check(const exprt &expr, const irep_idt &mode)
 {
   guardt guard;
@@ -1434,43 +1427,7 @@ void goto_checkt::goto_check(
     }
     else if(i.is_function_call())
     {
-      const code_function_callt &code_function_call=
-        to_code_function_call(i.code);
-
-      // for Java, need to check whether 'this' is null
-      // on non-static method invocations
-      if(mode==ID_java &&
-         enable_pointer_check &&
-         !code_function_call.arguments().empty() &&
-         code_function_call.function().type().id()==ID_code &&
-         to_code_type(code_function_call.function().type()).has_this())
-      {
-        exprt pointer=code_function_call.arguments()[0];
-
-        local_bitvector_analysist::flagst flags=
-          local_bitvector_analysis->get(t, pointer);
-
-        if(flags.is_unknown() || flags.is_null())
-        {
-          notequal_exprt not_eq_null(
-            pointer,
-            null_pointer_exprt(to_pointer_type(pointer.type())));
-
-          add_guarded_claim(
-            not_eq_null,
-            "this is null on method invocation",
-            "pointer dereference",
-            i.source_location,
-            pointer,
-            guardt());
-        }
-      }
-
-      forall_operands(it, code_function_call)
-        check(*it, mode);
-
-      // the call might invalidate any assertion
-      assertions.clear();
+      do_function_call(i, mode);
     }
     else if(i.is_return())
     {
