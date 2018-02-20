@@ -148,8 +148,7 @@ class optionst;
   "(dependence-graph)" \
   "(show)(verify)(simplify):" \
   "(location-sensitive)(concurrent)" \
-  "(no-simplify-slicing)" \
-  JAVA_BYTECODE_LANGUAGE_OPTIONS
+  "(no-simplify-slicing)"
 // clang-format on
 
 class goto_analyzer_parse_optionst:
