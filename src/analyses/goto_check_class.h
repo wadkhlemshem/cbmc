@@ -16,7 +16,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/guard.h>
 #include <util/namespace.h>
 #include <util/options.h>
-#
+
 #include <analyses/local_bitvector_analysis.h>
 
 class goto_checkt
@@ -135,4 +135,4 @@ protected:
   allocationst allocations;
 };
 
-#endif //PROJECT_GOTO_CHECK_CLASS_H
+#endif // CPROVER_ANALYSES_GOTO_CHECK_CLASS_H
