@@ -9,12 +9,15 @@ Author: Daniel Kroening, kroening@kroening.com
 /// \file
 /// Slicing
 
+#define DEBUG_FULL_SLICERT
+
 #include "full_slicer.h"
 #include "full_slicer_class.h"
 
 #include <util/find_symbols.h>
 #include <util/cprover_prefix.h>
 #ifdef DEBUG_FULL_SLICERT
+#include <iostream>
 #endif
 
 #include <goto-programs/remove_skip.h>
@@ -325,6 +328,9 @@ void full_slicert::operator()(
   // compute program dependence graph (and post-dominators)
   dependence_grapht dep_graph(ns);
   dep_graph(goto_functions, ns);
+#ifdef DEBUG_FULL_SLICERT
+  dep_graph.output(ns, goto_functions, std::cout);
+#endif
 
   // compute the fixedpoint
   fixedpoint(goto_functions, queue, jumps, decl_dead, dep_graph);
