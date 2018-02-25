@@ -284,6 +284,15 @@ static bool implicit(goto_programt::const_targett target)
 }
 
 void full_slicert::operator()(
+  goto_modelt &goto_model,
+  slicing_criteriont &criterion)
+{
+  goto_functionst &goto_functions = goto_model.goto_functions;
+  namespacet ns(goto_model.symbol_table);
+  (*this)(goto_functions, ns, criterion);
+}
+
+void full_slicert::operator()(
   goto_functionst &goto_functions,
   const namespacet &ns,
   slicing_criteriont &criterion)
@@ -383,11 +392,17 @@ void full_slicer(
   full_slicert()(goto_functions, ns, a);
 }
 
+void full_slicer(
+  goto_modelt &goto_model,
+  slicing_criteriont &criterion)
+{
+  full_slicert()(goto_model, criterion);
+}
+
 void full_slicer(goto_modelt &goto_model)
 {
   assert_criteriont a;
-  const namespacet ns(goto_model.symbol_table);
-  full_slicert()(goto_model.goto_functions, ns, a);
+  full_slicert()(goto_model, a);
 }
 
 void property_slicer(
