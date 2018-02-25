@@ -35,7 +35,7 @@ std::ostream &goto_programt::output_instruction(
   const namespacet &ns,
   const irep_idt &identifier,
   std::ostream &out,
-  const instructiont &instruction) const
+  const instructiont &instruction)
 {
   out << "        // " << instruction.location_number << " ";
 

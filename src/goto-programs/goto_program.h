@@ -500,11 +500,11 @@ public:
   }
 
   /// Output a single instruction
-  std::ostream &output_instruction(
+  static std::ostream &output_instruction(
     const namespacet &ns,
     const irep_idt &identifier,
     std::ostream &out,
-    const instructionst::value_type &it) const;
+    const instructionst::value_type &it);
 
   /// Compute the target numbers
   void compute_target_numbers();
