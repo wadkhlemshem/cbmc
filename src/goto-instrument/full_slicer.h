@@ -14,12 +14,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <goto-programs/goto_model.h>
 
+/// \deprecated
 void full_slicer(
   goto_functionst &,
   const namespacet &);
 
 void full_slicer(goto_modelt &);
 
+/// \deprecated
 void property_slicer(
   goto_functionst &,
   const namespacet &,
@@ -36,9 +38,14 @@ public:
   virtual bool operator()(goto_programt::const_targett)=0;
 };
 
+/// \deprecated
 void full_slicer(
   goto_functionst &goto_functions,
   const namespacet &ns,
+  slicing_criteriont &criterion);
+
+void full_slicer(
+  goto_modelt &goto_model,
   slicing_criteriont &criterion);
 
 #endif // CPROVER_GOTO_INSTRUMENT_FULL_SLICER_H

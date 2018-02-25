@@ -38,9 +38,14 @@ echo 'digraph g {' > c.dot ; cat c.goto | \
 class full_slicert
 {
 public:
+  /// \deprecated
   void operator()(
     goto_functionst &goto_functions,
     const namespacet &ns,
+    slicing_criteriont &criterion);
+
+  void operator()(
+    goto_modelt &goto_model,
     slicing_criteriont &criterion);
 
 protected:
