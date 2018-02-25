@@ -21,6 +21,12 @@ Date: August 2013
 
 #include "goto_rw.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 bool dep_graph_domaint::merge(
   const dep_graph_domaint &src,
   goto_programt::const_targett from,
@@ -158,11 +164,22 @@ void dep_graph_domaint::data_dependencies(
   rw_range_set_value_sett rw_set(ns, value_sets);
   goto_rw(to, rw_set);
 
+#ifdef DEBUG
+  std::cout << "*** DD FROM:" << std::endl;
+  goto_programt::output_instruction(ns, "", std::cout, *from);
+  std::cout << "*** DD TO:" << std::endl;
+  goto_programt::output_instruction(ns, "", std::cout, *to);
+#endif
+
   forall_rw_range_set_r_objects(it, rw_set)
   {
     const range_domaint &r_ranges=rw_set.get_ranges(it);
     const rd_range_domaint::ranges_at_loct &w_ranges=
       dep_graph.reaching_definitions()[to].get(it->first);
+
+#ifdef DEBUG
+    std::cout << it->first << std::endl;
+#endif
 
     for(const auto &w_range : w_ranges)
     {
@@ -175,6 +192,9 @@ void dep_graph_domaint::data_dependencies(
           {
             // found a def-use pair
             data_deps.insert(w_range.first);
+#ifdef DEBUG
+            std::cout << "found: " << w_range.first->location_number << std::endl;
+#endif
             found=true;
           }
     }
