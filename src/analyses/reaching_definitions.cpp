@@ -26,6 +26,13 @@ Date: February 2013
 #include "is_threaded.h"
 #include "dirty.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#include <iostream>
+#endif
+
+
 reaching_definitions_analysist::reaching_definitions_analysist(
   const namespacet &_ns):
     concurrency_aware_ait<rd_range_domaint>(),
@@ -301,6 +308,12 @@ void rd_range_domaint::transform_assign(
 {
   rw_range_set_value_sett rw_set(ns, rd.get_value_sets());
   goto_rw(to, rw_set);
+#ifdef DEBUG
+  std::cout << "*** RD FROM:" << std::endl;
+  goto_programt::output_instruction(ns, "", std::cout, *from);
+  std::cout << "*** RD TO:" << std::endl;
+  goto_programt::output_instruction(ns, "", std::cout, *to);
+#endif
   const bool is_must_alias=rw_set.get_w_set().size()==1;
 
   forall_rw_range_set_w_objects(it, rw_set)
@@ -315,6 +328,9 @@ void rd_range_domaint::transform_assign(
       nullptr_exceptiont,
       "Symbol is in symbol table");
 
+#ifdef DEBUG
+    std::cout << identifier << std::endl;
+#endif
     const range_domaint &ranges=rw_set.get_ranges(it);
 
     if(is_must_alias &&
