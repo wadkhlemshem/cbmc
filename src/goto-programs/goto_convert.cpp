@@ -787,6 +787,10 @@ void goto_convertt::convert_assign(
 
     copy(new_assign, ASSIGN, dest);
   }
+  else if(assign_side_effect_converters(lhs, rhs, dest))
+  {
+     // conversion done in the assign_si
+  }
   else
   {
     clean_expr(rhs, dest);

@@ -26,6 +26,11 @@ Author: Daniel Kroening, kroening@kroening.com
 class goto_convertt:public messaget
 {
 public:
+  typedef std::function<
+  bool(const exprt &lhs, const exprt &rhs, goto_programt &dest)>
+  assign_side_effect_converter_functiont;
+
+
   void goto_convert(const codet &code, goto_programt &dest);
 
   goto_convertt(
@@ -43,11 +48,25 @@ public:
   {
   }
 
+  std::vector<assign_side_effect_converter_functiont>
+    assign_side_effect_converter_functions;
+
 protected:
   symbol_table_baset &symbol_table;
   namespacet ns;
   unsigned temporary_counter;
   std::string tmp_symbol_prefix;
+
+  bool assign_side_effect_converters(
+    const exprt &lhs, const exprt &rhs, goto_programt &dest)
+  {
+    for(auto converter : assign_side_effect_converter_functions)
+    {
+      if(converter(lhs, rhs, dest))
+        return true;
+    }
+    return false;
+  }
 
   void goto_convert_rec(const codet &code, goto_programt &dest);
 
