@@ -1,6 +1,6 @@
 CORE
 test.class
---java-throw-runtime-exceptions
+--function test.main --java-throw-runtime-exceptions
 ^EXIT=10$
 ^SIGNAL=0$
 VERIFICATION FAILED

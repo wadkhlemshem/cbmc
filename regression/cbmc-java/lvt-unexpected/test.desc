@@ -1,6 +1,6 @@
-CORE symex-driven-lazy-loading-expected-failure
+CORE
 unexpected.class
---verbosity 10 --show-symbol-table
+--function unexpected.test1 --verbosity 10 --show-symbol-table
 ^EXIT=0$
 ^SIGNAL=0$
 --
@@ -11,4 +11,5 @@ of parameter x in that method is not preceeded by a store_i instruction, which
 is perfectly possibly as per the JVM specs but currently additionally required
 in CBMC.
 
-This doesn't work under symex-driven lazy loading because no entry-point function is given.
+This doesn't work under symex-driven lazy loading because we want to load
+the whole class.

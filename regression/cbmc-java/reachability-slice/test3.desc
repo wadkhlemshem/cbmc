@@ -1,6 +1,6 @@
 CORE symex-driven-lazy-loading-expected-failure
 A.class
---reachability-slice --show-goto-functions --cover location
+--function A.foo --reachability-slice --show-goto-functions --cover location
 1001
 1002
 1003

@@ -1,9 +1,9 @@
 CORE symex-driven-lazy-loading-expected-failure
 SymStream.class
---verbosity 10 --show-goto-functions
+--function 'org.symphonyoss.symphony.clients.model.SymStream.toSymStream:(Lorg/symphonyoss/symphony/pod/model/Stream;)Lorg/symphonyoss/symphony/clients/model/SymStream;' --verbosity 10 --show-goto-functions
 ^EXIT=0
 ^SIGNAL=0
 --
 --
 just to test that it doesn't crash in this situation, cf. TG-2684
-Doesn't work with symex-driven loading because there is no entry point (we want to load the entire class)
+Doesn't work with symex-driven loading because we want to load the entire class.
