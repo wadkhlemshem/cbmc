@@ -1,0 +1,11 @@
+CORE
+b.gb
+a.gb --change-impact --show-goto-functions
+// Enable multi-line checking
+activate-multi-line-match
+EXIT=0
+SIGNAL=0
+-        // 0 file a\.c line 3 function foo\n        return 41;\n+        // 0 file b\.c line 3 function foo\n        return 42;
+
+--
+^warning: ignoring
