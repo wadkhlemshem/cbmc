@@ -115,7 +115,7 @@ codet java_bytecode_instrumentt::throw_exception(
   symbolt &new_symbol=
     get_fresh_aux_symbol(
       exc_ptr_type,
-      "new_exception",
+      id2string(original_loc.get_function()),
       "new_exception",
       original_loc,
       ID_java,
