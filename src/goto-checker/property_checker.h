@@ -9,15 +9,15 @@ Author: Daniel Kroening, kroening@kroening.com
 /// \file
 /// Property Checker Interface
 
-#ifndef CPROVER_GOTO_PROGRAMS_PROPERTY_CHECKER_H
-#define CPROVER_GOTO_PROGRAMS_PROPERTY_CHECKER_H
+#ifndef CPROVER_GOTO_CHECKER_PROPERTY_CHECKER_H
+#define CPROVER_GOTO_CHECKER_PROPERTY_CHECKER_H
 
 // this is just an interface -- it won't actually do any checking!
 
 #include <util/message.h>
 
-#include "goto_trace.h"
-#include "goto_model.h"
+#include <goto-programs/goto_model.h>
+#include <goto-programs/goto_trace.h>
 
 class property_checkert:public messaget
 {
@@ -52,4 +52,4 @@ protected:
   void initialize_property_map(const goto_functionst &);
 };
 
-#endif // CPROVER_GOTO_PROGRAMS_PROPERTY_CHECKER_H
+#endif // CPROVER_GOTO_CHECKER_PROPERTY_CHECKER_H

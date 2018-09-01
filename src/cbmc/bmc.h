@@ -27,8 +27,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-symex/symex_target_equation.h>
 #include <goto-symex/path_storage.h>
 
+#include <goto-checker/safety_checker.h>
 #include <goto-programs/goto_model.h>
-#include <goto-programs/safety_checker.h>
 #include <goto-symex/memory_model.h>
 
 

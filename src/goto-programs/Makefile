@@ -35,7 +35,6 @@ SRC = adjust_float_expressions.cpp \
       parameter_assignments.cpp \
       pointer_arithmetic.cpp \
       printf_formatter.cpp \
-      property_checker.cpp \
       read_bin_goto_object.cpp \
       read_goto_binary.cpp \
       rebuild_goto_start_function.cpp \
@@ -53,7 +52,6 @@ SRC = adjust_float_expressions.cpp \
       rewrite_union.cpp \
       replace_calls.cpp \
       resolve_inherited_component.cpp \
-      safety_checker.cpp \
       set_properties.cpp \
       show_goto_functions.cpp \
       show_goto_functions_json.cpp \

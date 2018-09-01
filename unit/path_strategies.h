@@ -5,8 +5,9 @@
 #ifndef CPROVER_PATH_STRATEGIES_H
 #define CPROVER_PATH_STRATEGIES_H
 
+#include <goto-checker/safety_checker.h>
+
 #include <goto-programs/goto_model.h>
-#include <goto-programs/safety_checker.h>
 
 #include <goto-symex/goto_symex_state.h>
 
