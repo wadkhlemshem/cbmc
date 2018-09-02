@@ -19,22 +19,27 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-programs/goto_model.h>
 #include <goto-programs/goto_trace.h>
 
-class property_checkert:public messaget
+class property_checkert : public messaget
 {
 public:
   property_checkert()
   {
   }
 
-  explicit property_checkert(
-    message_handlert &_message_handler);
+  explicit property_checkert(message_handlert &_message_handler);
 
-  enum class resultt { PASS, FAIL, ERROR, UNKNOWN };
+  enum class resultt
+  {
+    PASS,
+    FAIL,
+    ERROR,
+    UNKNOWN
+  };
 
   static std::string as_string(resultt);
 
   // Check whether all properties in goto_functions hold.
-  virtual resultt operator()(const goto_modelt &)=0;
+  virtual resultt operator()(const goto_modelt &) = 0;
 
   struct property_statust
   {
