@@ -214,6 +214,7 @@ bool bmc_covert::operator()()
   convert_symex_target_equation(
     bmc.equation, bmc.prop_conv, get_message_handler());
   bmc.freeze_program_variables();
+  bmc.freeze_program_variables();
 
   // get the conditions for these goals from formula
   // collect all 'instances' of the goals
