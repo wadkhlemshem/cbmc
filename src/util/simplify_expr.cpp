@@ -1122,6 +1122,9 @@ bool simplify_exprt::simplify_if(if_exprt &expr)
   exprt &cond=expr.cond();
   exprt &truevalue=expr.true_case();
   exprt &falsevalue=expr.false_case();
+  simplify_node(cond);
+  simplify_node(truevalue);
+  simplify_node(falsevalue);
 
   bool result=true;
 
@@ -2239,6 +2242,23 @@ bool simplify_exprt::simplify_node(exprt &expr)
   bool result=true;
 
   result=sort_and_join(expr) && result;
+
+  // hoist equalities into if
+  if(expr.id() == ID_equal)
+  {
+    const equal_exprt &equal = expr_checked_cast<equal_exprt>(expr);
+    if(equal.lhs().id() == ID_if && equal.rhs().id() == ID_if)
+    {
+      const if_exprt &lhs = expr_checked_cast<if_exprt>(equal.lhs());
+      const if_exprt &rhs = expr_checked_cast<if_exprt>(equal.rhs());
+      if(lhs.cond() == rhs.cond())
+      {
+        expr = if_exprt(lhs.cond(),
+                 equal_exprt(lhs.true_case(), rhs.true_case()),
+                 equal_exprt(lhs.false_case(), rhs.false_case()));
+      }
+    }
+  }
 
   if(expr.id()==ID_typecast)
     result=simplify_typecast(expr) && result;
