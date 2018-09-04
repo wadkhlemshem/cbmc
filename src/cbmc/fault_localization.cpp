@@ -251,6 +251,7 @@ fault_localizationt::run_decision_procedure(prop_convt &prop_conv)
 
   convert_symex_target_equation(bmc.equation, bmc.prop_conv, get_message_handler());
   bmc.freeze_program_variables();
+  bmc.freeze_program_variables();
 
   freeze_guards();
 

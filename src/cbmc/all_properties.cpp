@@ -59,6 +59,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
 
   convert_symex_target_equation(bmc.equation, bmc.prop_conv, get_message_handler());
   bmc.freeze_program_variables();
+  bmc.freeze_program_variables();
 
   // Collect _all_ goals in `goal_map'.
   // This maps property IDs to 'goalt'
