@@ -56,6 +56,7 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
   auto solver_start=std::chrono::steady_clock::now();
 
   bmc.do_conversion();
+  bmc.freeze_program_variables();
 
   // Collect _all_ goals in `goal_map'.
   // This maps property IDs to 'goalt'

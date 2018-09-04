@@ -210,6 +210,7 @@ bool bmc_covert::operator()()
   // Do conversion to next solver layer
 
   bmc.do_conversion();
+  bmc.freeze_program_variables();
 
   // get the conditions for these goals from formula
   // collect all 'instances' of the goals

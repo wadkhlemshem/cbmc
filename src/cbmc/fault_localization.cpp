@@ -248,6 +248,7 @@ fault_localizationt::run_decision_procedure(prop_convt &prop_conv)
   auto solver_start=std::chrono::steady_clock::now();
 
   bmc.do_conversion();
+  bmc.freeze_program_variables();
 
   freeze_guards();
 
