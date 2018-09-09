@@ -2243,19 +2243,21 @@ bool simplify_exprt::simplify_node(exprt &expr)
 
   result=sort_and_join(expr) && result;
 
-  // hoist equalities into if
-  if(expr.id() == ID_equal)
+  // hoist binary operations into if
+  if(expr.operands().size() == 2 && expr.op0().type() == expr.op1().type())
   {
-    const equal_exprt &equal = expr_checked_cast<equal_exprt>(expr);
-    if(equal.lhs().id() == ID_if && equal.rhs().id() == ID_if)
+    if(expr.op0().id() == ID_if && expr.op1().id() == ID_if)
     {
-      const if_exprt &lhs = expr_checked_cast<if_exprt>(equal.lhs());
-      const if_exprt &rhs = expr_checked_cast<if_exprt>(equal.rhs());
+      const if_exprt &lhs = expr_checked_cast<if_exprt>(expr.op0());
+      const if_exprt &rhs = expr_checked_cast<if_exprt>(expr.op1());
       if(lhs.cond() == rhs.cond())
       {
-        expr = if_exprt(lhs.cond(),
-                 equal_exprt(lhs.true_case(), rhs.true_case()),
-                 equal_exprt(lhs.false_case(), rhs.false_case()));
+        exprt true_case(expr.id(), expr.type());
+        true_case.copy_to_operands(lhs.true_case(), rhs.true_case());
+        exprt false_case(expr.id(), expr.type());
+        false_case.copy_to_operands(lhs.false_case(), rhs.false_case());
+
+        expr = if_exprt(lhs.cond(), true_case, false_case);
       }
     }
   }
