@@ -237,3 +237,17 @@ int result_to_exit_code(resultt result)
       return CPROVER_EXIT_VERIFICATION_INCONCLUSIVE;
   }
 }
+
+/// Merges a set of properties into a given set of properties,
+/// updating its results and adding new properties.
+propertiest &operator|=(
+  propertiest &properties, const propertiest &updated_properties)
+{
+  for(const auto &property_pair : updated_properties)
+  {
+    auto found_property = properties.insert(property_pair);
+    if(!found_property.second)
+      found_property.first->second.result |= property_pair.second.result;
+  }
+  return properties;
+}

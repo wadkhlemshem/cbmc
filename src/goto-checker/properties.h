@@ -90,4 +90,7 @@ count_properties(const propertiest &properties, property_resultt result);
 
 int result_to_exit_code(resultt result);
 
+propertiest &operator|=(
+  propertiest &properties, const propertiest &updated_properties);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
