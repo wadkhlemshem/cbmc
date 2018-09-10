@@ -78,4 +78,9 @@ resultt determine_result(const propertiest &properties);
 bool has_properties_to_check(const propertiest &properties);
 std::size_t count_properties(const propertiest &, property_resultt);
 
+
+void merge_properties(
+  propertiest &properties,
+  const propertiest &updated_properties);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
