@@ -71,4 +71,11 @@ typedef std::unordered_map<irep_idt, property_infot> propertiest;
 /// Returns the properties in the goto model
 propertiest initialize_properties(const goto_modelt &);
 
+property_resultt &operator|=(property_resultt &, property_resultt const &);
+property_resultt &operator&=(property_resultt &, property_resultt const &);
+
+resultt determine_result(const propertiest &properties);
+bool has_properties_to_check(const propertiest &properties);
+std::size_t count_properties(const propertiest &, property_resultt);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
