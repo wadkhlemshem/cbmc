@@ -34,7 +34,7 @@ public:
   virtual resultt operator()() = 0;
 
   /// Report results
-  virtual void report() = 0;
+  virtual void report();
 
   /// Returns the properties
   const propertiest &get_properties()
