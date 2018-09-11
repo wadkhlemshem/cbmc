@@ -19,3 +19,8 @@ goto_verifiert::goto_verifiert(
     log(ui_message_handler)
 {
 }
+
+void goto_verifiert::report()
+{
+
+}
