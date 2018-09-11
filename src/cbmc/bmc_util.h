@@ -12,6 +12,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_CBMC_BMC_UTIL_H
 #define CPROVER_CBMC_BMC_UTIL_H
 
+#include <goto-programs/safety_checker.h>
+
 class symex_target_equationt;
 class prop_convt;
 class message_handlert;
@@ -26,7 +28,7 @@ void report_failure(ui_message_handlert &message_handler);
 void report_success(ui_message_handlert &message_handler);
 
 void output_error_trace();
-void output_graphml(resultt result);
+void output_graphml(safety_checkert::resultt result);
 void get_memory_model();
 void setup_symex();
 void slice();
