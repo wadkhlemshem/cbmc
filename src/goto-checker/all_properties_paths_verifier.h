@@ -9,26 +9,25 @@ Author: Daniel Kroening, Peter Schrammel
 /// \file
 /// Goto Verifier for Verifying all Properties with BMC
 
-#ifndef CPROVER_GOTO_CHECKER_ALL_PROPERTIES_BMC_VERIFIER_H
-#define CPROVER_GOTO_CHECKER_ALL_PROPERTIES_BMC_VERIFIER_H
+#ifndef CPROVER_GOTO_CHECKER_ALL_PROPERTIES_PATHS_VERIFIER_H
+#define CPROVER_GOTO_CHECKER_ALL_PROPERTIES_PATHS_VERIFIER_H
 
 #include "goto_verifier.h"
+#include "paths_checker.h"
 
-class all_properties_bmc_verifiert : public goto_verifiert
+class all_properties_paths_verifiert : public goto_verifiert
 {
 public:
-  all_properties_bmc_verifiert(
-    const optionst &options,
-    ui_message_handlert &ui_message_handler,
-    abstract_goto_modelt &goto_model);
+  all_properties_paths_verifiert(
+    const optionst &,
+    ui_message_handlert &,
+    abstract_goto_modelt &);
 
   resultt operator()() override;
 
-  void report() override;
-
 protected:
   abstract_goto_modelt &goto_model;
-  bmc_checkert goto_checker;
+  paths_checkert goto_checker;
 };
 
-#endif // CPROVER_GOTO_CHECKER_ALL_PROPERTIES_BMC_VERIFIER_H
+#endif // CPROVER_GOTO_CHECKER_ALL_PROPERTIES_PATHS_VERIFIER_H

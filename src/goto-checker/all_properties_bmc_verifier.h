@@ -12,19 +12,18 @@ Author: Daniel Kroening, Peter Schrammel
 #ifndef CPROVER_GOTO_CHECKER_ALL_PROPERTIES_BMC_VERIFIER_H
 #define CPROVER_GOTO_CHECKER_ALL_PROPERTIES_BMC_VERIFIER_H
 
+#include "bmc_checker.h"
 #include "goto_verifier.h"
 
 class all_properties_bmc_verifiert : public goto_verifiert
 {
 public:
   all_properties_bmc_verifiert(
-    const optionst &options,
-    ui_message_handlert &ui_message_handler,
-    abstract_goto_modelt &goto_model);
+    const optionst &,
+    ui_message_handlert &,
+    abstract_goto_modelt &);
 
   resultt operator()() override;
-
-  void report() override;
 
 protected:
   abstract_goto_modelt &goto_model;

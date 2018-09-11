@@ -24,7 +24,7 @@ public:
 
   propertiest operator()(const propertiest &) override;
 
-  goto_tracet build_error_trace() override;
+  goto_tracet build_error_trace() const override;
 
 protected:
   abstract_goto_modelt &goto_model;

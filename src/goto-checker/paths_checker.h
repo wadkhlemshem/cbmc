@@ -7,27 +7,27 @@ Author: Daniel Kroening, Peter Schrammel
 \*******************************************************************/
 
 /// \file
-/// Goto Checker using Bounded Model Checking
+/// Goto Checker using Path-Based Symbolic Execution
 
-#ifndef CPROVER_GOTO_CHECKER_BMC_CHECKER_H
-#define CPROVER_GOTO_CHECKER_BMC_CHECKER_H
+#ifndef CPROVER_GOTO_CHECKER_PATHS_CHECKER_H
+#define CPROVER_GOTO_CHECKER_PATHS_CHECKER_H
 
 #include "goto_checker.h"
 
-class bmc_checkert : public goto_checkert
+class paths_checkert : public goto_checkert
 {
 public:
-  bmc_checkert(
+  paths_checkert(
     const optionst &options,
     ui_message_handlert &ui_message_handler,
     abstract_goto_modelt &goto_model);
 
   propertiest operator()(const propertiest &) override;
 
-  goto_tracet build_error_trace() override;
+  goto_tracet build_error_trace() const override;
 
 protected:
   abstract_goto_modelt &goto_model;
 };
 
-#endif // CPROVER_GOTO_CHECKER_BMC_CHECKER_H
+#endif // CPROVER_GOTO_CHECKER_PATHS_CHECKER_H

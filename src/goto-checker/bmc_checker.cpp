@@ -20,12 +20,13 @@ bmc_checkert::bmc_checkert(
 {
 }
 
-propertiest operator()(const propertiest &)
+propertiest bmc_checkert::operator()(const propertiest &properties)
 {
-
+  return properties;
 }
 
-goto_tracet build_error_trace()
+goto_tracet bmc_checkert::build_error_trace() const
 {
-
+  goto_tracet goto_trace;
+  return goto_trace;
 }

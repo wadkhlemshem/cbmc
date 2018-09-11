@@ -7,11 +7,11 @@ Author: Daniel Kroening, Peter Schrammel
 \*******************************************************************/
 
 /// \file
-/// Goto Checker using Bounded Model Checking
+/// Goto Checker using Path-Based Symbolic Execution
 
-#include "bmc_checker.h"
+#include "paths_checker.h"
 
-bmc_checkert::bmc_checkert(
+paths_checkert::paths_checkert(
   const optionst &options,
   ui_message_handlert &ui_message_handler,
   abstract_goto_modelt &goto_model)
@@ -20,12 +20,13 @@ bmc_checkert::bmc_checkert(
 {
 }
 
-propertiest operator()(const propertiest &)
+propertiest paths_checkert::operator()(const propertiest &properties)
 {
-
+  return properties;
 }
 
-goto_tracet build_error_trace()
+goto_tracet paths_checkert::build_error_trace() const
 {
-
+  goto_tracet goto_trace;
+  return goto_trace;
 }

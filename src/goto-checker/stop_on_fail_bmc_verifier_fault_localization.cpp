@@ -1,21 +1,34 @@
 /*******************************************************************\
 
-Module: Goto Verifier for Verifying all Properties with BMC
+Module: Goto Verifier for stopping at the first failing property,
+        using BMC, with fault localization
 
 Author: Daniel Kroening, Peter Schrammel
 
 \*******************************************************************/
 
 /// \file
-/// Goto Verifier for Verifying all Properties with BMC
+/// Goto Verifier for stopping at the first failing property, using BMC,
+/// with fault localization
 
-#include "all_properties_bmc_verifier.h"
+#include "stop_on_fail_bmc_verifier_fault_localization.h"
 
-all_properties_bmc_verifiert::all_properties_bmc_verifiert(
-  const optionst &_options,
+stop_on_fail_bmc_verifier_fault_localizationt::stop_on_fail_bmc_verifier_fault_localizationt(
+  const optionst &options,
   ui_message_handlert &ui_message_handler,
   abstract_goto_modelt &goto_model)
   : goto_verifiert(options, ui_message_handler),
-    goto_model(goto_model)
+    goto_model(goto_model),
+    goto_checker(options, ui_message_handler, goto_model)
 {
+}
+
+resultt stop_on_fail_bmc_verifier_fault_localizationt::operator()()
+{
+  return resultt::UNKNOWN;
+}
+
+void stop_on_fail_bmc_verifier_fault_localizationt::report()
+{
+
 }
