@@ -2260,6 +2260,21 @@ bool simplify_exprt::simplify_node(exprt &expr)
     }
   }
 
+  // simplify nested ifs
+  if(expr.id() == ID_if)
+  {
+    const if_exprt &outer_if = expr_checked_cast<if_exprt>(expr);
+    if(outer_if.true_case().id() == ID_if)
+    {
+      const if_exprt &inner_if =
+        expr_checked_cast<if_exprt>(outer_if.true_case());
+      if(outer_if.cond() == inner_if.cond())
+      {
+        expr = if_exprt(outer_if.cond(), inner_if.true_case(), outer_if.false_case());
+      }
+    }
+  }
+
   if(expr.id()==ID_typecast)
     result=simplify_typecast(expr) && result;
   else if(expr.id()==ID_equal || expr.id()==ID_notequal ||
