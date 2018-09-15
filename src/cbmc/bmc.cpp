@@ -19,21 +19,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <langapi/language_util.h>
 
-#include <goto-programs/graphml_witness.h>
-#include <goto-programs/json_goto_trace.h>
-#include <goto-programs/xml_goto_trace.h>
-
-#include <goto-symex/build_goto_trace.h>
-#include <goto-symex/memory_model_pso.h>
 #include <goto-symex/show_program.h>
 #include <goto-symex/show_vcc.h>
-#include <goto-symex/slice.h>
-#include <goto-symex/slice_by_trace.h>
 
 #include <linking/static_lifetime_init.h>
 
 #include <goto-checker/solver_factory.h>
 
+#include "bmc_util.h"
 #include "counterexample_beautification.h"
 #include "fault_localization.h"
 
@@ -122,7 +115,7 @@ safety_checkert::resultt bmct::execute(
                  << equation.SSA_steps.size()
                  << " steps" << eom;
 
-    slice();
+    slice(symex, equation, ns, options, ui_message_handler);
 
     // coverage report
     std::string cov_out=options.get_option("symex-coverage-report");
@@ -159,8 +152,8 @@ safety_checkert::resultt bmct::execute(
     {
       if(options.is_set("paths"))
         return safety_checkert::resultt::PAUSED;
-      report_success(*this);
-      output_graphml(resultt::SAFE);
+      report_success(ui_message_handler);
+      output_graphml(resultt::SAFE, error_trace, equation, ns, options);
       return safety_checkert::resultt::SAFE;
     }
 
@@ -205,7 +198,7 @@ safety_checkert::resultt bmct::execute(
 safety_checkert::resultt bmct::run(
   abstract_goto_modelt &goto_model)
 {
-  setup_symex();
+  setup_symex(symex, ns, options, ui_message_handler);
 
   return execute(goto_model);
 }
@@ -227,8 +220,8 @@ safety_checkert::resultt bmct::stop_on_fail(prop_convt &prop_conv)
   switch(run_decision_procedure(prop_conv))
   {
   case decision_proceduret::resultt::D_UNSATISFIABLE:
-    report_success(*this);
-    output_graphml(resultt::SAFE);
+    report_success(ui_message_handler);
+    output_graphml(resultt::SAFE, error_trace, equation, ns, options);
     return resultt::SAFE;
 
   case decision_proceduret::resultt::D_SATISFIABLE:
@@ -238,11 +231,12 @@ safety_checkert::resultt bmct::stop_on_fail(prop_convt &prop_conv)
         counterexample_beautificationt()(
           dynamic_cast<boolbvt &>(prop_conv), equation);
 
-      error_trace();
-      output_graphml(resultt::UNSAFE);
+      build_error_trace(error_trace, ns, equation, prop_conv, ui_message_handler);
+      output_error_trace(error_trace, ns, trace_options(), ui_message_handler);
+      output_graphml(resultt::UNSAFE, error_trace, equation, ns, options);
     }
 
-    report_failure(*this);
+    report_failure(ui_message_handler);
     return resultt::UNSAFE;
 
   default:
