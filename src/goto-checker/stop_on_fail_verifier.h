@@ -14,16 +14,24 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "goto_verifier.h"
 
-template<goto_checkerT>
+template<class goto_checkerT>
 class stop_on_fail_verifiert : public goto_verifiert
 {
 public:
   stop_on_fail_verifiert(
     const optionst &,
     ui_message_handlert &,
-    abstract_goto_modelt &);
+    abstract_goto_modelt &)
+  : goto_verifiert(options, ui_message_handler),
+    goto_model(goto_model),
+    goto_checker(options, ui_message_handler, goto_model)
+  {
+  }
 
-  resultt operator()() override;
+  resultt operator()() override
+  {
+    return resultt::UNKNOWN;
+  }
 
 protected:
   abstract_goto_modelt &goto_model;
