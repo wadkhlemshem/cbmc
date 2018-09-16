@@ -28,6 +28,7 @@ Author: Daniel Kroening, Peter Schrammel
 #include <solvers/sat/satcheck.h>
 #include <solvers/smt2/smt2_dec.h>
 
+
 /// Uses the options to pick an SMT 2.0 solver
 /// \return An smt2_dect::solvert giving the solver to use.
 smt2_dect::solvert solver_factoryt::get_smt2_solver_type() const
