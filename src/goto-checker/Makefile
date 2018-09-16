@@ -1,4 +1,5 @@
-SRC = goto_checker.cpp \
+SRC = bmc_util.cpp \
+      goto_checker.cpp \
       goto_verifier.cpp \
       properties.cpp \
       solver_factory.cpp \

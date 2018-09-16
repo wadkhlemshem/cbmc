@@ -9,8 +9,8 @@ Author: Daniel Kroening, Peter Schrammel
 /// \file
 /// Bounded Model Checking Utilities
 
-#ifndef CPROVER_CBMC_BMC_UTIL_H
-#define CPROVER_CBMC_BMC_UTIL_H
+#ifndef CPROVER_GOTO_CHECKER_BMC_UTIL_H
+#define CPROVER_GOTO_CHECKER_BMC_UTIL_H
 
 #include <memory>
 
@@ -70,4 +70,4 @@ void slice(
   const optionst &,
   ui_message_handlert &);
 
-#endif // CPROVER_CBMC_BMC_UTIL_H
+#endif // CPROVER_GOTO_CHECKER_BMC_UTIL_H
