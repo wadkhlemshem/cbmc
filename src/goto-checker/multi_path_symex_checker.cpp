@@ -18,7 +18,13 @@ multi_path_symex_checkert::multi_path_symex_checkert(
   ui_message_handlert &ui_message_handler,
   abstract_goto_modelt &goto_model)
   : goto_checkert(options, ui_message_handler),
-    goto_model(goto_model)
+    goto_model(goto_model),
+    symex(
+      ui_message_handler,
+      goto_model.get_symbol_table(),
+      equation,
+      options,
+      path_storage)
 {
 }
 

@@ -14,6 +14,8 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "goto_checker.h"
 
+#include "symex_bmc.h"
+
 class multi_path_symex_checkert : public goto_checkert
 {
 public:
@@ -28,6 +30,9 @@ public:
 
 protected:
   abstract_goto_modelt &goto_model;
+  symex_target_equationt equation;
+  path_fifot path_storage; // should go away
+  symex_bmct symex;
 };
 
 #endif // CPROVER_GOTO_CHECKER_MULTI_PATH_SYMEX_CHECKER_H
