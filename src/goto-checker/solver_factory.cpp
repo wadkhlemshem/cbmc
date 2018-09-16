@@ -155,8 +155,8 @@ solver_factoryt::get_string_refinement()
     util_make_unique<string_refinementt>(info), std::move(prop));
 }
 
-std::unique_ptr<solver_factoryt::solvert>
-solver_factoryt::get_smt2(smt2_dect::solvert solver)
+std::unique_ptr<solver_factoryt::solvert> solver_factoryt::get_smt2(
+  smt2_dect::solvert solver)
 {
   no_beautification();
 
