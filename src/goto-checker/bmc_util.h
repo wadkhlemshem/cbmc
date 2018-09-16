@@ -9,8 +9,8 @@ Author: Daniel Kroening, kroening@kroening.com
 /// \file
 /// Bounded Model Checking Utilities
 
-#ifndef CPROVER_CBMC_BMC_UTIL_H
-#define CPROVER_CBMC_BMC_UTIL_H
+#ifndef CPROVER_GOTO_CHECKER_BMC_UTIL_H
+#define CPROVER_GOTO_CHECKER_BMC_UTIL_H
 
 #include <goto-programs/safety_checker.h>
 
@@ -61,5 +61,5 @@ void slice(  symex_bmct &,
              ui_message_handlert &);
 
 
-#endif // CPROVER_CBMC_BMC_UTIL_H
+#endif // CPROVER_GOTO_CHECKER_BMC_UTIL_H
 
