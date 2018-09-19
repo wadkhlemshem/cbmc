@@ -48,14 +48,14 @@ void output_graphml(
   const namespacet &,
   const optionst &);
 
-std::unique_ptr<memory_model_baset> get_memory_model(const optionst &options, const namespacet &);
+std::unique_ptr<memory_model_baset> get_memory_model(const optionst &, const namespacet &);
 
 void setup_symex(symex_bmct &,
                  const namespacet &,
                  const optionst &,
                  ui_message_handlert &);
 void slice(  symex_bmct &,
-             symex_target_equationt &symex_target_equation,
+             symex_target_equationt &,
              const namespacet &,
              const optionst &,
              ui_message_handlert &);

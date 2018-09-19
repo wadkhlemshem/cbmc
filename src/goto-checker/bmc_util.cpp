@@ -31,6 +31,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <util/make_unique.h>
 #include <util/ui_message.h>
 
+#include "properties.h"
 #include "symex_bmc.h"
 
 
@@ -263,5 +264,19 @@ void report_failure(ui_message_handlert &ui_message_handler)
       msg.result() << json_result;
     }
       break;
+  }
+}
+
+propertiest properties_result_from_symex_target_equation(
+  const symex_target_equationt &equation,
+  const propertiest &properties)
+{
+  propertiest
+  for(const auto &step : equation.SSA_steps)
+  {
+    if(!step.is_assert())
+      continue;
+
+
   }
 }
