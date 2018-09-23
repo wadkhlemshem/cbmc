@@ -88,4 +88,6 @@ bool has_properties_to_check(const propertiest &properties);
 std::size_t
 count_properties(const propertiest &properties, property_resultt result);
 
+int result_to_exit_code(resultt result);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
