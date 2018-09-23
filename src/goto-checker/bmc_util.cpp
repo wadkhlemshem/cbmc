@@ -88,11 +88,9 @@ void output_error_trace(
   }
 }
 
-/// outputs witnesses in graphml format
+/// outputs an error witness in graphml format
 void output_graphml(
-  safety_checkert::resultt result,
   const goto_tracet &goto_trace,
-  const symex_target_equationt &symex_target_equation,
   const namespacet &ns,
   const optionst &options)
 {
@@ -101,12 +99,29 @@ void output_graphml(
     return;
 
   graphml_witnesst graphml_witness(ns);
-  if(result == safety_checkert::resultt::UNSAFE)
-    graphml_witness(goto_trace);
-  else if(result == safety_checkert::resultt::SAFE)
-    graphml_witness(symex_target_equation);
+  graphml_witness(goto_trace);
+
+  if(graphml=="-")
+    write_graphml(graphml_witness.graph(), std::cout);
   else
+  {
+    std::ofstream out(graphml);
+    write_graphml(graphml_witness.graph(), out);
+  }
+}
+
+/// outputs a proof in graphml format
+void output_graphml(
+  const symex_target_equationt &symex_target_equation,
+  const namespacet &ns,
+  const optionst &options)
+{
+  const std::string graphml=options.get_option("graphml-witness");
+  if(graphml.empty())
     return;
+
+  graphml_witnesst graphml_witness(ns);
+  graphml_witness(symex_target_equation);
 
   if(graphml == "-")
     write_graphml(graphml_witness.graph(), std::cout);
@@ -264,6 +279,34 @@ void report_failure(ui_message_handlert &ui_message_handler)
     msg.result() << json_result;
   }
   break;
+  }
+}
+
+void report_error(ui_message_handlert &ui_message_handler)
+{
+  messaget msg(ui_message_handler);
+  msg.result() << "ERROR" << messaget::eom;
+
+  switch(ui_message_handler.get_ui())
+  {
+    case ui_message_handlert::uit::PLAIN:
+      break;
+
+    case ui_message_handlert::uit::XML_UI:
+    {
+      xmlt xml("cprover-status");
+      xml.data = "ERROR";
+      msg.result() << xml;
+    }
+    break;
+
+    case ui_message_handlert::uit::JSON_UI:
+    {
+      json_objectt json_result;
+      json_result["cProverStatus"] = json_stringt("error");
+      msg.result() << json_result;
+    }
+    break;
   }
 }
 

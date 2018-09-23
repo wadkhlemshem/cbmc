@@ -33,6 +33,8 @@ void convert_symex_target_equation(
 
 void report_failure(ui_message_handlert &);
 void report_success(ui_message_handlert &);
+void report_inconclusive(ui_message_handlert &);
+void report_error(ui_message_handlert &);
 
 void build_error_trace(
   goto_tracet &,
@@ -48,8 +50,10 @@ void output_error_trace(
   ui_message_handlert &);
 
 void output_graphml(
-  safety_checkert::resultt,
   const goto_tracet &,
+  const namespacet &,
+  const optionst &);
+void output_graphml(
   const symex_target_equationt &,
   const namespacet &,
   const optionst &);
