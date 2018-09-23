@@ -24,7 +24,7 @@ public:
     ui_message_handlert &ui_message_handler,
     abstract_goto_modelt &goto_model);
 
-  propertiest operator()(const propertiest &) override;
+  statust operator()(propertiest &) override;
 
   goto_tracet build_error_trace() const override;
 

@@ -36,7 +36,7 @@ multi_path_symex_checkert::multi_path_symex_checkert(
   setup_symex(symex, ns, options, ui_message_handler);
 }
 
-propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
+goto_checkert::statust multi_path_symex_checkert::operator()(propertiest &properties)
 {
   perform_symex();
 
@@ -61,7 +61,9 @@ propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
     show_program(ns, equation);
   }
 
-  return properties_result_from_symex_target_equation(equation);
+  properties |= properties_result_from_symex_target_equation(equation);
+
+  return statust::DONE;
 }
 
 void multi_path_symex_checkert::perform_symex()
