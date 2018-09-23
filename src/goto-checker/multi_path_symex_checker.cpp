@@ -40,7 +40,7 @@ propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
 {
   namespacet ns(goto_model.get_symbol_table());
 
-  auto get_goto_function = [&goto_model](const irep_idt &id) ->
+  auto get_goto_function = [this](const irep_idt &id) ->
     const goto_functionst::goto_functiont &
   {
     return goto_model.get_goto_function(id);
@@ -83,7 +83,7 @@ propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
     show_program(ns, equation);
   }
 
-  return properties_result_from_symex_target_equation(equation, properties);
+  return properties_result_from_symex_target_equation(equation);
 }
 
 goto_tracet multi_path_symex_checkert::build_error_trace() const

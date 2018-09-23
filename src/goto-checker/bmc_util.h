@@ -14,11 +14,16 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <goto-programs/safety_checker.h>
 
+#include "properties.h"
+
+class goto_tracet;
 class memory_model_baset;
 class message_handlert;
+class optionst;
 class prop_convt;
 class symex_bmct;
 class symex_target_equationt;
+struct trace_optionst;
 class ui_message_handlert;
 
 void convert_symex_target_equation(
@@ -60,6 +65,8 @@ void slice(  symex_bmct &,
              const optionst &,
              ui_message_handlert &);
 
+propertiest properties_result_from_symex_target_equation(
+  const symex_target_equationt &equation);
 
 #endif // CPROVER_GOTO_CHECKER_BMC_UTIL_H
 
