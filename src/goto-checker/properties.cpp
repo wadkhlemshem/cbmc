@@ -11,6 +11,7 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "properties.h"
 
+#include <util/exit_codes.h>
 #include <util/invariant.h>
 #include <util/json.h>
 #include <util/xml.h>
@@ -247,3 +248,17 @@ std::size_t count_properties(const propertiest &properties, resultt result)
   return count;
 }
 
+int result_to_exit_code(resultt result)
+{
+  switch(result)
+  {
+    case resultt::PASS:
+      return CPROVER_EXIT_VERIFICATION_SAFE;
+    case resultt::FAIL:
+      return CPROVER_EXIT_VERIFICATION_UNSAFE;
+    case resultt::ERROR:
+      return CPROVER_EXIT_INTERNAL_ERROR;
+    case resultt::UNKNOWN:
+      return CPROVER_EXIT_VERIFICATION_INCONCLUSIVE;
+  }
+}
