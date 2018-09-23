@@ -20,9 +20,9 @@ bmc_checkert::bmc_checkert(
 {
 }
 
-propertiest bmc_checkert::operator()(const propertiest &properties)
+goto_checkert::statust bmc_checkert::operator()(propertiest &properties)
 {
-  return properties;
+  return statust::DONE;
 }
 
 goto_tracet bmc_checkert::build_error_trace() const
