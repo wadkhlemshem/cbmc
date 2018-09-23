@@ -211,6 +211,17 @@ count_properties(const propertiest &properties, property_resultt result)
   return count;
 }
 
+/// Returns true if there as a property with UNKNOWN result.
+bool has_properties_to_check(const propertiest &properties)
+{
+  for(const auto &property_pair : properties)
+  {
+    if(property_pair.second.result == resultt::UNKNOWN)
+      return true;
+  }
+  return false;
+}
+
 /// Merges a set of properties into a given set of properties,
 /// updating its results and adding new properties.
 void merge_properties(
