@@ -27,9 +27,9 @@ public:
     abstract_goto_modelt &goto_model)
   : goto_verifiert(options, ui_message_handler),
     goto_model(goto_model),
-    goto_checker(options, ui_message_handler, goto_model),
-    properties(initialize_properties(goto_model))
+    goto_checker(options, ui_message_handler, goto_model)
   {
+    properties = std::move(initialize_properties(goto_model));
   }
 
   resultt operator()() override
@@ -48,7 +48,6 @@ public:
 protected:
   abstract_goto_modelt &goto_model;
   goto_checkerT goto_checker;
-  propertiest properties;
 };
 
 #endif // CPROVER_GOTO_CHECKER_ALL_PROPERTIES_VERIFIER_H
