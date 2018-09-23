@@ -69,7 +69,7 @@ struct property_infot
 typedef std::unordered_map<irep_idt, property_infot> propertiest;
 
 /// Returns the properties in the goto model
-propertiest initialize_properties(const goto_modelt &);
+propertiest initialize_properties(const abstract_goto_modelt &);
 
 property_resultt &operator|=(property_resultt &, property_resultt const &);
 property_resultt &operator&=(property_resultt &, property_resultt const &);
