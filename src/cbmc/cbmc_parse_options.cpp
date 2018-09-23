@@ -30,9 +30,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <cpp/cprover_library.h>
 
-#include <goto-checker/properties.h>
 #include <goto-checker/all_properties_verifier.h>
+#include <goto-checker/bmc_checker.h>
 #include <goto-checker/multi_path_symex_checker.h>
+#include <goto-checker/properties.h>
+#include <goto-checker/stop_on_fail_verifier.h>
 
 #include <goto-programs/adjust_float_expressions.h>
 #include <goto-programs/initialize_goto_model.h>
@@ -550,7 +552,6 @@ int cbmc_parse_optionst::doit()
   if(set_properties())
     return CPROVER_EXIT_SET_PROPERTIES_FAILED;
 
-
   if(
     options.get_bool_option("program-only") ||
     options.get_bool_option("show-vcc"))
@@ -560,6 +561,19 @@ int cbmc_parse_optionst::doit()
       all_properties_verifiert<multi_path_symex_checkert>
         verifier(options, ui_message_handler, goto_model);
       resultt result = verifier();
+      return result_to_exit_code(result);
+    }
+  }
+
+  if(
+    options.get_bool_option("stop-on-fail"))
+  {
+    if(!options.get_bool_option("paths"))
+    {
+      stop_on_fail_verifiert<bmc_checkert>
+        verifier(options, ui_message_handler, goto_model);
+      resultt result = verifier();
+      verifier.report();
       return result_to_exit_code(result);
     }
   }
