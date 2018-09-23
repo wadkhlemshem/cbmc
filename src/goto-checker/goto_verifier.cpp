@@ -14,6 +14,7 @@ Author: Daniel Kroening, Peter Schrammel
 #include <util/json_stream.h>
 #include <util/xml.h>
 
+#include "bmc_util.h"
 #include "properties.h"
 
 goto_verifiert::goto_verifiert(
@@ -65,5 +66,21 @@ void goto_verifiert::report()
       }
       break;
     }
+  }
+
+  switch(determine_result(properties))
+  {
+    case resultt::PASS:
+      report_success(ui_message_handler);
+      break;
+    case resultt::FAIL:
+      report_failure(ui_message_handler);
+      break;
+    case resultt::UNKNOWN:
+      report_inconclusive(ui_message_handler);
+      break;
+    case resultt::ERROR:
+      report_error(ui_message_handler);
+      break;
   }
 }
