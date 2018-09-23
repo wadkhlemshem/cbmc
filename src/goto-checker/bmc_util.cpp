@@ -268,15 +268,22 @@ void report_failure(ui_message_handlert &ui_message_handler)
 }
 
 propertiest properties_result_from_symex_target_equation(
-  const symex_target_equationt &equation,
-  const propertiest &properties)
+  const symex_target_equationt &equation)
 {
-  propertiest
+  propertiest properties;
   for(const auto &step : equation.SSA_steps)
   {
     if(!step.is_assert())
       continue;
 
+    const source_locationt &source_location = step.source.pc->source_location;
+    irep_idt property_id = source_location.get_property_id();
 
+    property_infot &property = properties[property_id];
+    property.result =
+      step.cond_expr.is_true() : resultt::PASS :
+    step.cond_expr.is_false() ? resultt::FAIL : resultt::UNKNOWN;
+    property.location = step.source.pc;
   }
+  return properties;
 }
