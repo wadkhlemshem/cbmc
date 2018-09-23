@@ -59,6 +59,11 @@ public:
   /// This builds and returns the counterexample
   virtual goto_tracet build_error_trace() const = 0;
 
+  /// This outputs an error witness
+  virtual void output_error_witness(const goto_tracet &) = 0;
+  /// This outputs an proof
+  virtual void output_proof() = 0;
+
 protected:
   goto_checkert(const optionst &, ui_message_handlert &);
 

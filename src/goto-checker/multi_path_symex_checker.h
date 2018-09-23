@@ -28,6 +28,17 @@ public:
 
   goto_tracet build_error_trace() const override;
 
+  void output_error_witness(const goto_tracet &) override
+  {
+    // unsupported
+    UNIMPLEMENTED;
+  }
+  void output_proof() override
+  {
+    // unsupported
+    UNIMPLEMENTED;
+  }
+
 protected:
   abstract_goto_modelt &goto_model;
   symbol_tablet symex_symbol_table;
