@@ -34,6 +34,8 @@ protected:
   symex_target_equationt equation;
   path_fifot path_storage; // should go away
   symex_bmct symex;
+
+  void perform_symex();
 };
 
 #endif // CPROVER_GOTO_CHECKER_MULTI_PATH_SYMEX_CHECKER_H
