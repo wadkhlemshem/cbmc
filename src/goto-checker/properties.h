@@ -81,4 +81,6 @@ std::size_t count_properties(const propertiest &, property_resultt);
 propertiest &operator|=(
   propertiest &properties, const propertiest &updated_properties);
 
+int result_to_exit_code(resultt result);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
