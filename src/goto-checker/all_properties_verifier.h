@@ -14,14 +14,17 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "goto_verifier.h"
 
+#include "goto_checker.h"
+#include "properties.h"
+
 template<class goto_checkerT>
 class all_properties_verifiert : public goto_verifiert
 {
 public:
   all_properties_verifiert(
-    const optionst &,
-    ui_message_handlert &,
-    abstract_goto_modelt &)
+    const optionst &options,
+    ui_message_handlert &ui_message_handler,
+    abstract_goto_modelt &goto_model)
   : goto_verifiert(options, ui_message_handler),
     goto_model(goto_model),
     goto_checker(options, ui_message_handler, goto_model),
@@ -45,6 +48,7 @@ public:
 protected:
   abstract_goto_modelt &goto_model;
   goto_checkerT goto_checker;
+  propertiest properties;
 };
 
 #endif // CPROVER_GOTO_CHECKER_ALL_PROPERTIES_VERIFIER_H
