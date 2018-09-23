@@ -38,6 +38,34 @@ multi_path_symex_checkert::multi_path_symex_checkert(
 
 propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
 {
+  perform_symex();
+
+  // coverage report
+  std::string cov_out=options.get_option("symex-coverage-report");
+  if(!cov_out.empty() &&
+     symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
+  {
+    error() << "Failed to write symex coverage report to '"
+            << cov_out << "'" << eom;
+  }
+
+  if(options.get_bool_option("show-vcc"))
+  {
+    namespacet ns(goto_model.get_symbol_table());
+    show_vcc(options, ui_message_handler, ns, equation);
+  }
+
+  if(options.get_bool_option("program-only"))
+  {
+    namespacet ns(goto_model.get_symbol_table());
+    show_program(ns, equation);
+  }
+
+  return properties_result_from_symex_target_equation(equation);
+}
+
+void multi_path_symex_checkert::perform_symex()
+{
   namespacet ns(goto_model.get_symbol_table());
 
   auto get_goto_function = [this](const irep_idt &id) ->
@@ -63,27 +91,6 @@ propertiest multi_path_symex_checkert::operator()(const propertiest &properties)
                << " steps" << eom;
 
   slice(symex, equation, ns, options, ui_message_handler);
-
-  // coverage report
-  std::string cov_out=options.get_option("symex-coverage-report");
-  if(!cov_out.empty() &&
-     symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
-  {
-    error() << "Failed to write symex coverage report to '"
-            << cov_out << "'" << eom;
-  }
-
-  if(options.get_bool_option("show-vcc"))
-  {
-    show_vcc(options, ui_message_handler, ns, equation);
-  }
-
-  if(options.get_bool_option("program-only"))
-  {
-    show_program(ns, equation);
-  }
-
-  return properties_result_from_symex_target_equation(equation);
 }
 
 goto_tracet multi_path_symex_checkert::build_error_trace() const
