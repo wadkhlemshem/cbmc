@@ -80,14 +80,14 @@ json(const irep_idt &property_id, const property_infot &property_info)
 }
 
 /// Returns the properties in the goto model
-propertiest initialize_properties(const goto_modelt &goto_model)
+propertiest initialize_properties(const abstract_goto_modelt &goto_model)
 {
   propertiest properties;
-  forall_goto_functions(it, goto_model.goto_functions)
+  forall_goto_functions(it, goto_model.get_goto_functions())
   {
     if(
       !it->second.is_inlined() ||
-      it->first == goto_model.goto_functions.entry_point())
+      it->first == goto_functionst::entry_point())
     {
       const goto_programt &goto_program = it->second.body;
 
