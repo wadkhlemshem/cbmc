@@ -24,13 +24,22 @@ public:
     abstract_goto_modelt &)
   : goto_verifiert(options, ui_message_handler),
     goto_model(goto_model),
-    goto_checker(options, ui_message_handler, goto_model)
+    goto_checker(options, ui_message_handler, goto_model),
+    properties(initialize_properties(goto_model))
   {
   }
 
   resultt operator()() override
   {
-    return resultt::UNKNOWN;
+    // have we got anything to check? otherwise we return PASS
+    if(!has_properties_to_check(properties))
+      return resultt::PASS;
+
+    while(goto_checker(properties) != goto_checkert::statust::DONE)
+    {
+      // loop until we are done
+    }
+    return determine_result(properties);
   }
 
 protected:
