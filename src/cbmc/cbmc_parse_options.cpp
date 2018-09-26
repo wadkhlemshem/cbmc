@@ -577,6 +577,18 @@ int cbmc_parse_optionst::doit()
       return result_to_exit_code(result);
     }
   }
+  else
+  {
+    // we do all properties
+    if(!options.get_bool_option("paths"))
+    {
+      all_properties_verifiert<bmc_checkert>
+        verifier(options, ui_message_handler, goto_model);
+      resultt result = verifier();
+      verifier.report();
+      return result_to_exit_code(result);
+    }
+  }
 
   if(cmdline.isset("validate-goto-model"))
   {
