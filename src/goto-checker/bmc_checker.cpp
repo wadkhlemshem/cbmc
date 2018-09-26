@@ -125,10 +125,9 @@ void bmc_checkert::update_properties_from_symex_target_equation(propertiest &pro
       else
         continue;
 
-      // consider goal if it is part of the given properties
-      auto found_goal = goal_map.find(property_id);
-      if(found_goal != goal_map.end())
-        found_goal->second.instances.push_back(it);
+      // consider goal instance if it is in the given properties
+      if(properties.count(property_id) > 0)
+        goal_map[property_id].instances.push_back(it);
     }
   }
 }
