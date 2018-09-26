@@ -33,6 +33,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <goto-checker/all_properties_verifier.h>
 #include <goto-checker/bmc_checker.h>
 #include <goto-checker/multi_path_symex_checker.h>
+#include <goto-checker/paths_checker.h>
+#include <goto-checker/pathwise_symex_checker.h>
 #include <goto-checker/properties.h>
 #include <goto-checker/stop_on_fail_verifier.h>
 
@@ -552,41 +554,51 @@ int cbmc_parse_optionst::doit()
   if(set_properties())
     return CPROVER_EXIT_SET_PROPERTIES_FAILED;
 
+  std::unique_ptr<goto_verifiert> verifier;
+
   if(
     options.get_bool_option("program-only") ||
     options.get_bool_option("show-vcc"))
   {
-    if(!options.get_bool_option("paths"))
+    if(options.get_bool_option("paths"))
     {
-      all_properties_verifiert<multi_path_symex_checkert>
-        verifier(options, ui_message_handler, goto_model);
-      resultt result = verifier();
-      return result_to_exit_code(result);
+      verifier =
+        util_make_unique<all_properties_verifiert<pathwise_symex_checkert>>(
+          options, ui_message_handler, goto_model);
     }
-  }
-
-  if(
-    options.get_bool_option("stop-on-fail"))
-  {
-    if(!options.get_bool_option("paths"))
+    else
     {
-      stop_on_fail_verifiert<bmc_checkert>
-        verifier(options, ui_message_handler, goto_model);
-      resultt result = verifier();
-      verifier.report();
-      return result_to_exit_code(result);
+      verifier =
+        util_make_unique<all_properties_verifiert<multi_path_symex_checkert>>(
+          options, ui_message_handler, goto_model);
+    }
+    resultt result = (*verifier)();
+    return result_to_exit_code(result);
+  }
+  else if(options.get_bool_option("stop-on-fail"))
+  {
+    if(options.get_bool_option("paths"))
+    {
+      verifier = util_make_unique<stop_on_fail_verifiert<paths_checkert>>(
+        options, ui_message_handler, goto_model);
+    }
+    else
+    {
+      verifier = util_make_unique<stop_on_fail_verifiert<bmc_checkert>>(
+        options, ui_message_handler, goto_model);
     }
   }
   else
   {
-    // we do all properties
-    if(!options.get_bool_option("paths"))
+    if(options.get_bool_option("paths"))
     {
-      all_properties_verifiert<bmc_checkert>
-        verifier(options, ui_message_handler, goto_model);
-      resultt result = verifier();
-      verifier.report();
-      return result_to_exit_code(result);
+      verifier = util_make_unique<all_properties_verifiert<paths_checkert>>(
+        options, ui_message_handler, goto_model);
+    }
+    else
+    {
+      verifier = util_make_unique<all_properties_verifiert<bmc_checkert>>(
+        options, ui_message_handler, goto_model);
     }
   }
 
@@ -595,8 +607,9 @@ int cbmc_parse_optionst::doit()
     goto_model.validate(validation_modet::INVARIANT);
   }
 
-  return bmct::do_language_agnostic_bmc(
-    path_strategy_chooser, options, goto_model, ui_message_handler);
+  resultt result = (*verifier)();
+  verifier->report();
+  return result_to_exit_code(result);
 }
 
 bool cbmc_parse_optionst::set_properties()
