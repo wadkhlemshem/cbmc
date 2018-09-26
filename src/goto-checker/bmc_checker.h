@@ -41,10 +41,22 @@ protected:
     typedef std::vector<symex_target_equationt::SSA_stepst::iterator>
       instancest;
     instancest instances;
+    literalt condition;
+
+    exprt as_expr() const;
   };
 
   typedef std::map<irep_idt, goalt> goal_mapt;
   goal_mapt goal_map;
+
+  bool symex_run;
+
+  void update_properties_from_symex_target_equation(propertiest &properties);
+  void convert_goals();
+  void freeze_goal_variables();
+  void add_constraint_from_goals(const propertiest &properties);
+  void update_properties_results_from_goals(
+    propertiest &properties, decision_proceduret::resultt dec_result);
 };
 
 #endif // CPROVER_GOTO_CHECKER_BMC_CHECKER_H
