@@ -39,6 +39,12 @@ public:
 
 protected:
   abstract_goto_modelt &goto_model;
+  symbol_tablet symex_symbol_table;
+  symex_target_equationt equation;
+  path_fifot path_storage;
+  symex_bmct symex;
+
+  void perform_symex();
 };
 
 #endif // CPROVER_GOTO_CHECKER_PATHWISE_SYMEX_CHECKER_H

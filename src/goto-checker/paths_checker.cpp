@@ -15,9 +15,14 @@ paths_checkert::paths_checkert(
   const optionst &options,
   ui_message_handlert &ui_message_handler,
   abstract_goto_modelt &goto_model)
-  : goto_checkert(options, ui_message_handler),
-    goto_model(goto_model)
+  : pathwise_symex_checkert(options, ui_message_handler, goto_model)
 {
+  solver_factoryt solvers(
+    options,
+    goto_model.get_symbol_table(),
+    ui_message_handler,
+    ui_message_handler.get_ui() == ui_message_handlert::uit::XML_UI);
+  solver = solvers.get_solver();
 }
 
 goto_checkert::statust paths_checkert::operator()(propertiest &properties)
