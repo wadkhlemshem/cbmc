@@ -12,9 +12,11 @@ Author: Daniel Kroening, Peter Schrammel
 #ifndef CPROVER_GOTO_CHECKER_PATHS_CHECKER_H
 #define CPROVER_GOTO_CHECKER_PATHS_CHECKER_H
 
-#include "goto_checker.h"
+#include "pathwise_symex_checker.h"
 
-class paths_checkert : public goto_checkert
+#include "solver_factory.h"
+
+class paths_checkert : public pathwise_symex_checkert
 {
 public:
   paths_checkert(
@@ -26,19 +28,12 @@ public:
 
   goto_tracet build_error_trace() const override;
 
-  void output_error_witness(const goto_tracet &) override
-  {
-    // unsupported
-    UNIMPLEMENTED;
-  }
-  void output_proof() override
-  {
-    // unsupported
-    UNIMPLEMENTED;
-  }
+  void output_error_witness(const goto_tracet &) override;
+
+  void output_proof() override;
 
 protected:
-  abstract_goto_modelt &goto_model;
+  std::unique_ptr<solver_factoryt::solvert> solver;
 };
 
 #endif // CPROVER_GOTO_CHECKER_PATHS_CHECKER_H
