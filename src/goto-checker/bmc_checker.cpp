@@ -12,6 +12,7 @@ Author: Daniel Kroening, Peter Schrammel
 #include "bmc_checker.h"
 
 #include "bmc_util.h"
+#include "counterexample_beautification.h"
 
 bmc_checkert::bmc_checkert(
   const optionst &options,
@@ -70,6 +71,11 @@ goto_checkert::statust bmc_checkert::operator()(propertiest &properties)
 
 goto_tracet bmc_checkert::build_error_trace() const
 {
+  if(options.get_bool_option("beautify"))
+  {
+    counterexample_beautificationt()(
+      dynamic_cast<boolbvt &>(solver->prop_conv), equation);
+  }
   namespacet ns(goto_model.get_symbol_table());
   goto_tracet error_trace;
   ::build_error_trace(error_trace, ns, equation, solver->prop_conv(), ui_message_handler);
