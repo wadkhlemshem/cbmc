@@ -30,7 +30,11 @@ public:
 
   void output_error_witness(const goto_tracet &) override;
 
-  void output_proof() override;
+  void output_proof() override
+  {
+    // unsupported
+    UNIMPLEMENTED;
+  }
 
 protected:
   std::unique_ptr<solver_factoryt::solvert> solver;
