@@ -74,7 +74,7 @@ goto_tracet bmc_checkert::build_error_trace() const
   if(options.get_bool_option("beautify"))
   {
     counterexample_beautificationt()(
-      dynamic_cast<boolbvt &>(solver->prop_conv), equation);
+      dynamic_cast<boolbvt &>(solver->prop_conv()), equation);
   }
   namespacet ns(goto_model.get_symbol_table());
   goto_tracet error_trace;
