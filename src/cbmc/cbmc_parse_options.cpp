@@ -31,25 +31,26 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <cpp/cprover_library.h>
 
 #include <goto-programs/adjust_float_expressions.h>
-#include <goto-programs/initialize_goto_model.h>
-#include <goto-programs/instrument_preconditions.h>
 #include <goto-programs/goto_convert_functions.h>
 #include <goto-programs/goto_inline.h>
+#include <goto-programs/initialize_goto_model.h>
+#include <goto-programs/instrument_preconditions.h>
 #include <goto-programs/link_to_library.h>
 #include <goto-programs/loop_ids.h>
 #include <goto-programs/mm_io.h>
 #include <goto-programs/read_goto_binary.h>
+#include <goto-programs/remove_asm.h>
+#include <goto-programs/remove_complex.h>
 #include <goto-programs/remove_function_pointers.h>
 #include <goto-programs/remove_returns.h>
-#include <goto-programs/remove_vector.h>
-#include <goto-programs/remove_complex.h>
-#include <goto-programs/remove_asm.h>
-#include <goto-programs/remove_unused_functions.h>
+#include <goto-programs/remove_shadow_memory.h>
 #include <goto-programs/remove_skip.h>
+#include <goto-programs/remove_unused_functions.h>
+#include <goto-programs/remove_vector.h>
 #include <goto-programs/set_properties.h>
 #include <goto-programs/show_goto_functions.h>
-#include <goto-programs/show_symbol_table.h>
 #include <goto-programs/show_properties.h>
+#include <goto-programs/show_symbol_table.h>
 #include <goto-programs/string_abstraction.h>
 #include <goto-programs/string_instrumentation.h>
 
@@ -735,6 +736,9 @@ bool cbmc_parse_optionst::process_goto_program(
 
     // instrument library preconditions
     instrument_preconditions(goto_model);
+
+    // shadow memory instrumentation
+    remove_shadow_memory(goto_model, log.get_message_handler());
 
     // remove returns, gcc vectors, complex
     remove_returns(goto_model);
