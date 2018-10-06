@@ -12,6 +12,8 @@ endif
 #CXXFLAGS += -O2 -DNDEBUG
 #CXXFLAGS += -O0 -g
 
+LINKFLAGS += -static-libgcc -static-libstdc++
+
 # If GLPK is available; this is used by goto-instrument and musketeer.
 #LIB_GLPK = -lglpk
 
