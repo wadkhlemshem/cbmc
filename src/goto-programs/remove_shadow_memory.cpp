@@ -471,6 +471,10 @@ void remove_shadow_memoryt::convert_get_field(
   // ...
   // target:
   INVARIANT(
+    fields.count(field_name) == 1,
+    id2string(field_name) + " should exist");
+  const auto &field_type = fields.at(field_name);
+  INVARIANT(
     address_fields.count(field_name) == 1,
     id2string(field_name) + " should exist");
   const auto &addresses = address_fields.at(field_name);
@@ -490,11 +494,13 @@ void remove_shadow_memoryt::convert_get_field(
       t3->make_goto(target);
       goto_programt::targett t2 = goto_program.insert_before(t3);
       t2->make_assignment();
-      const exprt &lhs = to_code_function_call(target->code).lhs();
+      exprt lhs = to_code_function_call(target->code).lhs();
+      lhs.type() = field_type;
       t2->code =
         code_assignt(lhs, typecast_exprt::conditional_cast(field, lhs.type()));
       goto_programt::targett t1 = t0;
-      t1->make_goto(t4, not_exprt(equal_exprt(address, typecast_exprt::conditional_cast(expr, address.type()))));
+      t1->make_goto(t4, not_exprt(equal_exprt(
+        address, typecast_exprt::conditional_cast(expr, address.type()))));
 
       t0 = t4;
     }
