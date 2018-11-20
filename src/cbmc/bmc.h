@@ -233,6 +233,8 @@ private:
   /// stage and return "safe" (no assertions violated / coverage goals reached),
   /// similar to the behaviour when 'show-vcc' or 'program-only' are specified.
   std::function<bool(void)> driver_callback_after_symex;
+
+  void report_unmodelled_functions(const goto_tracet &);
 };
 
 /// \brief Symbolic execution from a saved branch point

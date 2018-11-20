@@ -47,6 +47,28 @@ void bmct::freeze_program_variables()
   // this is a hook for cegis
 }
 
+void bmct::report_unmodelled_functions(const goto_tracet &goto_trace)
+{
+  for(const auto step : goto_trace.steps)
+  {
+    if(!step.is_function_call())
+      continue;
+
+    const auto &call = to_code_function_call(step.pc->code);
+    if(call.function().id() != ID_symbol)
+      continue;
+
+    if(
+      has_prefix(
+        id2string(to_symbol_expr(call.function()).get_identifier()),
+        "java::org.cprover.CProver.notModelled"))
+    {
+      warning() << "Warning: Unmodelled library functions have been called. "
+                << "Results may be incorrect." << eom;
+    }
+  }
+}
+
 void bmct::error_trace()
 {
   status() << "Building error trace" << eom;
@@ -60,6 +82,8 @@ void bmct::error_trace()
     result() << "Counterexample:" << eom;
     show_goto_trace(result(), ns, goto_trace, trace_options());
     result() << eom;
+
+    report_unmodelled_functions(goto_trace);
     break;
 
   case ui_message_handlert::uit::XML_UI:
