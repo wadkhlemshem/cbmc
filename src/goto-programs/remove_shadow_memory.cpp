@@ -429,9 +429,9 @@ void remove_shadow_memoryt::convert_set_field(
   for(const auto &address_pair : addresses)
   {
     const exprt &address = address_pair.first;
-    if(expr.type() == address.type() ||
-       to_pointer_type(expr.type()).get_width() ==
-       to_pointer_type(address.type()).get_width())
+    const exprt casted_expr =
+      typecast_exprt::conditional_cast(expr, address.type());
+    if(casted_expr.id() != ID_typecast)
     {
       const exprt &field = address_pair.second;
       goto_programt::targett t4 = goto_program.insert_before(target);
@@ -443,7 +443,7 @@ void remove_shadow_memoryt::convert_set_field(
       t2->code = code_assignt(
         field, typecast_exprt::conditional_cast(value, field.type()));
       goto_programt::targett t1 = t0;
-      t1->make_goto(t4, not_exprt(equal_exprt(address, typecast_exprt::conditional_cast(expr, address.type()))));
+      t1->make_goto(t4, not_exprt(equal_exprt(address, casted_expr)));
 
       t0 = t4;
     }
@@ -517,9 +517,9 @@ void remove_shadow_memoryt::convert_get_field(
   for(const auto &address_pair : addresses)
   {
     const exprt &address = address_pair.first;
-    if(expr.type() == address.type() ||
-       to_pointer_type(expr.type()).get_width() ==
-       to_pointer_type(address.type()).get_width())
+    const exprt casted_expr =
+      typecast_exprt::conditional_cast(expr, address.type());
+    if(casted_expr.id() != ID_typecast)
     {
       const exprt &field = address_pair.second;
       goto_programt::targett t4 = goto_program.insert_before(target);
@@ -533,8 +533,12 @@ void remove_shadow_memoryt::convert_get_field(
       t2->code =
         code_assignt(lhs, typecast_exprt::conditional_cast(field, lhs.type()));
       goto_programt::targett t1 = t0;
-      t1->make_goto(t4, not_exprt(equal_exprt(
-        address, typecast_exprt::conditional_cast(expr, address.type()))));
+      t1->make_goto(
+        t4,
+        not_exprt(
+          equal_exprt(
+            address,
+            typecast_exprt::conditional_cast(casted_expr, address.type()))));
 
       t0 = t4;
     }
