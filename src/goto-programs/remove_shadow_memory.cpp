@@ -29,6 +29,8 @@ Author: Peter Schrammel
 
 #include "goto_model.h"
 
+#define GET_FIELD_RETURN "return_value___CPROVER_get_field"
+
 class remove_shadow_memoryt : public messaget
 {
 public:
@@ -51,10 +53,15 @@ protected:
     const namespacet &ns,
     const code_function_callt &code_function_call,
     const std::map<irep_idt, typet> &fields,
+    symbol_tablet &symbol_table,
     goto_programt::targett target,
     goto_programt &goto_program,
     const std::map<irep_idt, std::vector<std::pair<exprt, symbol_exprt>>>
       &address_fields);
+
+  bool convert_get_field_return_value_uses(
+    const symbol_tablet &symbol_table,
+    exprt &expr);
 
   void convert_set_field(
     const namespacet &ns,
@@ -291,6 +298,11 @@ void remove_shadow_memoryt::operator()(goto_modelt &goto_model)
     goto_programt &goto_program = f_it->second.body;
     Forall_goto_program_instructions(target, goto_program)
     {
+      (void)convert_get_field_return_value_uses(
+        goto_model.symbol_table, target->code);
+      (void)convert_get_field_return_value_uses(
+        goto_model.symbol_table, target->guard);
+
       if(!target->is_function_call())
         continue;
 
@@ -318,7 +330,13 @@ void remove_shadow_memoryt::operator()(goto_modelt &goto_model)
       else if(identifier == CPROVER_PREFIX "get_field")
       {
         convert_get_field(
-          ns, code_function_call, fields, target, goto_program, address_fields);
+          ns,
+          code_function_call,
+          fields,
+          goto_model.symbol_table,
+          target,
+          goto_program,
+          address_fields);
       }
     }
   }
@@ -433,6 +451,7 @@ void remove_shadow_memoryt::convert_set_field(
   for(const auto &address_pair : addresses)
   {
     const exprt &address = address_pair.first;
+    // assume pointers are not casted
     const exprt casted_expr =
       typecast_exprt::conditional_cast(expr, address.type());
     if(casted_expr.id() != ID_typecast)
@@ -453,6 +472,35 @@ void remove_shadow_memoryt::convert_set_field(
     }
   }
   target->make_skip();
+}
+
+bool remove_shadow_memoryt::convert_get_field_return_value_uses(
+  const symbol_tablet &symbol_table,
+  exprt &expr)
+{
+  if(expr.id() == ID_symbol)
+  {
+    auto &symbol_expr = to_symbol_expr(expr);
+    if(
+      id2string(symbol_expr.get_identifier()).find(GET_FIELD_RETURN) !=
+      std::string::npos)
+    {
+      symbol_expr.type() =
+        symbol_table.lookup_ref(symbol_expr.get_identifier()).type;
+      return true;
+    }
+    return false;
+  }
+
+  bool changed = false;
+  Forall_operands(it, expr)
+  {
+    changed |= convert_get_field_return_value_uses(symbol_table, *it);
+  }
+  if(changed && expr.id() == ID_typecast)
+    expr = expr.op0();
+
+  return false;
 }
 
 symbol_exprt remove_shadow_memoryt::add_field(
@@ -484,6 +532,7 @@ void remove_shadow_memoryt::convert_get_field(
   const namespacet &ns,
   const code_function_callt &code_function_call,
   const std::map<irep_idt, typet> &fields,
+  symbol_tablet &symbol_table,
   goto_programt::targett target,
   goto_programt &goto_program,
   const std::map<irep_idt, std::vector<std::pair<exprt, symbol_exprt>>>
@@ -516,11 +565,29 @@ void remove_shadow_memoryt::convert_get_field(
     address_fields.count(field_name) == 1,
     id2string(field_name) + " should exist");
   const auto &addresses = address_fields.at(field_name);
+
+  // adjust get_field return value type in declaration
+  auto prev_target = std::prev(target);
+  INVARIANT(prev_target->is_decl(), "declaration expected");
+  auto &code_decl = to_code_decl(prev_target->code);
+  const auto &decl_identifier =
+    to_symbol_expr(code_decl.symbol()).get_identifier();
+  INVARIANT(
+    id2string(decl_identifier).find(GET_FIELD_RETURN) != std::string::npos,
+    "'" GET_FIELD_RETURN "' expected, '" + id2string(decl_identifier) +
+      "' found");
+  code_decl.type() = field_type;
+  code_decl.symbol().type() = field_type;
+  auto &decl_symbol = symbol_table.get_writeable_ref(decl_identifier);
+  decl_symbol.type = field_type;
+
+  // convert
   goto_programt::targett t0 = goto_program.insert_before(target);
   t0->make_goto(target);
   for(const auto &address_pair : addresses)
   {
     const exprt &address = address_pair.first;
+    // assume pointers are not casted
     const exprt casted_expr =
       typecast_exprt::conditional_cast(expr, address.type());
     if(casted_expr.id() != ID_typecast)
