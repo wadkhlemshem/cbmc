@@ -1046,13 +1046,31 @@ void jbmc_parse_optionst::help()
     "\n"
     "Usage:                       Purpose:\n"
     "\n"
-    " jbmc [-?] [-h] [--help]      show help\n"
-    " jbmc class                   name of class or JAR file to be checked\n"
-    "                              In the case of a JAR file, if a main class can be\n" // NOLINT(*)
-    "                              inferred from --main-class, --function, or the JAR\n" // NOLINT(*)
-    "                              manifest (checked in this order), the behavior is\n" // NOLINT(*)
-    "                              the same as running jbmc on the corresponding\n" // NOLINT(*)
-    "                              class file."
+    " jbmc (-?|-h|-help|--help)    show help\n"
+    "\n"
+    "JBMC follows the conventions of `java` to find classes and their entrypoints,\n"
+    "but has some extensions:\n"
+    " jbmc class                   to check a class\n" // NOLINT(*)
+    "                              The default entrypoint is the main method of class.\n" // NOLINT(*)
+    "                              The main method can be overridden by --function.\n" // NOLINT(*)
+    " jbmc [-jar] jarfile          to check a jar file\n"
+    "                              The main class is specified in the manifest file\n" // NOLINT(*)
+    "                              and can be overridden by --main-class or --function.\n" // NOLINT(*)
+    "\n"
+    "Entry point and class path options:\n"
+    " --main-class name            set main class\n"
+    " --function name              set main method (higher priority than --main-class)\n" // NOLINT(*)
+    "                              The method name must be fully qualified\n"
+    "                              if a jar file is checked.\n"
+    " (-classpath|-cp|--classpath|--cp) dirs/jarfiles\n"
+    "                              set the classpath\n"
+#ifdef _WIN32
+    "                              The directories resp. jar files are ; separated.\n" // NOLINT(*)
+#else
+    "                              The directories resp. jar files are : separated.\n" // NOLINT(*)
+#endif
+    "                              The default classpath is . if neither -jar\n"
+    "                              nor -classpath are specified.\n"
     "\n"
     "Analysis options:\n"
     HELP_SHOW_PROPERTIES
@@ -1060,8 +1078,6 @@ void jbmc_parse_optionst::help()
     " --property id                only check one specific property\n"
     " --stop-on-fail               stop analysis once a failed property is detected\n" // NOLINT(*)
     " --trace                      give a counterexample trace for failed properties\n" //NOLINT(*)
-    "\n"
-    HELP_FUNCTIONS
     "\n"
     "Program representations:\n"
     " --show-parse-tree            show parse tree\n"
@@ -1081,8 +1097,6 @@ void jbmc_parse_optionst::help()
     " --full-slice                 run full slicer (experimental)\n" // NOLINT(*)
     "\n"
     "Java Bytecode frontend options:\n"
-    " --classpath dir/jar          set the classpath\n"
-    " --main-class class-name      set the name of the main class\n"
     JAVA_BYTECODE_LANGUAGE_OPTIONS_HELP
     // This one is handled by jbmc_parse_options not by the Java frontend,
     // hence its presence here:

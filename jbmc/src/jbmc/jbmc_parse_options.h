@@ -47,7 +47,9 @@ class optionst;
   "(debug-level):(no-propagation)(no-simplify-if)" \
   "(document-subgoals)(outfile):" \
   "(object-bits):" \
-  "(classpath):(cp):(main-class):" \
+  "(jar):" \
+  "(classpath):(cp):" \
+  "(main-class):" \
   "(no-assertions)(no-assumptions)" \
   "(xml-ui)(json-ui)" \
   "(smt1)(smt2)(fpa)(cvc3)(cvc4)(boolector)(yices)(z3)(opensmt)(mathsat)" \
