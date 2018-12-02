@@ -1111,7 +1111,8 @@ void jbmc_parse_optionst::help()
     "\n"
     "Semantic transformations:\n"
     // NOLINTNEXTLINE(whitespace/line_length)
-    " --nondet-static              add nondeterministic initialization of variables with static lifetime\n"
+    " --nondet-static              add nondeterministic initialization of variables\n" // NOLINT(*)
+    "                              with static lifetime\n"
     "\n"
     "BMC options:\n"
     HELP_BMC
