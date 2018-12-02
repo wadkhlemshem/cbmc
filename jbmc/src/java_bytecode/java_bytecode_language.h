@@ -174,6 +174,7 @@ protected:
   bool do_ci_lazy_method_conversion(symbol_tablet &, method_bytecodet &);
   const select_pointer_typet &get_pointer_type_selector() const;
 
+  std::string main_jar;
   irep_idt main_class;
   std::vector<irep_idt> main_jar_classes;
   java_class_loadert java_class_loader;

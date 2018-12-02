@@ -47,6 +47,11 @@ Author: Daniel Kroening, kroening@kroening.com
 /// \param [out] options The options object that will be updated.
 void parse_java_language_options(const cmdlinet &cmd, optionst &options)
 {
+  if(cmd.isset("jar"))
+  {
+    options.set_option("jar", cmd.get_value("jar"));
+  }
+
   options.set_option(
     "java-assume-inputs-non-null", cmd.isset("java-assume-inputs-non-null"));
   options.set_option(
@@ -91,6 +96,8 @@ void parse_java_language_options(const cmdlinet &cmd, optionst &options)
 void java_bytecode_languaget::set_language_options(const optionst &options)
 {
   object_factory_parameters.set(options);
+
+  main_jar = options.get_option("jar");
 
   assume_inputs_non_null =
     options.get_bool_option("java-assume-inputs-non-null");
@@ -233,13 +240,11 @@ bool java_bytecode_languaget::parse(
     java_class_loader.set_extra_class_refs_function(get_string_base_classes);
   }
 
-  // look at extension
-  if(has_suffix(path, ".class"))
+  if(main_jar.empty())
   {
-    // override main_class
-    main_class=java_class_loadert::file_to_class_name(path);
+    main_class = config.java.main_class;
   }
-  else if(has_suffix(path, ".jar"))
+  else
   {
     // build an object to potentially limit which classes are loaded
     java_class_loader_limitt class_loader_limit(
@@ -264,8 +269,6 @@ bool java_bytecode_languaget::parse(
           main_class = manifest_main_class;
       }
     }
-    else
-      main_class=config.java.main_class;
 
     // do we have one now?
     if(main_class.empty())

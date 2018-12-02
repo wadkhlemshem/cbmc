@@ -620,7 +620,7 @@ int jbmc_parse_optionst::get_goto_program(
   std::unique_ptr<goto_modelt> &goto_model,
   const optionst &options)
 {
-  if(cmdline.args.empty())
+  if(!cmdline.isset("jar") || cmdline.args.empty())
   {
     error() << "Please provide a program to verify" << eom;
     return 6;
