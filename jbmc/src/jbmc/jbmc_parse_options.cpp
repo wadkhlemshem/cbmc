@@ -1048,18 +1048,20 @@ void jbmc_parse_optionst::help()
     "\n"
     " jbmc (-?|-h|-help|--help)    show help\n"
     "\n"
-    "JBMC follows the conventions of `java` to find classes and their entrypoints,\n"
+    "JBMC follows the conventions of `java` to find classes and their entry points,\n"
     "but has some extensions:\n"
     " jbmc class                   to check a class\n" // NOLINT(*)
-    "                              The default entrypoint is the main method of class.\n" // NOLINT(*)
+    "                              The default entry point is the main method of\n" // NOLINT(*)
+    "                              class.\n"
     "                              The main method can be overridden by --function.\n" // NOLINT(*)
     " jbmc [-jar] jarfile          to check a jar file\n"
     "                              The main class is specified in the manifest file\n" // NOLINT(*)
-    "                              and can be overridden by --main-class or --function.\n" // NOLINT(*)
+    "                              and can be overridden by --main-class or\n"
+    "                              --function.\n"
     "\n"
     "Entry point and class path options:\n"
     " --main-class name            set main class\n"
-    " --function name              set main method (higher priority than --main-class)\n" // NOLINT(*)
+    " --function name              set main method; higher priority than --main-class\n" // NOLINT(*)
     "                              The method name must be fully qualified\n"
     "                              if a jar file is checked.\n"
     " (-classpath|-cp|--classpath|--cp) dirs/jarfiles\n"
