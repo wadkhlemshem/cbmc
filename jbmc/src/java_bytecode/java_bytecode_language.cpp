@@ -854,6 +854,9 @@ bool java_bytecode_languaget::generate_support_functions(
   if(!res.is_success())
     return res.is_error();
 
+  status() << "Main class: " << main_class << eom;
+  status() << "Main function: " << res.main_function.name << eom;
+
   // Load the main function into the symbol table to get access to its
   // parameter names
   convert_lazy_method(res.main_function.name, symbol_table_builder);
