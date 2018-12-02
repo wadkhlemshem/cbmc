@@ -1,5 +1,5 @@
 CORE
-Test.class
+Test
 --function Test.checkWithDependency --depth 10000
 ^EXIT=10$
 ^SIGNAL=0$

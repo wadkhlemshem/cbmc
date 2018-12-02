@@ -1,5 +1,5 @@
 CORE
-Test.class
+Test
 --verbosity 10 --max-nondet-string-length 499999 --function Test.checkMaxInputLength
 ^EXIT=0$
 ^SIGNAL=0$

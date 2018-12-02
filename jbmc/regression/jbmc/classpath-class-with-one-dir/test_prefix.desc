@@ -1,9 +1,9 @@
 KNOWNBUG
-src/Test.class
+src/Test
 
 ^EXIT=6$
 --
-Parsing src/Test.class
+Parsing src/Test
 --
 Test class is not in src package. Therefore, this must fail.
 Issue: 2864

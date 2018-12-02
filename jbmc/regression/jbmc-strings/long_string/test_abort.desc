@@ -1,5 +1,5 @@
 CORE
-Test.class
+Test
 --function Test.checkAbort --trace
 ^EXIT=10$
 ^SIGNAL=0$

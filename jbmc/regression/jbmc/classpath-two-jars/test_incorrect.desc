@@ -1,6 +1,6 @@
 KNOWNBUG
 libs/test.jar
-lib/test2.jar --main-class Test.class
+lib/test2.jar --main-class Test
 ^EXIT=6$
 --
 Invariant check failed

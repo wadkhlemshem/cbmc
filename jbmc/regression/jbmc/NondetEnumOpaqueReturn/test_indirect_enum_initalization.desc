@@ -1,5 +1,5 @@
 CORE
-indirect/IndirectVirtualCall.class
+indirect/IndirectVirtualCall
 --function indirect.IndirectVirtualCall.main
 function java::indirect\.TestEnum\.<clinit>:\(\)V$
 ^EXIT=10$

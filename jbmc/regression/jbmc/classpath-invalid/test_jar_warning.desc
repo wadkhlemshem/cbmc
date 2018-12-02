@@ -1,5 +1,5 @@
 KNOWNBUG
-Test.class
+Test
 --classpath ./NotHere.jar
 ^EXIT=0$
 ^SIGNAL=0$

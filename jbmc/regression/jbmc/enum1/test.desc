@@ -1,5 +1,5 @@
 CORE
-enum1.class
+enum1
 --java-unwind-enum-static --unwind 3
 ^VERIFICATION SUCCESSFUL$
 ^EXIT=0$

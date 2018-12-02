@@ -1,5 +1,5 @@
 KNOWNBUG
-instanceof2.class
+instanceof2
 
 ^EXIT=0$
 ^SIGNAL=0$

@@ -1,5 +1,5 @@
 KNOWNBUG
-Test.class
+Test
 --classpath `../../../../scripts/format_classpath.sh ./NotHere .`
 ^EXIT=0$
 ^SIGNAL=0$

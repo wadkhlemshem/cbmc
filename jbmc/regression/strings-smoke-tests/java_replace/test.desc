@@ -1,5 +1,5 @@
 FUTURE
-test_replace.class
+test_replace
 --verbosity 10 --max-nondet-string-length 100
 ^EXIT=0$
 ^SIGNAL=0$

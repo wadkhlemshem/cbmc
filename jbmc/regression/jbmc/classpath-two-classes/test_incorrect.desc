@@ -1,6 +1,6 @@
 KNOWNBUG
-Test.class
-Test2.class
+Test
+Test2
 ^EXIT=6$
 --
 Invariant check failed

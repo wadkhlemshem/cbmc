@@ -1,5 +1,5 @@
 CORE
-Test.class
+Test
 --function Test.checkDet --verbosity 10
 ^EXIT=10$
 ^SIGNAL=0$

@@ -1,5 +1,5 @@
 CORE symex-driven-lazy-loading-expected-failure
-Test.class
+Test
 --classpath ./NotHere
 ^EXIT=6$
 ^SIGNAL=0$

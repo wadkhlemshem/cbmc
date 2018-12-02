@@ -1,5 +1,5 @@
 THOROUGH
-test.class
+test
 --verbosity 10 --max-nondet-string-length 20
 ^EXIT=10$
 ^SIGNAL=0$

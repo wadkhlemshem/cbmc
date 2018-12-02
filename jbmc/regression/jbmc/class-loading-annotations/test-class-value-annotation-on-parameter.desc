@@ -1,7 +1,7 @@
 CORE
-ClassValueAnnotationOnParameter.class
+ClassValueAnnotationOnParameter
 --verbosity 10
-Getting class `MyClassA' from file \.[\\/]MyClassA\.class
+Getting class `MyClassA' from file \.[\\/]MyClassA\
 --
 MyClassB
 --

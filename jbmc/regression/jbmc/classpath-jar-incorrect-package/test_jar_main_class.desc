@@ -1,10 +1,10 @@
 KNOWNBUG
 test.jar
---main-class Test.class
+--main-class Test
 ^EXIT=6$
 --
 Java main class: Test
-failed to open input file `Test.class'
+failed to open input file `Test'
 --
-Test.class is not in the right directory corresponding to its package.
+Test is not in the right directory corresponding to its package.
 Issue: 2864
