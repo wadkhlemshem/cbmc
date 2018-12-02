@@ -1054,9 +1054,7 @@ void jbmc_parse_optionst::help()
     "                              The default entry point is the main method of\n" // NOLINT(*)
     "                              class.\n"
     "                              The main method can be overridden by --function.\n" // NOLINT(*)
-    " jbmc method                  to check a method\n"
-    "                              Alias for: jbmc class --function method\n" // NOLINT(*)
-    " jbmc [-jar] jarfile          to check a jar file\n"
+    " jbmc (-jar|--jar) jarfile    to check a jar file\n"
     "                              The main class is specified in the manifest file\n" // NOLINT(*)
     "                              and can be overridden by --main-class or\n"
     "                              --function.\n"
