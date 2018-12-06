@@ -64,7 +64,7 @@ goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properti
 
     if(options.get_bool_option("show-vcc"))
     {
-      show_vcc(options, ui_message_handler, ns, resume.equation);
+      show_vcc(options, ui_message_handler, resume.equation);
     }
 
     if(options.get_bool_option("program-only"))
