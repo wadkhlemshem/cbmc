@@ -52,7 +52,7 @@ goto_checkert::statust multi_path_symex_checkert::operator()(propertiest &proper
   if(options.get_bool_option("show-vcc"))
   {
     namespacet ns(goto_model.get_symbol_table());
-    show_vcc(options, ui_message_handler, ns, equation);
+    show_vcc(options, ui_message_handler, equation);
   }
 
   if(options.get_bool_option("program-only"))
