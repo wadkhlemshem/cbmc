@@ -385,11 +385,11 @@ int bmct::do_language_agnostic_bmc(
   {
   case safety_checkert::resultt::SAFE:
     if(opts.is_set("paths"))
-      report_success(message, ui);
+      report_success(ui);
     return CPROVER_EXIT_VERIFICATION_SAFE;
   case safety_checkert::resultt::UNSAFE:
     if(opts.is_set("paths"))
-      report_failure(message, ui);
+      report_failure(ui);
     return CPROVER_EXIT_VERIFICATION_UNSAFE;
   case safety_checkert::resultt::ERROR:
     return CPROVER_EXIT_INTERNAL_ERROR;
