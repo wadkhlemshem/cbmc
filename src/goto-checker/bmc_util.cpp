@@ -222,8 +222,8 @@ void slice(
     }
   }
   msg.statistics() << "Generated "
-               << symex.total_vccs<<" VCC(s), "
-               << symex.remaining_vccs
+               << symex.get_total_vccs() <<" VCC(s), "
+               << symex.get_remaining_vccs()
                << " remaining after simplification" << messaget::eom;
 }
 
