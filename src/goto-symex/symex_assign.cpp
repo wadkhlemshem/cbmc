@@ -91,6 +91,8 @@ void goto_symext::symex_assign(
 
     guardt guard; // NOT the state guard!
     symex_assign_rec(state, lhs, nil_exprt(), rhs, guard, assignment_type);
+
+    symex_field_static_init(ns, state, code);
   }
 }
 
