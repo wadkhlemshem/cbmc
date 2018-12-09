@@ -191,20 +191,21 @@ void goto_symext::symex_allocate(
     index_expr.array()=value_symbol.symbol_expr();
     index_expr.index()=from_integer(0, index_type());
     rhs = address_of_exprt(index_expr, pointer_type(array_type.subtype()));
+    mp_integer size;
+    to_integer(to_constant_expr(array_type.size()), size);
+    symex_field_dynamic_init(ns, state, rhs, size);
   }
   else
   {
     rhs=address_of_exprt(
       value_symbol.symbol_expr(), pointer_type(value_symbol.type));
+    symex_field_dynamic_init(ns, state, rhs, mp_integer(1));
   }
 
   if(rhs.type()!=lhs.type())
     rhs.make_typecast(lhs.type());
 
   symex_assign(state, code_assignt(lhs, rhs));
-
-  // TODO
-  symex_field_dynamic_init();
 }
 
 irep_idt get_symbol(const exprt &src)
