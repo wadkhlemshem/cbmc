@@ -553,8 +553,17 @@ int cbmc_parse_optionst::doit()
     goto_model.validate(validation_modet::INVARIANT);
   }
 
+  const auto fields =
+    goto_symext::preprocess_field_decl(goto_model, get_message_handler());
+
   return bmct::do_language_agnostic_bmc(
-    path_strategy_chooser, options, goto_model, ui_message_handler);
+    path_strategy_chooser,
+    options,
+    goto_model,
+    ui_message_handler,
+    [&](bmct &bmc, const symbol_tablet &symbol_table) {
+      bmc.set_symex_fields(fields);
+    });
 }
 
 bool cbmc_parse_optionst::set_properties()
