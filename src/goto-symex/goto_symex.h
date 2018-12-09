@@ -19,6 +19,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include "goto_symex_state.h"
 #include "path_storage.h"
+#include "symex_shadow_memory.h"
 #include "symex_target_equation.h"
 
 class byte_extract_exprt;
@@ -96,6 +97,7 @@ public:
       log(mh),
       guard_identifier("goto_symex::\\guard"),
       path_storage(path_storage),
+      shadow_memory(mh),
       path_segment_vccs(0),
       _total_vccs(std::numeric_limits<unsigned>::max()),
       _remaining_vccs(std::numeric_limits<unsigned>::max())
@@ -425,6 +427,8 @@ protected:
   void rewrite_quantifiers(exprt &, statet &);
 
   path_storaget &path_storage;
+
+  symex_shadow_memoryt shadow_memory;
 
 public:
   /// \brief Number of VCCs generated during the run of this goto_symext object
