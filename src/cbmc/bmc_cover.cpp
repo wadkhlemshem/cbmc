@@ -211,7 +211,8 @@ bool bmc_covert::operator()()
 
   // Do conversion to next solver layer
 
-  convert_symex_target_equation(bmc.equation, bmc.prop_conv, get_message_handler());
+  convert_symex_target_equation(
+    bmc.equation, bmc.prop_conv, get_message_handler());
   bmc.freeze_program_variables();
 
   // get the conditions for these goals from formula

@@ -248,7 +248,8 @@ fault_localizationt::run_decision_procedure(prop_convt &prop_conv)
 
   auto solver_start=std::chrono::steady_clock::now();
 
-  convert_symex_target_equation(bmc.equation, bmc.prop_conv, get_message_handler());
+  convert_symex_target_equation(
+    bmc.equation, bmc.prop_conv, get_message_handler());
   bmc.freeze_program_variables();
 
   freeze_guards();
@@ -284,8 +285,14 @@ safety_checkert::resultt fault_localizationt::stop_on_fail()
         counterexample_beautificationt()(
           dynamic_cast<boolbvt &>(bmc.prop_conv), bmc.equation);
 
-      build_error_trace(bmc.error_trace, bmc.ns, bmc.equation, bmc.prop_conv, bmc.ui_message_handler);
-      output_error_trace(bmc.error_trace, bmc.ns, bmc.trace_options(), bmc.ui_message_handler);
+      build_error_trace(
+        bmc.error_trace,
+        bmc.ns,
+        bmc.equation,
+        bmc.prop_conv,
+        bmc.ui_message_handler);
+      output_error_trace(
+        bmc.error_trace, bmc.ns, bmc.trace_options(), bmc.ui_message_handler);
     }
 
     // localize faults

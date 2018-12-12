@@ -232,7 +232,8 @@ safety_checkert::resultt bmct::stop_on_fail(prop_convt &prop_conv)
         counterexample_beautificationt()(
           dynamic_cast<boolbvt &>(prop_conv), equation);
 
-      build_error_trace(error_trace, ns, equation, prop_conv, ui_message_handler);
+      build_error_trace(
+        error_trace, ns, equation, prop_conv, ui_message_handler);
       output_error_trace(error_trace, ns, trace_options(), ui_message_handler);
       output_graphml(resultt::UNSAFE, error_trace, equation, ns, options);
     }
