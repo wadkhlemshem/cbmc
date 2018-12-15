@@ -14,7 +14,6 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include <memory>
 
-
 class goto_tracet;
 class memory_model_baset;
 class message_handlert;
