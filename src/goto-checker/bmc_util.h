@@ -14,8 +14,6 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include <memory>
 
-#include <goto-programs/safety_checker.h>
-
 class goto_tracet;
 class memory_model_baset;
 class message_handlert;
