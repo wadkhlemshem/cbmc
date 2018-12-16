@@ -16,6 +16,8 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include <goto-programs/safety_checker.h>
 
+#include "properties.h"
+
 class goto_tracet;
 class memory_model_baset;
 class message_handlert;
@@ -66,6 +68,12 @@ void slice(
   const namespacet &,
   const optionst &,
   ui_message_handlert &);
+
+/// Sets property status to PASS or FAIL for properties whose
+/// conditions are constant true or false, respectively.
+void update_properties_status_from_symex_target_equation(
+  propertiest &properties,
+  const symex_target_equationt &equation);
 
 // clang-format off
 #define OPT_BMC \
