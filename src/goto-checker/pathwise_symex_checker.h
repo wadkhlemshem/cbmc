@@ -14,6 +14,10 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "goto_checker.h"
 
+#include <goto-symex/path_storage.h>
+
+class symex_bmct;
+
 class pathwise_symex_checkert : public goto_checkert
 {
 public:
@@ -39,12 +43,9 @@ public:
 
 protected:
   abstract_goto_modelt &goto_model;
-  symbol_tablet symex_symbol_table;
-  symex_target_equationt equation;
-  path_fifot path_storage;
-  symex_bmct symex;
+  std::unique_ptr<path_storaget> worklist;
 
-  void perform_symex();
+  void perform_symex(symex_bmct &, path_storaget::patht &, symbol_tablet &);
 };
 
 #endif // CPROVER_GOTO_CHECKER_PATHWISE_SYMEX_CHECKER_H

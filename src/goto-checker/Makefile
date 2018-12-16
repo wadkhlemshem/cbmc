@@ -1,6 +1,11 @@
-SRC = bmc_util.cpp \
+SRC = bmc_checker.cpp \
+      bmc_util.cpp \
+      counterexample_beautification.cpp \
       goto_checker.cpp \
       goto_verifier.cpp \
+      multi_path_symex_checker.cpp \
+      paths_checker.cpp \
+      pathwise_symex_checker.cpp \
       properties.cpp \
       solver_factory.cpp \
       symex_coverage.cpp \

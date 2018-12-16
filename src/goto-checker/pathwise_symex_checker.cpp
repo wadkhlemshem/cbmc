@@ -26,7 +26,9 @@ pathwise_symex_checkert::pathwise_symex_checkert(
   ui_message_handlert &ui_message_handler,
   abstract_goto_modelt &goto_model)
   : goto_checkert(options, ui_message_handler),
-    goto_model(goto_model)
+    goto_model(goto_model),
+    worklist(
+      path_strategy_choosert().get(options.get_option("exploration-strategy")))
 {
 }
 
@@ -57,7 +59,7 @@ goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properti
        symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
     {
       log.error() << "Failed to write symex coverage report to '"
-              << cov_out << "'" << messaget::eom;
+                  << cov_out << "'" << messaget::eom;
     }
 
     if(options.get_bool_option("show-vcc"))
@@ -103,8 +105,8 @@ void pathwise_symex_checkert::perform_symex(
   }
 
   log.statistics() << "size of program expression: "
-               << resume.equation.SSA_steps.size()
-               << " steps" << messaget::eom;
+                   << resume.equation.SSA_steps.size()
+                   << " steps" << eom;
 
   slice(symex, resume.equation, ns, options, ui_message_handler);
 }
