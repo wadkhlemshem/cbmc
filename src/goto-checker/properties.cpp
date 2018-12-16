@@ -173,7 +173,7 @@ property_resultt &operator&=(property_resultt &a, property_resultt const &b)
 ///         ERROR if at least one property is error.
 resultt determine_result(const propertiest &properties)
 {
-  property_resultt result = property_resultt::UNKNOWN;
+  property_resultt result = property_resultt::PASS;
   for(const auto &property_pair : properties)
   {
     result &= property_pair.second.result;
