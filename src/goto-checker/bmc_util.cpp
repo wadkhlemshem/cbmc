@@ -310,10 +310,10 @@ void report_error(ui_message_handlert &ui_message_handler)
   }
 }
 
-propertiest properties_result_from_symex_target_equation(
-  const symex_target_equationt &equation)
+void update_properties_result_from_symex_target_equation(
+  const symex_target_equationt &equation,
+  propertiest &properties)
 {
-  propertiest properties;
   for(const auto &step : equation.SSA_steps)
   {
     if(!step.is_assert())
@@ -324,9 +324,7 @@ propertiest properties_result_from_symex_target_equation(
 
     property_infot &property = properties[property_id];
     property.result =
-      step.cond_expr.is_true() ? resultt::PASS :
-    step.cond_expr.is_false() ? resultt::FAIL : resultt::UNKNOWN;
-    property.location = step.source.pc;
+      step.cond_expr.is_true() ? property_resultt::PASS :
+      step.cond_expr.is_false() ? property_resultt::FAIL : property_resultt::UNKNOWN;
   }
-  return properties;
 }
