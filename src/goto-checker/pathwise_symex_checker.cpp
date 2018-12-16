@@ -36,10 +36,10 @@ goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properti
 {
   while(!worklist->empty())
   {
-    status() << "___________________________\n"
+    log.status() << "___________________________\n"
              << "Starting new path (" << worklist->size()
              << " to go)\n"
-             << eom;
+             << messaget::eom;
     path_storaget::patht &resume = worklist->peek();
     symbol_tablet symex_symbol_table;
     symex_bmct symex(
@@ -58,8 +58,8 @@ goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properti
     if(!cov_out.empty() &&
        symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
     {
-      error() << "Failed to write symex coverage report to '"
-              << cov_out << "'" << eom;
+      log.error() << "Failed to write symex coverage report to '"
+              << cov_out << "'" << messaget::eom;
     }
 
     if(options.get_bool_option("show-vcc"))
@@ -72,7 +72,7 @@ goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properti
       show_program(ns, resume.equation);
     }
 
-    properties |= properties_result_from_symex_target_equation(resume.equation);
+    update_properties_result_from_symex_target_equation(resume.equation, properties);
 
     worklist->pop();
   }
@@ -100,13 +100,13 @@ void pathwise_symex_checkert::perform_symex(
   {
     std::unique_ptr<memory_model_baset> memory_model =
       get_memory_model(options, ns);
-    memory_model->set_message_handler(get_message_handler());
+    memory_model->set_message_handler(ui_message_handler);
     (*memory_model)(resume.equation);
   }
 
-  statistics() << "size of program expression: "
+  log.statistics() << "size of program expression: "
                << resume.equation.SSA_steps.size()
-               << " steps" << eom;
+               << " steps" << messaget::eom;
 
   slice(symex, resume.equation, ns, options, ui_message_handler);
 }
