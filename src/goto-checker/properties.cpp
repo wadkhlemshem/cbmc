@@ -130,6 +130,7 @@ property_resultt &operator|=(property_resultt &a, property_resultt const &b)
     return a;
   case property_resultt::ERROR:
   case property_resultt::PASS:
+  case property_resultt::NOT_REACHABLE:
   case property_resultt::FAIL:
     return a;
   }
@@ -141,7 +142,8 @@ property_resultt &operator|=(property_resultt &a, property_resultt const &b)
 /// 2. FAIL
 /// 3. UNKNOWN
 /// 4. NOT_REACHED
-/// 5. PASS
+/// 5. NOT_REACHABLE
+/// 6. PASS
 /// Suitable for computing overall results
 property_resultt &operator&=(property_resultt &a, property_resultt const &b)
 {
@@ -157,6 +159,9 @@ property_resultt &operator&=(property_resultt &a, property_resultt const &b)
     a = (b == property_resultt::ERROR || b == property_resultt::FAIL ? b : a);
     return a;
   case property_resultt::NOT_REACHED:
+    a = (b != property_resultt::PASS && b != property_resultt::NOT_REACHABLE? b : a);
+    return a;
+  case property_resultt::NOT_REACHABLE:
     a = (b != property_resultt::PASS ? b : a);
     return a;
   case property_resultt::PASS:
@@ -179,9 +184,14 @@ resultt determine_result(const propertiest &properties)
   {
     result &= property_pair.second.result;
   }
-  // If we haven't reached anything then overall it's still a PASS.
-  if(result == property_resultt::NOT_REACHED)
+  // If we haven't reached anything or nothing is reachable
+  // then overall it's still a PASS.
+  if(
+    result == property_resultt::NOT_REACHED ||
+    result == property_resultt::NOT_REACHABLE)
+  {
     result = property_resultt::PASS;
+  }
   return static_cast<resultt>(result);
 }
 
