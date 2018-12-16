@@ -16,6 +16,9 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include <goto-programs/goto_model.h>
 
+class json_objectt;
+class xmlt;
+
 /// The result status of a property
 enum class property_resultt
 {
@@ -67,5 +70,13 @@ typedef std::unordered_map<irep_idt, property_infot> propertiest;
 
 /// Returns the properties in the goto model
 propertiest initialize_properties(const abstract_goto_modelt &);
+
+std::string
+as_string(const irep_idt &property_id, const property_infot &property_info);
+
+xmlt xml(const irep_idt &property_id, const property_infot &property_info);
+
+json_objectt
+json(const irep_idt &property_id, const property_infot &property_info);
 
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
