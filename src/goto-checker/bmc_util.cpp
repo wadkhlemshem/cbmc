@@ -281,7 +281,7 @@ propertiest properties_result_from_symex_target_equation(
 
     property_infot &property = properties[property_id];
     property.result =
-      step.cond_expr.is_true() : resultt::PASS :
+      step.cond_expr.is_true() ? resultt::PASS :
     step.cond_expr.is_false() ? resultt::FAIL : resultt::UNKNOWN;
     property.location = step.source.pc;
   }
