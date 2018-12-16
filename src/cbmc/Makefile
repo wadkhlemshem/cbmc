@@ -2,7 +2,6 @@ SRC = bmc_cover.cpp \
       cbmc_languages.cpp \
       cbmc_main.cpp \
       cbmc_parse_options.cpp \
-      symex_coverage.cpp \
       xml_interface.cpp \
       # Empty last line
 
