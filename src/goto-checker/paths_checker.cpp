@@ -20,9 +20,9 @@ paths_checkert::paths_checkert(
 {
 }
 
-propertiest paths_checkert::operator()(const propertiest &properties)
+goto_checkert::statust paths_checkert::operator()(propertiest &properties)
 {
-  return properties;
+  return statust::DONE;
 }
 
 goto_tracet paths_checkert::build_error_trace() const
