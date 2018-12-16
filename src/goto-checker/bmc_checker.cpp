@@ -37,14 +37,14 @@ goto_checkert::statust bmc_checkert::operator()(propertiest &properties)
   }
 
   prop_convt &prop_conv = solver->prop_conv();
-  status() << "Passing problem to "
-           << prop_conv.decision_procedure_text() << eom;
+  log.status() << "Passing problem to "
+           << prop_conv.decision_procedure_text() << messaget::eom;
 
   auto solver_start = std::chrono::steady_clock::now();
 
   if(!symex_run)
   {
-    convert_symex_target_equation(equation, prop_conv, get_message_handler());
+    convert_symex_target_equation(equation, prop_conv, ui_message_handler);
     update_properties_from_symex_target_equation(properties);
     convert_goals();
     freeze_goal_variables();
@@ -53,17 +53,17 @@ goto_checkert::statust bmc_checkert::operator()(propertiest &properties)
 
   add_constraint_from_goals(properties);
 
-  status() << "Running " << prop_conv.decision_procedure_text() << eom;
+  log.status() << "Running " << prop_conv.decision_procedure_text() << messaget::eom;
 
   decision_proceduret::resultt dec_result = prop_conv.dec_solve();
 
   update_properties_results_from_goals(properties, dec_result);
 
   auto solver_stop = std::chrono::steady_clock::now();
-  status() << "Runtime decision procedure: "
+  log.status() << "Runtime decision procedure: "
            << std::chrono::duration<double>(
              solver_stop - solver_start).count()
-           << "s" << eom;
+           << "s" << messaget::eom;
 
   return dec_result == decision_proceduret::resultt::D_SATISFIABLE ?
          statust::HAVE_MORE : statust::DONE;
@@ -165,7 +165,9 @@ void bmc_checkert::add_constraint_from_goals(const propertiest &properties)
 
   for(const auto &goal_pair : goal_map)
   {
-    if(properties.at(goal_pair.first).result == resultt::UNKNOWN &&
+    const auto &result = properties.at(goal_pair.first).result;
+    if((result == property_resultt::NOT_REACHED ||
+        result == property_resultt::UNKNOWN) &&
        !goal_pair.second.condition.is_false())
       disjuncts.push_back(literal_exprt(goal_pair.second.condition));
   }
@@ -183,21 +185,21 @@ void bmc_checkert::update_properties_results_from_goals(
       for(auto &goal_pair : goal_map)
       {
         if(solver->prop_conv().l_get(goal_pair.second.condition).is_true())
-          properties[goal_pair.first].result |= resultt::FAIL;
+          properties[goal_pair.first].result |= property_resultt::FAIL;
       }
       break;
     case decision_proceduret::resultt::D_UNSATISFIABLE:
       for(auto &property_pair : properties)
       {
-        if(property_pair.second.result == resultt::UNKNOWN)
-          property_pair.second.result |= resultt::PASS;
+        if(property_pair.second.result == property_resultt::UNKNOWN)
+          property_pair.second.result |= property_resultt::PASS;
       }
       break;
     case decision_proceduret::resultt::D_ERROR:
       for(auto &property_pair : properties)
       {
-        if(property_pair.second.result == resultt::UNKNOWN)
-          property_pair.second.result |= resultt::ERROR;
+        if(property_pair.second.result == property_resultt::UNKNOWN)
+          property_pair.second.result |= property_resultt::ERROR;
       }
       break;
   }
