@@ -11,6 +11,8 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "properties.h"
 
+#include <util/invariant.h>
+
 std::string as_string(resultt result)
 {
   switch(result)
