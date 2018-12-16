@@ -87,11 +87,9 @@ void output_error_trace(
   }
 }
 
-/// outputs witnesses in graphml format
+/// outputs an error witness in graphml format
 void output_graphml(
-  safety_checkert::resultt result,
   const goto_tracet &goto_trace,
-  const symex_target_equationt &symex_target_equation,
   const namespacet &ns,
   const optionst &options)
 {
@@ -100,12 +98,29 @@ void output_graphml(
     return;
 
   graphml_witnesst graphml_witness(ns);
-  if(result == safety_checkert::resultt::UNSAFE)
-    graphml_witness(goto_trace);
-  else if(result == safety_checkert::resultt::SAFE)
-    graphml_witness(symex_target_equation);
+  graphml_witness(goto_trace);
+
+  if(graphml=="-")
+    write_graphml(graphml_witness.graph(), std::cout);
   else
+  {
+    std::ofstream out(graphml);
+    write_graphml(graphml_witness.graph(), out);
+  }
+}
+
+/// outputs a proof in graphml format
+void output_graphml(
+  const symex_target_equationt &symex_target_equation,
+  const namespacet &ns,
+  const optionst &options)
+{
+  const std::string graphml=options.get_option("graphml-witness");
+  if(graphml.empty())
     return;
+
+  graphml_witnesst graphml_witness(ns);
+  graphml_witness(symex_target_equation);
 
   if(graphml == "-")
     write_graphml(graphml_witness.graph(), std::cout);

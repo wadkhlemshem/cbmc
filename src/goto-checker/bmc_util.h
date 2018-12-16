@@ -48,8 +48,10 @@ void output_error_trace(
   ui_message_handlert &);
 
 void output_graphml(
-  safety_checkert::resultt,
   const goto_tracet &,
+  const namespacet &,
+  const optionst &);
+void output_graphml(
   const symex_target_equationt &,
   const namespacet &,
   const optionst &);
