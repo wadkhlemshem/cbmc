@@ -213,9 +213,8 @@ count_properties(const propertiest &properties, property_resultt result)
 
 /// Merges a set of properties into a given set of properties,
 /// updating its results and adding new properties.
-void merge_properties(
-  propertiest &properties,
-  const propertiest &updated_properties)
+propertiest &operator|=(
+  propertiest &properties, const propertiest &updated_properties)
 {
   for(const auto &property_pair : updated_properties)
   {
@@ -223,4 +222,5 @@ void merge_properties(
     if(!found_property.second)
       found_property.first->second.result |= property_pair.second.result;
   }
+  return properties;
 }
