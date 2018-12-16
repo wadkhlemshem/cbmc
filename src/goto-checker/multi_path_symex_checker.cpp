@@ -45,8 +45,8 @@ goto_checkert::statust multi_path_symex_checkert::operator()(propertiest &proper
   if(!cov_out.empty() &&
      symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
   {
-    error() << "Failed to write symex coverage report to '"
-            << cov_out << "'" << eom;
+    log.error() << "Failed to write symex coverage report to '"
+            << cov_out << "'" << messaget::eom;
   }
 
   if(options.get_bool_option("show-vcc"))
@@ -61,7 +61,7 @@ goto_checkert::statust multi_path_symex_checkert::operator()(propertiest &proper
     show_program(ns, equation);
   }
 
-  properties |= properties_result_from_symex_target_equation(equation);
+  update_properties_result_from_symex_target_equation(equation, properties);
 
   return statust::DONE;
 }
@@ -84,13 +84,13 @@ void multi_path_symex_checkert::perform_symex()
   {
     std::unique_ptr<memory_model_baset> memory_model =
       get_memory_model(options, ns);
-    memory_model->set_message_handler(get_message_handler());
+    memory_model->set_message_handler(ui_message_handler);
     (*memory_model)(equation);
   }
 
-  statistics() << "size of program expression: "
+  log.statistics() << "size of program expression: "
                << equation.SSA_steps.size()
-               << " steps" << eom;
+               << " steps" << messaget::eom;
 
   slice(symex, equation, ns, options, ui_message_handler);
 }
