@@ -83,4 +83,6 @@ property_resultt &operator|=(property_resultt &, property_resultt const &);
 property_resultt &operator&=(property_resultt &, property_resultt const &);
 resultt determine_result(const propertiest &properties);
 
+bool has_properties_to_check(const propertiest &properties);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H

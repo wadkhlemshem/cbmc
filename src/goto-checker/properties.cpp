@@ -193,3 +193,18 @@ resultt determine_result(const propertiest &properties)
   }
   return static_cast<resultt>(result);
 }
+
+/// Returns true if there as a property with NOT_REACHED or UNKNOWN result.
+bool has_properties_to_check(const propertiest &properties)
+{
+  for(const auto &property_pair : properties)
+  {
+    if(
+      property_pair.second.result == property_resultt::NOT_REACHED ||
+      property_pair.second.result == property_resultt::UNKNOWN)
+    {
+      return true;
+    }
+  }
+  return false;
+}
