@@ -79,4 +79,8 @@ xmlt xml(const irep_idt &property_id, const property_infot &property_info);
 json_objectt
 json(const irep_idt &property_id, const property_infot &property_info);
 
+property_resultt &operator|=(property_resultt &, property_resultt const &);
+property_resultt &operator&=(property_resultt &, property_resultt const &);
+resultt determine_result(const propertiest &properties);
+
 #endif // CPROVER_GOTO_CHECKER_PROPERTIES_H
