@@ -31,6 +31,7 @@ Author: Daniel Kroening, Peter Schrammel
 #include <util/make_unique.h>
 #include <util/ui_message.h>
 
+#include "properties.h"
 #include "symex_bmc.h"
 
 void build_error_trace(
