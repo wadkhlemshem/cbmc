@@ -65,6 +65,10 @@ struct property_infot
   property_resultt result;
 };
 
+xmlt xml(const irep_idt &property_id, const property_infot &property_info);
+json_objectt
+json(const irep_idt &property_id, const property_infot &property_info);
+
 /// A map of property IDs to property infos
 typedef std::unordered_map<irep_idt, property_infot> propertiest;
 
