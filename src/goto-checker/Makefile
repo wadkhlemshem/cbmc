@@ -4,6 +4,8 @@ SRC = bmc_checker.cpp \
       goto_checker.cpp \
       goto_verifier.cpp \
       multi_path_symex_checker.cpp \
+      pathwise_symex_checker.cpp \
+      paths_checker.cpp \
       properties.cpp \
       solver_factory.cpp \
       symex_coverage.cpp \
