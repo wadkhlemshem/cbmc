@@ -30,6 +30,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <cpp/cprover_library.h>
 
+#include <goto-checker/bmc_util.h>
 #include <goto-checker/all_properties_verifier.h>
 #include <goto-checker/bmc_checker.h>
 #include <goto-checker/multi_path_symex_checker.h>
