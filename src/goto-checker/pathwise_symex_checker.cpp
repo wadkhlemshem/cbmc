@@ -22,9 +22,9 @@ pathwise_symex_checkert::pathwise_symex_checkert(
 {
 }
 
-propertiest pathwise_symex_checkert::operator()(const propertiest &properties)
+goto_checkert::statust pathwise_symex_checkert::operator()(propertiest &properties)
 {
-  return properties;
+  return statust::DONE;
 }
 
 goto_tracet pathwise_symex_checkert::build_error_trace() const
