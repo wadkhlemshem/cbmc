@@ -1,5 +1,4 @@
-SRC = bmc_cover.cpp \
-      cbmc_languages.cpp \
+SRC = cbmc_languages.cpp \
       cbmc_main.cpp \
       cbmc_parse_options.cpp \
       xml_interface.cpp \
