@@ -280,3 +280,52 @@ void report_failure(ui_message_handlert &ui_message_handler)
   break;
   }
 }
+
+void report_error(ui_message_handlert &ui_message_handler)
+{
+  messaget msg(ui_message_handler);
+  msg.result() << "VERIFICATION ERROR" << messaget::eom;
+
+  switch(ui_message_handler.get_ui())
+  {
+    case ui_message_handlert::uit::PLAIN:
+      break;
+
+    case ui_message_handlert::uit::XML_UI:
+    {
+      xmlt xml("cprover-status");
+      xml.data = "ERROR";
+      msg.result() << xml;
+    }
+    break;
+
+    case ui_message_handlert::uit::JSON_UI:
+    {
+      json_objectt json_result;
+      json_result["cProverStatus"] = json_stringt("error");
+      msg.result() << json_result;
+    }
+    break;
+  }
+}
+
+propertiest properties_result_from_symex_target_equation(
+  const symex_target_equationt &equation)
+{
+  propertiest properties;
+  for(const auto &step : equation.SSA_steps)
+  {
+    if(!step.is_assert())
+      continue;
+
+    const source_locationt &source_location = step.source.pc->source_location;
+    irep_idt property_id = source_location.get_property_id();
+
+    property_infot &property = properties[property_id];
+    property.result =
+      step.cond_expr.is_true() ? resultt::PASS :
+    step.cond_expr.is_false() ? resultt::FAIL : resultt::UNKNOWN;
+    property.location = step.source.pc;
+  }
+  return properties;
+}

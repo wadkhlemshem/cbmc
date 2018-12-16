@@ -33,6 +33,7 @@ void convert_symex_target_equation(
 
 void report_failure(ui_message_handlert &);
 void report_success(ui_message_handlert &);
+void report_error(ui_message_handlert &);
 
 void build_error_trace(
   goto_tracet &,
