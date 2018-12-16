@@ -225,3 +225,51 @@ void slice(
                    << " remaining after simplification" << messaget::eom;
 }
 
+void update_properties_status_from_symex_target_equation(
+  propertiest &properties,
+  const symex_target_equationt &equation)
+{
+// The current behavior is that properties pruned by goto-symex
+// do not appear in the output. We therefore just clear the properties
+// to consider only properties that are in goto-symex' remaining vccs.
+#if 1
+  properties.clear();
+#endif
+
+  for(const auto &step : equation.SSA_steps)
+  {
+    if(!step.is_assert())
+      continue;
+
+    const auto status = step.cond_expr.is_true()
+                          ? property_statust::PASS
+                          : step.cond_expr.is_false()
+                              ? property_statust::FAIL
+                              : property_statust::UNKNOWN;
+    if(!properties
+          .emplace(
+            step.source.pc->source_location.get_property_id(),
+            property_infot{step.source.pc, step.comment, status})
+          .second)
+    {
+      properties.at(step.source.pc->source_location.get_property_id()).status =
+        status;
+    }
+  }
+
+// The current behavior is that properties pruned by goto-symex
+// do not appear in the output. The code below would enable reporting
+// of all properties that appear in the goto model and/or are generated
+// in goto-symex. Activating this would change current behavior.
+#if 0
+  for(auto &property_pair : properties)
+  {
+    if(property_pair.second.status == property_statust::NOT_CHECKED)
+    {
+      // This could be a NOT_CHECKED, NOT_REACHABLE or PASS,
+      // but the equation doesn't give us precise information.
+      property_pair.second.status = property_statust::PASS;
+    }
+  }
+#endif
+}
