@@ -208,3 +208,16 @@ bool has_properties_to_check(const propertiest &properties)
   }
   return false;
 }
+
+/// Returns the number of properties with given \p result
+std::size_t
+count_properties(const propertiest &properties, property_resultt result)
+{
+  std::size_t count = 0;
+  for(const auto &property_pair : properties)
+  {
+    if(property_pair.second.result == result)
+      ++count;
+  }
+  return count;
+}
