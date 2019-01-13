@@ -234,17 +234,22 @@ void update_properties_status_from_symex_target_equation(
     if(!step.is_assert())
       continue;
 
+    irep_idt property_id = step.get_property_id();
+
+    if(property_id.empty())
+      continue;
+
     // Don't set false properties; we wouldn't have traces for them.
     const auto status = step.cond_expr.is_true()
                           ? property_statust::PASS : property_statust::UNKNOWN;
+
     if(!properties
           .emplace(
-            step.source.pc->source_location.get_property_id(),
+            property_id,
             property_infot{step.source.pc, step.comment, status})
           .second)
     {
-      properties.at(step.source.pc->source_location.get_property_id()).status =
-        status;
+      properties.at(property_id).status = status;
     }
   }
 
