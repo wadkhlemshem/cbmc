@@ -28,6 +28,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <ansi-c/ansi_c_language.h>
 
 #include <goto-checker/all_properties_verifier.h>
+#include <goto-checker/all_properties_verifier_with_trace_storage.h>
+#include <goto-checker/multi_path_symex_checker.h>
 #include <goto-checker/multi_path_symex_only_checker.h>
 
 #include <goto-programs/adjust_float_expressions.h>
@@ -569,6 +571,21 @@ int jbmc_parse_optionst::doit()
         (void)verifier();
         return CPROVER_EXIT_SUCCESS;
       }
+    }
+
+    if(!options.get_bool_option("paths"))
+    {
+      std::unique_ptr<goto_verifiert> verifier;
+
+      if(!options.get_bool_option("stop-on-fail"))
+      {
+        verifier = util_make_unique<all_properties_verifier_with_trace_storaget<
+          multi_path_symex_checkert>>(options, ui_message_handler, goto_model);
+      }
+
+      resultt result = (*verifier)();
+      verifier->report();
+      return result_to_exit_code(result);
     }
 
     // The `configure_bmc` callback passed will enable enum-unwind-static if
