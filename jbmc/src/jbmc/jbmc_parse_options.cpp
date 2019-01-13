@@ -27,6 +27,9 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <ansi-c/ansi_c_language.h>
 
+#include <goto-checker/all_properties_verifier.h>
+#include <goto-checker/multi_path_symex_only_checker.h>
+
 #include <goto-programs/adjust_float_expressions.h>
 #include <goto-programs/lazy_goto_model.h>
 #include <goto-programs/instrument_preconditions.h>
@@ -554,6 +557,19 @@ int jbmc_parse_optionst::doit()
 
     if(set_properties(goto_model))
       return 7; // should contemplate EX_USAGE from sysexits.h
+
+    if(
+      options.get_bool_option("program-only") ||
+      options.get_bool_option("show-vcc"))
+    {
+      if(!options.get_bool_option("paths"))
+      {
+        all_properties_verifiert<multi_path_symex_only_checkert> verifier(
+          options, ui_message_handler, goto_model);
+        (void)verifier();
+        return CPROVER_EXIT_SUCCESS;
+      }
+    }
 
     // The `configure_bmc` callback passed will enable enum-unwind-static if
     // applicable.
