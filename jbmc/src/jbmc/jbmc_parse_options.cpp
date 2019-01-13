@@ -28,7 +28,7 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <ansi-c/ansi_c_language.h>
 
 #include <goto-checker/all_properties_verifier.h>
-#include <goto-checker/multi_path_symex_only_checker.h>
+#include <goto-checker/all_properties_verifier_with_trace_storage.h>
 
 #include <goto-programs/adjust_float_expressions.h>
 #include <goto-programs/lazy_goto_model.h>
@@ -63,6 +63,8 @@ Author: Daniel Kroening, kroening@kroening.com
 #include <java_bytecode/convert_java_nondet.h>
 #include <java_bytecode/java_bytecode_language.h>
 #include <java_bytecode/java_enum_static_init_unwind_handler.h>
+#include <java_bytecode/java_multi_path_symex_checker.h>
+#include <java_bytecode/java_multi_path_symex_only_checker.h>
 #include <java_bytecode/remove_exceptions.h>
 #include <java_bytecode/remove_instanceof.h>
 #include <java_bytecode/remove_java_new.h>
@@ -574,7 +576,7 @@ int jbmc_parse_optionst::doit()
     {
       if(!options.get_bool_option("paths"))
       {
-        all_properties_verifiert<multi_path_symex_only_checkert> verifier(
+        all_properties_verifiert<java_multi_path_symex_only_checkert> verifier(
           options, ui_message_handler, goto_model);
         (void)verifier();
         return CPROVER_EXIT_SUCCESS;
@@ -586,13 +588,34 @@ int jbmc_parse_optionst::doit()
       goto_model.validate(validation_modet::INVARIANT);
     }
 
-    // The `configure_bmc` callback passed will enable enum-unwind-static if
-    // applicable.
-    return bmct::do_language_agnostic_bmc(
-      options,
-      goto_model,
-      ui_message_handler,
-      configure_bmc);
+    std::unique_ptr<goto_verifiert> verifier = nullptr;
+
+    if(!options.get_bool_option("paths") && !options.is_set("cover"))
+    {
+
+      if(!options.get_bool_option("stop-on-fail"))
+      {
+        verifier = util_make_unique<all_properties_verifier_with_trace_storaget<
+          java_multi_path_symex_checkert>>(
+          options, ui_message_handler, goto_model);
+      }
+    }
+
+    // fall back until everything has been ported to goto-checker
+    if(verifier == nullptr)
+    {
+      // The `configure_bmc` callback passed will enable enum-unwind-static if
+      // applicable.
+      return bmct::do_language_agnostic_bmc(
+        options,
+        goto_model,
+        ui_message_handler,
+        configure_bmc);
+    }
+
+    resultt result = (*verifier)();
+    verifier->report();
+    return result_to_exit_code(result);
   }
   else
   {
