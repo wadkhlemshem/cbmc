@@ -17,6 +17,11 @@ Author: Daniel Kroening, Peter Schrammel
 #include <util/ui_message.h>
 #include <util/xml.h>
 
+#include <goto-symex/build_goto_trace.h>
+
+#include <goto-programs/json_goto_trace.h>
+#include <goto-programs/xml_goto_trace.h>
+
 void report_success(ui_message_handlert &ui_message_handler)
 {
   messaget msg(ui_message_handler);
@@ -241,6 +246,73 @@ void output_properties(
     for(const auto &property_pair : properties)
     {
       result_array.push_back(json(property_pair.first, property_pair.second));
+    }
+    break;
+  }
+  }
+}
+
+void output_properties_with_traces(
+  const propertiest &properties,
+  const std::unordered_map<irep_idt, std::vector<goto_tracet>::const_iterator>
+    &property_traces,
+  const namespacet &ns,
+  const trace_optionst &trace_options,
+  ui_message_handlert &ui_message_handler)
+{
+  messaget log(ui_message_handler);
+  switch(ui_message_handler.get_ui())
+  {
+  case ui_message_handlert::uit::PLAIN:
+  {
+    output_properties_plain(properties, log);
+    for(const auto &property_trace : property_traces)
+    {
+      log.result() << "\n"
+                   << "Trace for " << property_trace.first << ":"
+                   << "\n";
+      show_goto_trace(log.result(), ns, *property_trace.second, trace_options);
+      log.result() << messaget::eom;
+    }
+    break;
+  }
+  case ui_message_handlert::uit::XML_UI:
+  {
+    for(const auto &property_pair : properties)
+    {
+      xmlt xml_result = xml(property_pair.first, property_pair.second);
+      if(property_pair.second.status == property_statust::FAIL)
+      {
+        convert(
+          ns,
+          *property_traces.at(property_pair.first),
+          xml_result.new_element());
+      }
+      log.result() << xml_result;
+    }
+    break;
+  }
+  case ui_message_handlert::uit::JSON_UI:
+  {
+    json_stream_objectt &json_result =
+      ui_message_handler.get_json_stream().push_back_stream_object();
+    json_stream_arrayt &result_array =
+      json_result.push_back_stream_array("result");
+    for(const auto &property_pair : properties)
+    {
+      json_stream_objectt &json_property =
+        result_array.push_back_stream_object();
+      json(json_property, property_pair.first, property_pair.second);
+      if(property_pair.second.status == property_statust::FAIL)
+      {
+        json_stream_arrayt &json_trace =
+          json_property.push_back_stream_array("trace");
+        convert<json_stream_arrayt>(
+          ns,
+          *property_traces.at(property_pair.first),
+          json_trace,
+          trace_options);
+      }
     }
     break;
   }

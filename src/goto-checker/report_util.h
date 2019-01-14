@@ -14,6 +14,8 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "properties.h"
 
+class goto_tracet;
+struct trace_optionst;
 class ui_message_handlert;
 
 void report_success(ui_message_handlert &);
@@ -23,6 +25,14 @@ void report_error(ui_message_handlert &);
 
 void output_properties(
   const propertiest &properties,
+  ui_message_handlert &ui_message_handler);
+
+void output_properties_with_traces(
+  const propertiest &properties,
+  const std::unordered_map<irep_idt, std::vector<goto_tracet>::const_iterator>
+    &property_traces,
+  const namespacet &ns,
+  const trace_optionst &trace_options,
   ui_message_handlert &ui_message_handler);
 
 void output_overall_result(
