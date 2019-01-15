@@ -67,6 +67,8 @@ public:
   /// Builds and returns the counterexample
   virtual goto_tracet build_error_trace() const = 0;
 
+  virtual const namespacet &get_namespace() const = 0;
+
   // Outputs an error witness in GraphML format (see `graphml_witnesst`)
   virtual void output_error_witness(const goto_tracet &) = 0;
 
