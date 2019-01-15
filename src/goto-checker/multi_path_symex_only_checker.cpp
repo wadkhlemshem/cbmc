@@ -25,6 +25,7 @@ multi_path_symex_only_checkert::multi_path_symex_only_checkert(
   abstract_goto_modelt &goto_model)
   : incremental_goto_checkert(options, ui_message_handler),
     goto_model(goto_model),
+    ns(goto_model.get_symbol_table(), symex_symbol_table),
     symex(
       ui_message_handler,
       goto_model.get_symbol_table(),
@@ -32,7 +33,6 @@ multi_path_symex_only_checkert::multi_path_symex_only_checkert(
       options,
       path_storage)
 {
-  namespacet ns(goto_model.get_symbol_table());
   setup_symex(symex, ns, options, ui_message_handler);
 }
 
@@ -53,13 +53,11 @@ operator()(propertiest &properties)
 
   if(options.get_bool_option("show-vcc"))
   {
-    namespacet ns(goto_model.get_symbol_table());
     show_vcc(options, ui_message_handler, equation);
   }
 
   if(options.get_bool_option("program-only"))
   {
-    namespacet ns(goto_model.get_symbol_table());
     show_program(ns, equation);
   }
 
@@ -70,8 +68,6 @@ operator()(propertiest &properties)
 
 void multi_path_symex_only_checkert::perform_symex()
 {
-  namespacet ns(goto_model.get_symbol_table());
-
   auto get_goto_function =
     [this](const irep_idt &id) -> const goto_functionst::goto_functiont & {
     return goto_model.get_goto_function(id);
@@ -102,6 +98,12 @@ goto_tracet multi_path_symex_only_checkert::build_error_trace() const
   // currently unsupported
   UNIMPLEMENTED;
 }
+
+const namespacet &multi_path_symex_only_checkert::get_namespace() const
+{
+  return ns;
+}
+
 
 void multi_path_symex_only_checkert::output_error_witness(const goto_tracet &)
 {

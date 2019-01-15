@@ -27,6 +27,7 @@ public:
   resultt operator()(propertiest &) override;
 
   goto_tracet build_error_trace() const override;
+  const namespacet &get_namespace() const override;
 
   void output_error_witness(const goto_tracet &) override;
   void output_proof() override;
@@ -34,6 +35,7 @@ public:
 protected:
   abstract_goto_modelt &goto_model;
   symbol_tablet symex_symbol_table;
+  namespacet ns;
   symex_target_equationt equation;
   path_fifot path_storage; // should go away
   symex_bmct symex;
