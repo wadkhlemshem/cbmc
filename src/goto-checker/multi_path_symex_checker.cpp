@@ -37,7 +37,12 @@ operator()(propertiest &properties)
   if(!symex_has_run)
   {
     perform_symex();
+    update_properties_status_from_symex_target_equation(properties, equation);
   }
+
+  // have we got anything to check? otherwise we return DONE
+  if(!has_properties_to_check(properties))
+    return resultt::DONE;
 
   prop_convt &prop_conv = solver->prop_conv();
   log.status() << "Passing problem to " << prop_conv.decision_procedure_text()
@@ -48,7 +53,6 @@ operator()(propertiest &properties)
   if(!symex_has_run)
   {
     convert_symex_target_equation(equation, prop_conv, ui_message_handler);
-    update_properties_status_from_symex_target_equation(properties, equation);
     update_properties_goals_from_symex_target_equation(properties);
     convert_goals();
     freeze_goal_variables();
