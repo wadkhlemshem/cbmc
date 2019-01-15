@@ -41,15 +41,7 @@ operator()(propertiest &properties)
 {
   perform_symex();
 
-  // coverage report
-  std::string cov_out = options.get_option("symex-coverage-report");
-  if(
-    !cov_out.empty() &&
-    symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
-  {
-    log.error() << "Failed to write symex coverage report to '" << cov_out
-                << "'" << messaget::eom;
-  }
+  output_coverage_report();
 
   if(options.get_bool_option("show-vcc"))
   {
@@ -91,6 +83,18 @@ void multi_path_symex_only_checkert::perform_symex()
                    << equation.SSA_steps.size() << " steps" << messaget::eom;
 
   slice(symex, equation, ns, options, ui_message_handler);
+}
+
+void multi_path_symex_only_checkert::output_coverage_report()
+{
+  std::string cov_out = options.get_option("symex-coverage-report");
+  if(
+    !cov_out.empty() &&
+    symex.output_coverage_report(goto_model.get_goto_functions(), cov_out))
+  {
+    log.error() << "Failed to write symex coverage report to '" << cov_out
+                << "'" << messaget::eom;
+  }
 }
 
 goto_tracet multi_path_symex_only_checkert::build_error_trace() const
