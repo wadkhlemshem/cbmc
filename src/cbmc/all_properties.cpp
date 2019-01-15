@@ -78,19 +78,9 @@ safety_checkert::resultt bmc_all_propertiest::operator()()
   {
     if(it->is_assert())
     {
-      irep_idt property_id;
+      irep_idt property_id = it->get_property_id();
 
-      if(it->source.pc->is_assert())
-        property_id=it->source.pc->source_location.get_property_id();
-      else if(it->source.pc->is_goto())
-      {
-        // this is likely an unwinding assertion
-        property_id=id2string(
-          it->source.pc->source_location.get_function())+".unwind."+
-          std::to_string(it->source.pc->loop_number);
-        goal_map[property_id].description=it->comment;
-      }
-      else
+      if(property_id.empty())
         continue;
 
       goal_map[property_id].instances.push_back(it);
