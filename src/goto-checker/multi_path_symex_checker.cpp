@@ -25,7 +25,7 @@ multi_path_symex_checkert::multi_path_symex_checkert(
 {
   solver_factoryt solvers(
     options,
-    goto_model.get_symbol_table(),
+    ns,
     ui_message_handler,
     ui_message_handler.get_ui() == ui_message_handlert::uit::XML_UI);
   solver = solvers.get_solver();
@@ -82,7 +82,6 @@ goto_tracet multi_path_symex_checkert::build_error_trace() const
     counterexample_beautificationt()(
       dynamic_cast<boolbvt &>(solver->prop_conv()), equation);
   }
-  namespacet ns(goto_model.get_symbol_table());
   goto_tracet error_trace;
   ::build_error_trace(
     error_trace, ns, equation, solver->prop_conv(), ui_message_handler);
@@ -91,14 +90,12 @@ goto_tracet multi_path_symex_checkert::build_error_trace() const
 
 void multi_path_symex_checkert::output_proof()
 {
-  namespacet ns(goto_model.get_symbol_table());
   output_graphml(equation, ns, options);
 }
 
 void multi_path_symex_checkert::output_error_witness(
   const goto_tracet &error_trace)
 {
-  namespacet ns(goto_model.get_symbol_table());
   output_graphml(error_trace, ns, options);
 }
 
