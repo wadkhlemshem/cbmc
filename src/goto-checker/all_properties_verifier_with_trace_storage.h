@@ -60,10 +60,10 @@ public:
       // currently --trace only affects plain text output
       ui_message_handler.get_ui() != ui_message_handlert::uit::PLAIN)
     {
-      const namespacet ns(goto_model.get_symbol_table());
       const trace_optionst trace_options(options);
       output_properties_with_traces(
-        properties, property_traces, ns, trace_options, ui_message_handler);
+        properties, property_traces, incremental_goto_checker.get_namespace(),
+        trace_options, ui_message_handler);
     }
     else
     {
