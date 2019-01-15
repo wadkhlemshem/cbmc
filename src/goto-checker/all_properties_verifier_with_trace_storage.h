@@ -49,6 +49,8 @@ public:
             property_pair.first, std::prev(error_traces.end()));
         }
       }
+
+      ++iterations;
     }
     return determine_result(properties);
   }
@@ -63,11 +65,11 @@ public:
       const trace_optionst trace_options(options);
       output_properties_with_traces(
         properties, property_traces, incremental_goto_checker.get_namespace(),
-        trace_options, ui_message_handler);
+        trace_options, iterations, ui_message_handler);
     }
     else
     {
-      output_properties(properties, ui_message_handler);
+      output_properties(properties, iterations, ui_message_handler);
     }
     output_overall_result(determine_result(properties), ui_message_handler);
   }
@@ -85,6 +87,7 @@ public:
 protected:
   abstract_goto_modelt &goto_model;
   incremental_goto_checkerT incremental_goto_checker;
+  unsigned iterations = 1;
 
   /// stores the traces
   std::vector<goto_tracet> error_traces;
