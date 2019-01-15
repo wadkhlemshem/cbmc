@@ -241,11 +241,9 @@ void update_properties_status_from_symex_target_equation(
     if(!step.is_assert())
       continue;
 
+    // Don't set false properties; we wouldn't have traces for them.
     const auto status = step.cond_expr.is_true()
-                          ? property_statust::PASS
-                          : step.cond_expr.is_false()
-                              ? property_statust::FAIL
-                              : property_statust::UNKNOWN;
+                          ? property_statust::PASS : property_statust::UNKNOWN;
     if(!properties
           .emplace(
             step.source.pc->source_location.get_property_id(),
