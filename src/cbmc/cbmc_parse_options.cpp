@@ -571,9 +571,10 @@ int cbmc_parse_optionst::doit()
     }
   }
 
+  std::unique_ptr<goto_verifiert> verifier = nullptr;
+
   if(!options.get_bool_option("paths") && !options.get_bool_option("cover"))
   {
-    std::unique_ptr<goto_verifiert> verifier;
 
     if(!options.get_bool_option("stop-on-fail"))
     {
@@ -582,13 +583,18 @@ int cbmc_parse_optionst::doit()
         options, ui_message_handler, goto_model);
     }
 
-    resultt result = (*verifier)();
-    verifier->report();
-    return result_to_exit_code(result);
   }
 
-  return bmct::do_language_agnostic_bmc(
-    path_strategy_chooser, options, goto_model, ui_message_handler);
+  // fall back until everything has been ported to goto-checker
+  if(verifier == nullptr)
+  {
+    return bmct::do_language_agnostic_bmc(
+      path_strategy_chooser, options, goto_model, ui_message_handler);
+  }
+
+  resultt result = (*verifier)();
+  verifier->report();
+  return result_to_exit_code(result);
 }
 
 bool cbmc_parse_optionst::set_properties()
