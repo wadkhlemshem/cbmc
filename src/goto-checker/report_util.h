@@ -25,6 +25,7 @@ void report_error(ui_message_handlert &);
 
 void output_properties(
   const propertiest &properties,
+  unsigned iterations,
   ui_message_handlert &ui_message_handler);
 
 void output_properties_with_traces(
@@ -33,6 +34,7 @@ void output_properties_with_traces(
     &property_traces,
   const namespacet &ns,
   const trace_optionst &trace_options,
+  unsigned iterations,
   ui_message_handlert &ui_message_handler);
 
 void output_overall_result(

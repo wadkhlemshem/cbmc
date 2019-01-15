@@ -134,8 +134,10 @@ void report_error(ui_message_handlert &ui_message_handler)
   }
 }
 
-static void
-output_properties_plain(const propertiest &properties, messaget &log)
+static void output_properties_plain(
+  const propertiest &properties,
+  unsigned iterations,
+  messaget &log)
 {
   log.result() << "\n** Results:" << messaget::eom;
   // collect properties in a vector
@@ -214,11 +216,13 @@ output_properties_plain(const propertiest &properties, messaget &log)
   }
   log.status() << "\n** "
                << count_properties(properties, property_statust::FAIL) << " of "
-               << properties.size() << " failed" << messaget::eom;
+               << properties.size() << " failed (" << iterations
+               << " iterations)" << messaget::eom;
 }
 
 void output_properties(
   const propertiest &properties,
+  unsigned iterations,
   ui_message_handlert &ui_message_handler)
 {
   messaget log(ui_message_handler);
@@ -226,7 +230,7 @@ void output_properties(
   {
   case ui_message_handlert::uit::PLAIN:
   {
-    output_properties_plain(properties, log);
+    output_properties_plain(properties, iterations, log);
     break;
   }
   case ui_message_handlert::uit::XML_UI:
@@ -258,6 +262,7 @@ void output_properties_with_traces(
     &property_traces,
   const namespacet &ns,
   const trace_optionst &trace_options,
+  unsigned iterations,
   ui_message_handlert &ui_message_handler)
 {
   messaget log(ui_message_handler);
@@ -265,7 +270,7 @@ void output_properties_with_traces(
   {
   case ui_message_handlert::uit::PLAIN:
   {
-    output_properties_plain(properties, log);
+    output_properties_plain(properties, iterations, log);
     for(const auto &property_trace : property_traces)
     {
       log.result() << "\n"
