@@ -36,10 +36,6 @@ public:
 
   resultt operator()() override
   {
-    // have we got anything to check? otherwise we return PASS
-    if(!has_properties_to_check(properties))
-      return resultt::PASS;
-
     const bool show_trace = options.get_bool_option("trace");
 
     while(incremental_goto_checker(properties) !=
