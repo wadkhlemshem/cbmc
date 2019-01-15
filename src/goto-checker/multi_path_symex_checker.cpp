@@ -128,21 +128,9 @@ void multi_path_symex_checkert::update_properties_goals_from_symex_target_equati
   {
     if(it->is_assert())
     {
-      irep_idt property_id;
+      irep_idt property_id = it->get_property_id();
 
-      if(it->source.pc->is_assert())
-        property_id = it->source.pc->source_location.get_property_id();
-      else if(it->source.pc->is_goto())
-      {
-        // this is likely an unwinding assertion
-        property_id = id2string(it->source.pc->source_location.get_function()) +
-                      ".unwind." + std::to_string(it->source.pc->loop_number);
-        properties.emplace(
-          property_id,
-          property_infot{
-            it->source.pc, it->comment, property_statust::NOT_CHECKED});
-      }
-      else
+      if(property_id.empty())
         continue;
 
       // consider goal instance if it is in the given properties
