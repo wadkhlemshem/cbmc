@@ -35,10 +35,6 @@ public:
 
   resultt operator()() override
   {
-    // have we got anything to check? otherwise we return PASS
-    if(!has_properties_to_check(properties))
-      return resultt::PASS;
-
     while(incremental_goto_checker(properties) !=
           incremental_goto_checkert::resultt::DONE)
     {
@@ -59,7 +55,10 @@ public:
 
   void report() override
   {
-    if(options.get_bool_option("trace"))
+    if(
+      options.get_bool_option("trace") ||
+      // currently --trace only affects plain text output
+      ui_message_handler.get_ui() != ui_message_handlert::uit::PLAIN)
     {
       const namespacet ns(goto_model.get_symbol_table());
       const trace_optionst trace_options(options);
