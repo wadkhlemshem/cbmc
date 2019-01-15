@@ -38,6 +38,7 @@ operator()(propertiest &properties)
   if(!symex_has_run)
   {
     perform_symex();
+    output_coverage_report();
     update_properties_status_from_symex_target_equation(properties, equation);
   }
 
