@@ -44,11 +44,10 @@ public:
       // output trace for failed property
       if(show_trace)
       {
-        const namespacet ns(goto_model.get_symbol_table());
         const trace_optionst trace_options(options);
         output_error_trace(
           incremental_goto_checker.build_error_trace(),
-          ns,
+          incremental_goto_checker.get_namespace(),
           trace_options,
           ui_message_handler);
       }
