@@ -59,10 +59,17 @@ public:
 
   void report() override
   {
-    const namespacet ns(goto_model.get_symbol_table());
-    const trace_optionst trace_options(options);
-    output_properties_with_traces(
-      properties, property_traces, ns, trace_options, ui_message_handler);
+    if(options.get_bool_option("trace"))
+    {
+      const namespacet ns(goto_model.get_symbol_table());
+      const trace_optionst trace_options(options);
+      output_properties_with_traces(
+        properties, property_traces, ns, trace_options, ui_message_handler);
+    }
+    else
+    {
+      output_properties(properties, ui_message_handler);
+    }
     output_overall_result(determine_result(properties), ui_message_handler);
   }
 
