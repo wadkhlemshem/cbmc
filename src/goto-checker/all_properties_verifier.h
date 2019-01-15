@@ -14,6 +14,7 @@ Author: Daniel Kroening, Peter Schrammel
 
 #include "goto_verifier.h"
 
+#include "bmc_util.h"
 #include "incremental_goto_checker.h"
 #include "properties.h"
 #include "report_util.h"
@@ -39,10 +40,25 @@ public:
     if(!has_properties_to_check(properties))
       return resultt::PASS;
 
+    const bool show_trace = options.get_bool_option("trace");
+    const trace_optionst trace_options(options);
+
     while(incremental_goto_checker(properties) !=
           incremental_goto_checkert::resultt::DONE)
     {
-      // loop until we are done
+      // output trace for failed property
+      if(show_trace)
+      {
+        goto_tracet goto_trace = incremental_goto_checker.build_error_trace();
+        const auto &property_id = goto_trace.get_last_step().property_id;
+        output_single_property_with_trace(
+          property_id,
+          properties.at(property_id),
+          goto_trace,
+          incremental_goto_checker.get_namespace(),
+          trace_options,
+          ui_message_handler);
+      }
       ++iterations;
     }
     return determine_result(properties);
