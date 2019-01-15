@@ -29,6 +29,7 @@ multi_path_symex_checkert::multi_path_symex_checkert(
     ui_message_handler,
     ui_message_handler.get_ui() == ui_message_handlert::uit::XML_UI);
   solver = solvers.get_solver();
+  solver->prop_conv().set_message_handler(ui_message_handler);
 }
 
 incremental_goto_checkert::resultt multi_path_symex_checkert::
@@ -45,24 +46,26 @@ operator()(propertiest &properties)
     return resultt::DONE;
 
   prop_convt &prop_conv = solver->prop_conv();
-  log.status() << "Passing problem to " << prop_conv.decision_procedure_text()
-               << messaget::eom;
 
   auto solver_start = std::chrono::steady_clock::now();
 
   if(!symex_has_run)
   {
+    log.status() << "Passing problem to " << prop_conv.decision_procedure_text()
+                 << messaget::eom;
+
     convert_symex_target_equation(equation, prop_conv, ui_message_handler);
     update_properties_goals_from_symex_target_equation(properties);
     convert_goals();
     freeze_goal_variables();
     symex_has_run = true;
+
+    log.status() << "Running " << prop_conv.decision_procedure_text()
+                 << messaget::eom;
   }
 
   add_constraint_from_goals(properties);
 
-  log.status() << "Running " << prop_conv.decision_procedure_text()
-               << messaget::eom;
 
   decision_proceduret::resultt dec_result = prop_conv.dec_solve();
 
