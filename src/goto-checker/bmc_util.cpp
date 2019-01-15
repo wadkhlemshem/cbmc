@@ -232,7 +232,7 @@ void update_properties_status_from_symex_target_equation(
 // The current behavior is that properties pruned by goto-symex
 // do not appear in the output. We therefore just clear the properties
 // to consider only properties that are in goto-symex' remaining vccs.
-#if 1
+#if 0
   properties.clear();
 #endif
 
@@ -259,7 +259,7 @@ void update_properties_status_from_symex_target_equation(
 // do not appear in the output. The code below would enable reporting
 // of all properties that appear in the goto model and/or are generated
 // in goto-symex. Activating this would change current behavior.
-#if 0
+#if 1
   for(auto &property_pair : properties)
   {
     if(property_pair.second.status == property_statust::NOT_CHECKED)
