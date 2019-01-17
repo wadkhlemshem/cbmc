@@ -100,6 +100,7 @@ public:
 
   // for assert
   std::string comment;
+  irep_idt property_id;
 
   // the full, original lhs expression, after dereferencing
   exprt full_lhs;

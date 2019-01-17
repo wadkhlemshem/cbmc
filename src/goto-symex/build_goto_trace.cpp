@@ -360,6 +360,9 @@ void build_goto_trace(
           prop_conv.l_get(SSA_step.cond_literal).is_true();
       }
 
+      if(SSA_step.is_assert())
+        goto_trace_step.property_id = SSA_step.get_property_id();
+
       if(ssa_step_it == last_step_to_keep)
         return;
     }
