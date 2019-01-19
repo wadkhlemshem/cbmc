@@ -24,7 +24,7 @@ public:
     ui_message_handlert &ui_message_handler,
     abstract_goto_modelt &goto_model);
 
-  resultt operator()(propertiest &) override;
+  incremental_goto_checker_resultt operator()(propertiest &) override;
 
 protected:
   abstract_goto_modelt &goto_model;
