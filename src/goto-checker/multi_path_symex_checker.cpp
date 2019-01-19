@@ -32,19 +32,23 @@ multi_path_symex_checkert::multi_path_symex_checkert(
   solver->prop_conv().set_message_handler(ui_message_handler);
 }
 
-incremental_goto_checkert::resultt multi_path_symex_checkert::
+incremental_goto_checker_resultt multi_path_symex_checkert::
 operator()(propertiest &properties)
 {
+  incremental_goto_checker_resultt result(
+    incremental_goto_checker_resultt::resultt::DONE);
+
   if(!symex_has_run)
   {
     perform_symex();
     output_coverage_report();
-    update_properties_status_from_symex_target_equation(properties, equation);
+    result.updated_properties =
+      update_properties_status_from_symex_target_equation(properties, equation);
   }
 
   // have we got anything to check? otherwise we return DONE
   if(!has_properties_to_check(properties))
-    return resultt::DONE;
+    return result;
 
   prop_convt &prop_conv = solver->prop_conv();
 
@@ -67,10 +71,10 @@ operator()(propertiest &properties)
 
   add_constraint_from_goals(properties);
 
-
   decision_proceduret::resultt dec_result = prop_conv.dec_solve();
 
-  update_properties_status_from_goals(properties, dec_result);
+  result.updated_properties =
+    update_properties_status_from_goals(properties, dec_result);
 
   auto solver_stop = std::chrono::steady_clock::now();
   log.status()
@@ -78,9 +82,10 @@ operator()(propertiest &properties)
     << std::chrono::duration<double>(solver_stop - solver_start).count() << "s"
     << messaget::eom;
 
-  return dec_result == decision_proceduret::resultt::D_SATISFIABLE
-           ? resultt::FOUND_FAIL
-           : resultt::DONE;
+  result.result = dec_result == decision_proceduret::resultt::D_SATISFIABLE
+           ? incremental_goto_checker_resultt::resultt::FOUND_FAIL
+           : incremental_goto_checker_resultt::resultt::DONE;
+  return result;
 }
 
 goto_tracet multi_path_symex_checkert::build_trace() const
@@ -193,32 +198,46 @@ void multi_path_symex_checkert::add_constraint_from_goals(
   solver->prop_conv().set_to_true(disjunction(disjuncts));
 }
 
-void multi_path_symex_checkert::update_properties_status_from_goals(
+std::vector<irep_idt>
+multi_path_symex_checkert::update_properties_status_from_goals(
   propertiest &properties,
   decision_proceduret::resultt dec_result)
 {
+  std::vector<irep_idt> updated_properties;
+
   switch(dec_result)
   {
   case decision_proceduret::resultt::D_SATISFIABLE:
     for(auto &goal_pair : goal_map)
     {
       if(solver->prop_conv().l_get(goal_pair.second.condition).is_true())
+      {
         properties.at(goal_pair.first).status |= property_statust::FAIL;
+        updated_properties.push_back(goal_pair.first);
+      }
     }
     break;
   case decision_proceduret::resultt::D_UNSATISFIABLE:
     for(auto &property_pair : properties)
     {
       if(property_pair.second.status == property_statust::UNKNOWN)
+      {
         property_pair.second.status |= property_statust::PASS;
+        updated_properties.push_back(property_pair.first);
+      }
     }
     break;
   case decision_proceduret::resultt::D_ERROR:
     for(auto &property_pair : properties)
     {
       if(property_pair.second.status == property_statust::UNKNOWN)
+      {
         property_pair.second.status |= property_statust::ERROR;
+        updated_properties.push_back(property_pair.first);
+      }
     }
     break;
   }
+
+  return updated_properties;
 }

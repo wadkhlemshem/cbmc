@@ -28,7 +28,7 @@ public:
     ui_message_handlert &ui_message_handler,
     abstract_goto_modelt &goto_model);
 
-  resultt operator()(propertiest &) override;
+  incremental_goto_checker_resultt operator()(propertiest &) override;
 
   goto_tracet build_trace() const override;
   const namespacet &get_namespace() const override;
@@ -57,7 +57,7 @@ protected:
   void convert_goals();
   void freeze_goal_variables();
   void add_constraint_from_goals(const propertiest &properties);
-  void update_properties_status_from_goals(
+  std::vector<irep_idt> update_properties_status_from_goals(
     propertiest &properties,
     decision_proceduret::resultt dec_result);
 };
