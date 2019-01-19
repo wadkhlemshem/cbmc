@@ -39,9 +39,13 @@ public:
     const bool show_trace = options.get_bool_option("trace");
     const trace_optionst trace_options(options);
 
-    while(incremental_goto_checker(properties) !=
-          incremental_goto_checkert::resultt::DONE)
+    while(true)
     {
+      incremental_goto_checker_resultt result =
+        incremental_goto_checker(properties);
+      if(result.result == incremental_goto_checker_resultt::resultt::DONE)
+        break;
+
       // output trace for failed property
       if(show_trace)
       {
