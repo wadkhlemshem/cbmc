@@ -21,6 +21,7 @@ public:
   goto_trace_storaget(const goto_trace_storaget &) = delete;
 
   const goto_tracet &insert(goto_tracet &&);
+  const goto_tracet &insert_all(goto_tracet &&);
 
   const std::vector<goto_tracet> &all() const;
   const goto_tracet &operator[](const irep_idt &property_id) const;

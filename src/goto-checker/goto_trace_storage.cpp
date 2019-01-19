@@ -26,6 +26,16 @@ const goto_tracet &goto_trace_storaget::insert(goto_tracet &&trace)
   return traces.back();
 }
 
+const goto_tracet &goto_trace_storaget::insert_all(goto_tracet &&trace)
+{
+  traces.push_back(trace);
+  for(const auto &property_id : traces.back().get_all_property_ids())
+  {
+    property_to_trace.emplace(property_id, traces.size() - 1);
+  }
+  return traces.back();
+}
+
 const std::vector<goto_tracet> &goto_trace_storaget::all() const
 {
   return traces;
