@@ -186,6 +186,17 @@ public:
     return steps.back();
   }
 
+  std::vector<irep_idt> get_all_property_ids()
+  {
+    std::vector<irep_idt> property_ids;
+    for(const auto &step : steps)
+    {
+      if(step.is_assert())
+        property_ids.push_back(step.property_id);
+    }
+    return property_ids;
+  }
+
   // delete all steps after (not including) s
   void trim_after(stepst::iterator s)
   {
