@@ -225,10 +225,12 @@ void slice(
                    << " remaining after simplification" << messaget::eom;
 }
 
-void update_properties_status_from_symex_target_equation(
+std::vector<irep_idt> update_properties_status_from_symex_target_equation(
   propertiest &properties,
   const symex_target_equationt &equation)
 {
+  std::vector<irep_idt> updated_properties;
+
   for(const auto &step : equation.SSA_steps)
   {
     if(!step.is_assert())
@@ -250,6 +252,7 @@ void update_properties_status_from_symex_target_equation(
           .second)
     {
       properties.at(property_id).status = status;
+      updated_properties.push_back(property_id);
     }
   }
 
@@ -260,6 +263,9 @@ void update_properties_status_from_symex_target_equation(
       // This could be a NOT_CHECKED, NOT_REACHABLE or PASS,
       // but the equation doesn't give us precise information.
       property_pair.second.status = property_statust::PASS;
+      updated_properties.push_back(property_pair.first);
     }
   }
+
+  return updated_properties;
 }

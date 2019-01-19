@@ -71,7 +71,8 @@ void slice(
 
 /// Sets property status to PASS or FAIL for properties whose
 /// conditions are constant true or false, respectively.
-void update_properties_status_from_symex_target_equation(
+/// \return IDs of updated properties
+std::vector<irep_idt> update_properties_status_from_symex_target_equation(
   propertiest &properties,
   const symex_target_equationt &equation);
 
