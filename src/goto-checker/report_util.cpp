@@ -353,6 +353,45 @@ void output_properties_with_traces(
   }
 }
 
+void output_single_property_with_trace(
+  const irep_idt &property_id,
+  const property_infot &property_info,
+  const goto_tracet &goto_trace,
+  const namespacet &ns,
+  const trace_optionst &trace_options,
+  ui_message_handlert &ui_message_handler)
+{
+  messaget log(ui_message_handler);
+  switch(ui_message_handler.get_ui())
+  {
+    case ui_message_handlert::uit::PLAIN:
+      output_single_property_plain(property_id, property_info, log);
+      log.result() << "\n" << "Trace for " << property_id << ":" << "\n";
+      show_goto_trace(log.result(), ns, goto_trace, trace_options);
+      log.result() << messaget::eom;
+      break;
+
+    case ui_message_handlert::uit::XML_UI:
+    {
+      xmlt xml_result = xml(property_id, property_info);
+      convert(ns, goto_trace, xml_result);
+      log.status() << xml_result;
+    }
+      break;
+
+    case ui_message_handlert::uit::JSON_UI:
+    {
+      json_stream_objectt &json_result =
+        ui_message_handler.get_json_stream().push_back_stream_object();
+      json(json_result, property_id, property_info);
+      json_stream_arrayt &json_trace =
+        json_result.push_back_stream_array("trace");
+      convert<json_stream_arrayt>(ns, goto_trace, json_trace, trace_options);
+    }
+      break;
+  }
+}
+
 void output_overall_result(
   resultt result,
   ui_message_handlert &ui_message_handler)

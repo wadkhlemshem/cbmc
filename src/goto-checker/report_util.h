@@ -36,6 +36,14 @@ void output_properties_with_traces(
   unsigned iterations,
   ui_message_handlert &ui_message_handler);
 
+void output_single_property_with_trace(
+  const irep_idt &property_id,
+  const property_infot &property_info,
+  const goto_tracet &goto_trace,
+  const namespacet &ns,
+  const trace_optionst &trace_options,
+  ui_message_handlert &ui_message_handler);
+
 void output_overall_result(
   resultt result,
   ui_message_handlert &ui_message_handler);
