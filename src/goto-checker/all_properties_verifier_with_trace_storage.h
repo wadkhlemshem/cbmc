@@ -37,9 +37,13 @@ public:
 
   resultt operator()() override
   {
-    while(incremental_goto_checker(properties) !=
-          incremental_goto_checkert::resultt::DONE)
+    while(true)
     {
+      incremental_goto_checker_resultt result =
+        incremental_goto_checker(properties);
+      if(result.result == incremental_goto_checker_resultt::resultt::DONE)
+        break;
+
       // we've got an error trace; store it and link it to the failed properties
       (void)error_traces.insert(incremental_goto_checker.build_error_trace());
 
