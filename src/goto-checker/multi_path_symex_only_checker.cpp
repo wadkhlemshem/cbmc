@@ -56,6 +56,11 @@ operator()(propertiest &properties)
   resultt result;
   update_properties_status_from_symex_target_equation(
     properties, result.updated_properties, equation);
+  // Since we will not symex any further we can decide the status
+  // of all properties that do not occur in the equation now.
+  // The current behavior is PASS.
+  update_properties_status_not_checked(
+    properties, result.updated_properties);
   return result;
 }
 
