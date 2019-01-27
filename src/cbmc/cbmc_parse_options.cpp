@@ -627,12 +627,9 @@ int cbmc_parse_optionst::doit()
     }
   }
 
-  // fall back until everything has been ported to goto-checker
-  if(verifier == nullptr)
-  {
-    return bmct::do_language_agnostic_bmc(
-      options, goto_model, ui_message_handler);
-  }
+  INVARIANT(
+    verifier != nullptr,
+    "there should be a goto verifier for all command line combinations");
 
   resultt result = (*verifier)();
   verifier->report();
