@@ -33,12 +33,14 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <goto-checker/all_properties_verifier.h>
 #include <goto-checker/all_properties_verifier_with_trace_storage.h>
+#include <goto-checker/all_properties_verifier_with_fault_localization.h>
 #include <goto-checker/bmc_util.h>
 #include <goto-checker/cover_goals_verifier_with_trace_storage.h>
 #include <goto-checker/multi_path_symex_checker.h>
 #include <goto-checker/multi_path_symex_only_checker.h>
 #include <goto-checker/properties.h>
 #include <goto-checker/stop_on_fail_verifier.h>
+#include <goto-checker/stop_on_fail_verifier_with_fault_localization.h>
 
 #include <goto-programs/adjust_float_expressions.h>
 #include <goto-programs/initialize_goto_model.h>
@@ -593,15 +595,35 @@ int cbmc_parse_optionst::doit()
   {
     if(options.get_bool_option("stop-on-fail"))
     {
-      verifier =
-        util_make_unique<stop_on_fail_verifiert<multi_path_symex_checkert>>(
-          options, ui_message_handler, goto_model);
+      if(options.get_bool_option("localize-faults"))
+      {
+        verifier =
+          util_make_unique<stop_on_fail_verifier_with_fault_localizationt<
+            multi_path_symex_checkert>>(
+            options, ui_message_handler, goto_model);
+      }
+      else
+      {
+        verifier =
+          util_make_unique<stop_on_fail_verifiert<multi_path_symex_checkert>>(
+            options, ui_message_handler, goto_model);
+      }
     }
     else
     {
-      verifier = util_make_unique<
-        all_properties_verifier_with_trace_storaget<multi_path_symex_checkert>>(
-        options, ui_message_handler, goto_model);
+      if(options.get_bool_option("localize-faults"))
+      {
+        verifier =
+          util_make_unique<all_properties_verifier_with_fault_localizationt<
+            multi_path_symex_checkert>>(
+            options, ui_message_handler, goto_model);
+      }
+      else
+      {
+        verifier = util_make_unique<
+          all_properties_verifier_with_trace_storaget<multi_path_symex_checkert>>(
+          options, ui_message_handler, goto_model);
+      }
     }
   }
 
