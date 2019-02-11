@@ -68,6 +68,17 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
   {
     return convert_constant(to_constant_expr(expr));
   }
+  else if(expr.id()==ID_symbol)
+  {
+    return convert_identifier(to_symbol_expr(expr).get_identifier(),
+                              ns.follow(expr.type()));
+  }
+  else if(expr.id()==ID_nondet_symbol)
+  {
+    irep_idt id=expr.get(ID_identifier);
+    assert(id!=irep_idt());
+    return convert_identifier(id,ns.follow(expr.type()));
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
@@ -226,4 +237,28 @@ z3::sort z3_convt::convert_type(const typet &type) const
   {
     UNEXPECTEDCASE("TODO: Type conversion for "+type.id_string()+"\n");
   }
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_identifier
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_identifier(const irep_idt &id, const typet &type) const
+{
+  assert(id!=irep_idt());
+  if (!exists(id)) {
+    z3::expr expr(context);
+    expr = context.constant(id.c_str(), convert_type(type));
+    store.push_back(expr);
+    identifier_map[id] = store.size() - 1;
+  }
+  return fetch(id);
 }
