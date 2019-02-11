@@ -979,6 +979,51 @@ z3::expr z3_convt::convert_with(const with_exprt &expr) const
 
 /*******************************************************************\
 
+Function: z3_convt::l_get
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+tvt z3_convt::l_get(literalt l) const
+{
+  if(l.is_true()) return tvt(true);
+  if(l.is_false()) return tvt(false);
+  z3::model model=solver.get_model();
+  z3::expr res=model.eval(convert_literal(l));
+  if (res.is_true())
+    return tvt(true);
+  else if (res.is_false())
+    return tvt(false);
+  else
+    return tvt(tvt::unknown());
+}
+
+/*******************************************************************\
+
+Function: z3_convt::get
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+exprt z3_convt::get(const exprt &expr) const
+{
+  z3::model model=solver.get_model();
+  const z3::expr &e = model.eval(convert_expr(expr).simplify(params),true).simplify(params);
+  return z3_convt::convert_z3_expr(e, expr.type());
+}
+
+/*******************************************************************\
+
 Function: z3_convt::convert_z3_expr
 
   Inputs:
