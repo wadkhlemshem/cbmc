@@ -281,6 +281,14 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
       return convert_expr(expr.op0())+convert_expr(expr.op1());
     }
   }
+  else if(expr.id()==ID_typecast)
+  {
+    return convert_typecast(to_typecast_expr(expr));
+  }
+  else if(expr.id()==ID_floatbv_typecast)
+  {
+    return convert_floatbv_typecast(to_floatbv_typecast_expr(expr));
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
@@ -520,5 +528,237 @@ z3::expr z3_convt::convert_rounding_mode_FPA(const exprt &expr) const
            z3::ite(context.bv_val(2,width)==convert_expr(expr),
            z3::to_expr(context,Z3_mk_fpa_round_toward_positive(context)),
            z3::to_expr(context,Z3_mk_fpa_round_toward_zero(context)))));
+  }
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_typecast
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_typecast(const typecast_exprt &expr) const
+{
+  assert(expr.operands().size()==1);
+  const exprt &src=expr.op0();
+  boolbv_widtht boolbv_width(ns);
+
+  typet dest_type=ns.follow(expr.type());
+  if(dest_type.id()==ID_c_enum_tag)
+    dest_type=ns.follow_tag(to_c_enum_tag_type(dest_type));
+
+  typet src_type=ns.follow(src.type());
+  if(src_type.id()==ID_c_enum_tag)
+    src_type=ns.follow_tag(to_c_enum_tag_type(src_type));
+
+  z3::expr &&src_expr = convert_expr(src);
+
+  if(dest_type.id()==ID_bool)
+  {
+    // this is comparison with zero
+    if(src_type.id()==ID_signedbv ||
+       src_type.id()==ID_unsignedbv ||
+       src_type.id()==ID_c_bool ||
+       src_type.id()==ID_fixedbv ||
+       src_type.id()==ID_pointer)
+    {
+      return src_expr != convert_expr(gen_zero(src_type));
+    }
+    else if(src_type.id()==ID_floatbv)
+    {
+      if(use_FPA_theory)
+      {
+        return z3::to_expr(context,Z3_mk_not(context,
+                           Z3_mk_fpa_is_zero(context,convert_expr(src))));
+      }
+      else
+        return convert_expr(src)!=context.bv_val(0,boolbv_width(src.type()));
+    }
+    else
+    {
+      UNEXPECTEDCASE("TODO typecast1 "+src_type.id_string()+" -> bool");
+    }
+  }
+  else if(dest_type.id()==ID_c_bool)
+  {
+    std::size_t to_width=boolbv_width(dest_type);
+    return z3::ite(src_expr != convert_expr(gen_zero(src_type)),
+      context.bv_val(1, to_width), context.bv_val(0, to_width));
+  }
+  else if(dest_type.id()==ID_signedbv ||
+          dest_type.id()==ID_unsignedbv ||
+          dest_type.id()==ID_c_enum ||
+          dest_type.id()==ID_bv)
+  {
+    std::size_t to_width=boolbv_width(dest_type);
+
+    if(src_type.id()==ID_signedbv || // from signedbv
+       src_type.id()==ID_unsignedbv || // from unsigedbv
+       src_type.id()==ID_c_bool ||
+       src_type.id()==ID_c_enum ||
+       src_type.id()==ID_bv)
+    {
+      std::size_t from_width=boolbv_width(src_type);
+
+      if(from_width==to_width)
+        return src_expr; // ignore
+      else if(from_width<to_width) // extend
+      {
+        if(src_type.id()==ID_signedbv)
+          return z3::sext(src_expr, to_width-from_width);
+        else
+        {
+          return z3::zext(src_expr, to_width-from_width);
+        }
+      }
+      else // chop off extra bits
+      {
+        return src_expr.extract(0, to_width);
+      }
+    }
+    else if(src_type.id()==ID_bool) // from boolean to int
+    {
+      return z3::ite(src_expr, context.bv_val(1, to_width), context.bv_val(0, to_width));
+    }
+    else
+    {
+      UNEXPECTEDCASE("TODO typecast2 "+src_type.id_string()+" -> "+dest_type.id_string() + " src == " + from_expr(ns,"",src));
+    }
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO typecast "+src_type.id_string()+" -> "+dest_type.id_string());
+  }
+  
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_floatbv_typecast
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_floatbv_typecast(const floatbv_typecast_exprt &expr) const
+{
+  const exprt &src=expr.op0();
+  //const exprt &rounding_mode=expr.rounding_mode();
+  const typet &src_type=src.type();
+  const typet &dest_type=expr.type();
+
+  if(dest_type.id()==ID_floatbv)
+  {
+    size_t to_width=boolbv_width(dest_type);
+    if(src_type.id()==ID_floatbv)
+    {
+      size_t from_width=boolbv_width(src_type);
+      // float to float
+
+      /* ISO 9899:1999
+       * 6.3.1.5 Real floating types
+       * 1 When a float is promoted to double or long double, or a
+       * double is promoted to long double, its value is unchanged.
+       *
+       * 2 When a double is demoted to float, a long double is
+       * demoted to double or float, or a value being represented in
+       * greater precision and range than required by its semantic
+       * type (see 6.3.1.8) is explicitly converted to its semantic
+       * type, if the value being converted can be represented
+       * exactly in the new type, it is unchanged. If the value
+       * being converted is in the range of values that can be
+       * represented but cannot be represented exactly, the result
+       * is either the nearest higher or nearest lower representable
+       * value, chosen in an implementation-defined manner. If the
+       * value being converted is outside the range of values that
+       * can be represented, the behavior is undefined.
+       */
+
+      if(use_FPA_theory)
+      {
+        UNEXPECTEDCASE("TODO: convert floatbv float -> float with FPA");
+      }
+      else
+      {
+        floatbv_typet srct=to_floatbv_type(src_type);
+        if (from_width==to_width)
+          return convert_expr(src);
+        if(from_width<to_width)
+        {
+          return z3::sext(convert_expr(src),to_width-from_width);
+        }
+        else
+        {
+          return convert_expr(src).extract(0,to_width);
+        }
+      }
+    }
+    else if(src_type.id()==ID_unsignedbv)
+    {
+      // unsigned to float
+
+      /* ISO 9899:1999
+       * 6.3.1.4 Real floating and integer
+       * 2 When a value of integer type is converted to a real
+       * floating type, if the value being converted can be
+       * represented exactly in the new type, it is unchanged. If the
+       * value being converted is in the range of values that can be
+       * represented but cannot be represented exactly, the result is
+       * either the nearest higher or nearest lower representable
+       * value, chosen in an implementation-defined manner. If the
+       * value being converted is outside the range of values that can
+       * be represented, the behavior is undefined.
+       */
+
+      const floatbv_typet &dst=to_floatbv_type(dest_type);
+
+      if(use_FPA_theory)
+      {
+        return z3::to_expr(context,Z3_mk_fpa_to_fp_unsigned(context,
+                           convert_rounding_mode_FPA(expr.op1()),
+                           convert_expr(src),
+                           context.bv_sort(dst.get_e()+dst.get_f()+1)));
+      }
+      else
+      {
+        return convert_expr(src);
+      }
+    }
+    else if(src_type.id()==ID_signedbv)
+    {
+      // signed to float
+      UNEXPECTEDCASE("TODO floatbv typecast signed -> float");
+    }
+    else if(src_type.id()==ID_c_enum_tag)
+    {
+      // enum to float
+
+      // We first convert to 'underlying type'
+      UNEXPECTEDCASE("TODO floatbv typecast enum -> float");
+    }
+    else
+      UNEXPECTEDCASE("TODO typecast11 "+src_type.id_string()+" -> "+dest_type.id_string());
+  }
+  else if(dest_type.id()==ID_signedbv)
+  {
+    UNEXPECTEDCASE("TODO typecast float -> signedbv");
+  }
+  else if(dest_type.id()==ID_unsignedbv)
+  {
+    UNEXPECTEDCASE("TODO typecast float -> unsignedbv");
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO typecast12 "+src_type.id_string()+" -> "+dest_type.id_string());
   }
 }
