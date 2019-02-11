@@ -79,6 +79,139 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
     assert(id!=irep_idt());
     return convert_identifier(id,ns.follow(expr.type()));
   }
+  else if(expr.id()==ID_if)
+  {
+    assert(expr.operands().size()==3);
+    return ite(convert_expr(expr.op0()),
+               convert_expr(expr.op1()),
+               convert_expr(expr.op2()));
+  }
+  else if(expr.id()==ID_and)
+  {
+    assert(expr.type().id()==ID_bool);
+    assert(expr.operands().size()>=2);
+    z3::expr result = convert_expr(expr.op0());
+    for (unsigned int i = 1; i < expr.operands().size(); ++i)
+    {
+      result = result && convert_expr(expr.operands()[i]);
+    }
+    return result;
+  }
+  else if(expr.id()==ID_or)
+  {
+    assert(expr.type().id()==ID_bool);
+    assert(expr.operands().size()>=2);
+    z3::expr result = convert_expr(expr.op0());
+    for (unsigned int i = 1; i < expr.operands().size(); ++i)
+    {
+      result = result || convert_expr(expr.operands()[i]);
+    }
+    return result;
+  }
+  else if(expr.id()==ID_xor)
+  {
+    assert(expr.type().id()==ID_bool);
+    assert(expr.operands().size()>=2);
+    z3::expr result = convert_expr(expr.op0());
+    for (unsigned int i = 1; i < expr.operands().size(); ++i)
+    {
+      result = result ^ convert_expr(expr.operands()[i]);
+    }
+    return result;
+  }
+  else if(expr.id()==ID_implies)
+  {
+    assert(expr.type().id()==ID_bool);
+    assert(expr.operands().size()==2);
+
+    return implies(convert_expr(expr.op0()),
+                   convert_expr(expr.op1()));
+  }
+  else if(expr.id()==ID_not)
+  {
+    assert(expr.type().id()==ID_bool);
+    assert(expr.operands().size()==1);
+    return !convert_expr(expr.op0());;
+  }
+  else if(expr.id()==ID_equal)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           == convert_expr(expr.op1());
+  }
+  else if(expr.id()==ID_notequal)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           != convert_expr(expr.op1());
+  }
+  else if(expr.id()==ID_ieee_float_equal)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(),expr.op1().type(),ns));
+    if(use_FPA_theory)
+    {
+      return z3::to_expr(context, Z3_mk_fpa_eq(context,
+                         convert_expr(expr.op0()),
+                         convert_expr(expr.op1())));
+    }
+    else
+    {
+      return convert_expr(expr.op0())==convert_expr(expr.op1());
+    }
+  }
+  else if(expr.id()==ID_ieee_float_notequal)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(),expr.op1().type(),ns));
+    if(use_FPA_theory)
+    {
+      return z3::to_expr(context, Z3_mk_not(context, 
+                         Z3_mk_fpa_eq(context,
+                         convert_expr(expr.op0()),
+                         convert_expr(expr.op1()))));
+    }
+    else
+      return convert_expr(expr.op0())!=convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_le)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           <= convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_lt)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           < convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_ge)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           >= convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_gt)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           > convert_expr(expr.op1());
+  }
+  else if(expr.id()==ID_forall)
+  {
+    return z3::forall(convert_expr(expr.op0()), convert_expr(expr.op1()));
+  }
+  else if(expr.id()==ID_exists)
+  {
+    return z3::exists(convert_expr(expr.op0()), convert_expr(expr.op1()));
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
