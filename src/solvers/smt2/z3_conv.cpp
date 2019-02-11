@@ -212,6 +212,59 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
   {
     return z3::exists(convert_expr(expr.op0()), convert_expr(expr.op1()));
   }
+  else if(expr.id()==ID_unary_plus)
+  {
+    return convert_expr(expr.op0());
+  }
+  else if(expr.id()==ID_unary_minus)
+  {
+    assert(expr.operands().size()==1);
+    if(expr.type().id()==ID_signedbv)
+      return z3::to_expr(context, Z3_mk_bvneg(context,convert_expr(expr.op0())));
+    else if(expr.type().id()==ID_floatbv)
+    {
+      if(use_FPA_theory)
+      {
+        UNEXPECTEDCASE("TODO: Unary minus for floatbv with FPA theory");
+      }
+      else
+      {
+        return z3::to_expr(context, Z3_mk_bvneg(context,convert_expr(expr.op0())));
+      }
+    }
+    else
+    {
+      UNEXPECTEDCASE("TODO: Unary minus for "+expr.type().id_string()+"\n");
+    }
+  }
+  else if (expr.id()==ID_plus)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           + convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_minus)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           - convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_mult)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           * convert_expr(expr.op1());
+  }
+  else if (expr.id()==ID_div)
+  {
+    assert(expr.operands().size()==2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    return convert_expr(expr.op0())
+           / convert_expr(expr.op1());
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
