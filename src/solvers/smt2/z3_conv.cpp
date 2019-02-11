@@ -52,6 +52,76 @@ Author(s): Johanan Wahlang, wadkhlemshem@gmail.com
 
 /*******************************************************************\
 
+Function: z3_convt::convert
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+literalt z3_convt::convert(const exprt &expr)
+{
+  assert(expr.type().id()==ID_bool);
+
+  // Three cases where no new handle is needed.
+
+  if(expr.is_true())
+    return const_literal(true);
+  else if(expr.is_false())
+    return const_literal(false);
+  else if(expr.id()==ID_literal)
+    return to_literal_expr(expr).get_literal();
+
+  // Need a new handle
+
+  literalt l(no_boolean_variables, false);
+  no_boolean_variables++;
+
+  solver.add(convert_literal(l) == convert_expr(expr));
+  return l;
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_literal
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_literal(const literalt l) const
+{
+  if(l==const_literal(false))
+    return context.bool_val(false);
+  else if(l==const_literal(true))
+    return context.bool_val(true);
+  else
+  {
+    irep_idt lit_name=dstring("B"+i2string(l.var_no()));
+    z3::expr lit(context);
+    if (!exists(lit_name))
+    {
+      lit=context.bool_const(lit_name.c_str());
+      store.push_back(lit);
+      identifier_map[lit_name]=store.size() - 1;
+    }
+    lit=fetch(lit_name);
+    if(l.sign())
+      return !lit;
+    else
+      return lit;
+  }
+}
+
+/*******************************************************************\
+
 Function: z3_convt::convert_expr
 
   Inputs:
@@ -288,6 +358,10 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
   else if(expr.id()==ID_floatbv_typecast)
   {
     return convert_floatbv_typecast(to_floatbv_typecast_expr(expr));
+  }
+  else if(expr.id()==ID_literal)
+  {
+    return convert_literal(to_literal_expr(expr).get_literal());
   }
   else
   {
