@@ -265,6 +265,22 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
     return convert_expr(expr.op0())
            / convert_expr(expr.op1());
   }
+  else if(expr.id()==ID_floatbv_plus)
+  {
+    assert(expr.operands().size()>=2);
+    assert(base_type_eq(expr.op0().type(), expr.op1().type(), ns));
+    if(use_FPA_theory)
+    {
+      return z3::to_expr(context, Z3_mk_fpa_add(context,
+                         convert_rounding_mode_FPA(expr.op2()),
+                         convert_expr(expr.op0()),
+                         convert_expr(expr.op1())));
+    }
+    else
+    {
+      return convert_expr(expr.op0())+convert_expr(expr.op1());
+    }
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
