@@ -21,6 +21,9 @@ GLUCOSE = ../../glucose-syrup
 LIBZIPLIB = ../../libzip/lib/.libs/libzip.a ../../zlib/libz.a
 LIBZIPINC = ../../libzip/lib
 
+# SMT-solvers we have
+Z3 = ../../z3
+
 # Signing identity for MacOS Gatekeeper
 
 OSX_IDENTITY="Developer ID Application: Daniel Kroening"
