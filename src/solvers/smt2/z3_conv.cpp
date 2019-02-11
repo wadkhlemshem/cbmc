@@ -50,3 +50,19 @@ Author(s): Johanan Wahlang, wadkhlemshem@gmail.com
 // General todos
 #define TODO(S) throw "TODO: " S
 
+/*******************************************************************\
+
+Function: z3_convt::convert_expr
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_expr(const exprt &expr) const
+{
+  UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
+}
