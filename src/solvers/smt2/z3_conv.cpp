@@ -171,3 +171,59 @@ z3::expr z3_convt::convert_constant(const constant_exprt &expr) const
     UNEXPECTEDCASE("TODO constant: "+std::string(type.id().c_str())+" "+from_expr(ns,"",expr)+"\n");
   }
 }
+
+/*******************************************************************\
+
+Function: z3_convt::convert_type
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::sort z3_convt::convert_type(const typet &type) const
+{
+  if(type.id()==ID_bool)
+  {
+    return context.bool_sort();
+  }
+  else if(type.id()==ID_signedbv ||
+          type.id()==ID_unsignedbv ||
+          type.id()==ID_fixedbv ||
+          type.id()==ID_floatbv ||
+          type.id()==ID_verilog_signedbv ||
+          type.id()==ID_verilog_unsignedbv ||
+          type.id()==ID_bv ||
+          type.id()==ID_c_bit_field ||
+          type.id()==ID_c_bool)
+  {
+    size_t width = to_bitvector_type(type).get_width();
+    return context.bv_sort(width);
+  }
+  else if(type.id()==ID_array)
+  {
+    const array_typet &array_type = to_array_type(type);
+    const typet &array_index_type = array_type.size().type();    
+    const typet &array_value_type = array_type.subtype();
+    return context.array_sort(convert_type(array_index_type), convert_type(array_value_type));
+  }
+  else if(type.id()==ID_pointer)
+  {
+    size_t width=to_bitvector_type(type).get_width();
+    if (width==0)
+      return context.bv_sort(64);
+    else
+      return context.bv_sort(width);
+  }
+  else if(type.id()==ID_integer)
+  {
+    return context.int_sort();
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO: Type conversion for "+type.id_string()+"\n");
+  }
+}
