@@ -142,6 +142,9 @@ protected:
   z3::expr convert_array(const array_exprt &expr) const;
   z3::expr convert_index(const index_exprt &expr) const;
   z3::expr convert_with(const with_exprt &expr) const;
+
+  exprt convert_z3_expr(const z3::expr &expr, const typet &type) const;
+  exprt convert_z3_array(const z3::expr &expr, const array_typet &array_type) const;
 };
 
 #endif // CPROVER_SOLVERS_SMT2_Z3_CONV_H

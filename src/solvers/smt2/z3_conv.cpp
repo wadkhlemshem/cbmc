@@ -976,3 +976,175 @@ z3::expr z3_convt::convert_with(const with_exprt &expr) const
     UNEXPECTEDCASE("TODO convert_with: "+std::string(expr_type.id().c_str())+" "+from_expr(ns,"",expr)+"\n");
   } 
 }
+
+/*******************************************************************\
+
+Function: z3_convt::convert_z3_expr
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+exprt z3_convt::convert_z3_expr(const z3::expr &expr, const typet &type) const
+{
+  if (expr.get_sort().is_array())
+  {
+    return convert_z3_array(expr, to_array_type(type));
+  }
+  switch(expr.kind())
+  {
+    case Z3_NUMERAL_AST:
+    case Z3_APP_AST:
+    {
+      switch(expr.decl().decl_kind())
+      {
+        case Z3_OP_TRUE:
+        {
+          return true_exprt();
+        }
+        case Z3_OP_FALSE:
+        {
+          return false_exprt();
+        }
+        case Z3_OP_BNUM:
+        {
+          std::size_t width=boolbv_width(type);
+          mp_integer value=mp_integer(expr.get_decimal_string(width).c_str());
+          if(type.id()==ID_bv ||
+             type.id()==ID_signedbv ||
+             type.id()==ID_unsignedbv ||
+             type.id()==ID_c_enum ||
+             type.id()==ID_c_bool)
+          {
+            return from_integer(value, type);
+          }
+          else if(type.id()==ID_c_enum_tag)
+          {
+            return from_integer(value,
+                        ns.follow_tag(to_c_enum_tag_type(type)));
+          }
+          else if(type.id()==ID_fixedbv ||
+                  type.id()==ID_floatbv)
+          {
+            return constant_exprt(integer2binary(value,width),type);
+          }
+          else if(type.id()==ID_incomplete_c_enum ||
+                  type.id()==ID_c_bit_field)
+          {
+            UNEXPECTEDCASE("TODO: Conversion from Z3 expression to type "+type.id_string()+"\n");
+          }
+          else
+          {
+            UNEXPECTEDCASE("TODO: Conversion from Z3 expression to type "+type.id_string()+"\n");
+          }
+        }
+        default:
+          UNEXPECTEDCASE("Conversion from z3 expression type not yet implemented\n");
+      }
+    }
+    case Z3_VAR_AST:
+      UNEXPECTEDCASE("Z3_VAR_AST");
+    case Z3_QUANTIFIER_AST:
+      if (expr.is_exists())
+      {
+        UNEXPECTEDCASE("TODO: Conversion from Z3 EXISTS expression\n");
+      }
+      else if (expr.is_forall())
+      {
+        return true_exprt();
+        UNEXPECTEDCASE("TODO: Conversion from Z3 FORALL expression\n");
+      }
+      else if (expr.is_lambda())
+      {
+        UNEXPECTEDCASE("TODO: Conversion from Z3 LAMBDA expression\n");
+      }
+      else
+      {
+        UNEXPECTEDCASE("Not a quantifier!");
+      }
+    case Z3_SORT_AST:
+      UNEXPECTEDCASE("Z3_SORT_AST");
+    case Z3_FUNC_DECL_AST:
+      UNEXPECTEDCASE("Z3_FUNC_DECL_AST");
+    default:
+      UNEXPECTEDCASE("Z3_UNKNOWN_AST");
+  }
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_z3_array
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+exprt z3_convt::convert_z3_array(const z3::expr &expr, const array_typet &array_type) const 
+{
+  switch(expr.kind())
+  {
+    case Z3_QUANTIFIER_AST:
+      if (expr.is_lambda())
+      {
+        z3::expr body=expr.body();
+
+        // "Evaluate" the value at each index, and copy to a new array's operands
+
+        // size_t size=binary2integer(id2string(to_constant_expr(array_type.size()).get_value()), false).to_ulong();
+        // exprt array=array_exprt(array_type);
+        // for (size_t i=0; i<size; i++)
+        // {
+        //   z3::expr_vector dst(context);
+        //   dst.push_back(context.bv_val(i,expr.get_sort().array_domain().bv_size()));
+        //   array.copy_to_operands(convert_z3_expr(body.substitute(dst).simplify(), array_type.subtype()));
+        // }
+
+        return convert_z3_array(body, array_type);
+      }
+      else
+      {
+        UNEXPECTEDCASE("Unexpected quantifier in Z3 array expression\n");
+      }
+    case Z3_NUMERAL_AST:
+    case Z3_APP_AST:
+      switch (expr.decl().decl_kind())
+      {
+        case Z3_OP_BNUM:
+        {
+          const exprt &what=convert_z3_expr(expr,array_type.subtype());
+          return array_of_exprt(what, array_type);           
+        }
+        case Z3_OP_CONST_ARRAY:
+        {
+          const exprt &what = convert_z3_expr(expr.arg(0),array_type.subtype());
+          return array_of_exprt(what, array_type);
+        }
+        case Z3_OP_STORE:
+        {
+          const exprt &array = convert_z3_array(expr.arg(0), array_type);
+          const exprt &index = convert_z3_expr(expr.arg(1), array_type.size().type());
+          const exprt &value = convert_z3_expr(expr.arg(2), array_type.subtype());
+          return with_exprt(array, index, value);
+        }
+        case Z3_OP_ITE:
+        {
+          const exprt &index = convert_z3_expr(expr.arg(0).arg(1), array_type.size().type());
+          const exprt &value = convert_z3_expr(expr.arg(1), array_type.subtype());
+          const exprt &array = convert_z3_array(expr.arg(2), array_type);
+          return with_exprt(array, index, value);
+        }
+        default:
+          UNEXPECTEDCASE("Conversion from Z3 array expression "+std::to_string(expr.decl().decl_kind())+" type not yet implemented\n");
+      }
+    default:
+      UNEXPECTEDCASE("Conversion from Z3 array "+std::to_string(expr.kind())+" kind not yet implemented\n");
+  }
+}
