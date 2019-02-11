@@ -363,6 +363,22 @@ z3::expr z3_convt::convert_expr(const exprt &expr) const
   {
     return convert_literal(to_literal_expr(expr).get_literal());
   }
+  else if(expr.id()==ID_array_of)
+  {
+    return convert_array_of(to_array_of_expr(expr));
+  }
+  else if(expr.id() == ID_array)
+  {
+    return convert_array(to_array_expr(expr));
+  }
+  else if(expr.id()==ID_index)
+  {
+    return convert_index(to_index_expr(expr));
+  }
+  else if(expr.id()==ID_with)
+  {
+    return convert_with(to_with_expr(expr));
+  }
   else
   {
     UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
@@ -835,4 +851,128 @@ z3::expr z3_convt::convert_floatbv_typecast(const floatbv_typecast_exprt &expr) 
   {
     UNEXPECTEDCASE("TODO typecast12 "+src_type.id_string()+" -> "+dest_type.id_string());
   }
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_array_of
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_array_of(const array_of_exprt &expr) const
+{
+  array_typet array_type=to_array_type(expr.type());
+  z3::sort array_sort=convert_type(array_type.size().type());
+  z3::expr what=convert_expr(expr.what());
+  return z3::const_array(array_sort, what);
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_array
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_array(const array_exprt &expr) const
+{
+  array_typet array_type = to_array_type(expr.type());
+  exprt zero=constant_exprt(integer2binary(mp_integer(0),64),array_type.subtype());
+  z3::expr z3_array=convert_array_of(array_of_exprt(zero, array_type));
+  int i=0;
+  for (auto it=expr.operands().begin(); it!=expr.operands().end(); it++, i++)
+  {
+    z3_array = z3::store(z3_array, i, convert_expr(*it));
+  }
+  return z3_array;
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_index
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_index(const index_exprt &expr) const
+{
+  assert(expr.operands().size()==2);
+
+  const typet &array_op_type=ns.follow(expr.array().type());
+
+  if(array_op_type.id()==ID_array)
+  {
+    const z3::expr &array = convert_expr(expr.array());
+    const z3::expr &index = convert_expr(expr.index());
+    return z3::select(array, index);
+  }
+  else
+    UNEXPECTEDCASE("index with unsupported array type: "+array_op_type.id_string());
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_with
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_with(const with_exprt &expr) const
+{
+  // get rid of "with" that has more than three operands
+
+  assert(expr.operands().size()>=3);
+
+  if(expr.operands().size()>3)
+  {
+    std::size_t s=expr.operands().size();
+
+    // strip of the trailing two operands
+    exprt tmp=expr;
+    tmp.operands().resize(s-2);
+
+    with_exprt new_with_expr;
+    assert(new_with_expr.operands().size()==3);
+    new_with_expr.type()=expr.type();
+    new_with_expr.old()=tmp;
+    new_with_expr.where()=expr.operands()[s-2];
+    new_with_expr.new_value()=expr.operands()[s-1];
+
+    // recursive call
+    return convert_with(new_with_expr);
+  }
+  const typet &expr_type=ns.follow(expr.type());
+
+  if(expr_type.id()==ID_array)
+  {
+    const z3::expr &array = convert_expr(expr.old());
+    const z3::expr &index = convert_expr(expr.where());
+    const z3::expr &value = convert_expr(expr.new_value());
+    return z3::store(array, index, value);
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO convert_with: "+std::string(expr_type.id().c_str())+" "+from_expr(ns,"",expr)+"\n");
+  } 
 }

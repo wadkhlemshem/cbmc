@@ -138,6 +138,10 @@ protected:
   z3::expr convert_rounding_mode_FPA(const exprt &expr) const;  
   z3::expr convert_typecast(const typecast_exprt &expr) const;
   z3::expr convert_floatbv_typecast(const floatbv_typecast_exprt &expr) const;
+  z3::expr convert_array_of(const array_of_exprt &expr) const;
+  z3::expr convert_array(const array_exprt &expr) const;
+  z3::expr convert_index(const index_exprt &expr) const;
+  z3::expr convert_with(const with_exprt &expr) const;
 };
 
 #endif // CPROVER_SOLVERS_SMT2_Z3_CONV_H
