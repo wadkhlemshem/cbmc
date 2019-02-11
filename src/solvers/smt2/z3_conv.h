@@ -135,6 +135,7 @@ protected:
   // specific expressions go here
   z3::expr convert_constant(const constant_exprt &expr) const;
   z3::expr convert_identifier(const irep_idt &id, const typet &type) const;
+  z3::expr convert_rounding_mode_FPA(const exprt &expr) const;  
 };
 
 #endif // CPROVER_SOLVERS_SMT2_Z3_CONV_H

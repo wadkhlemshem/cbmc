@@ -448,3 +448,61 @@ z3::expr z3_convt::convert_identifier(const irep_idt &id, const typet &type) con
   }
   return fetch(id);
 }
+
+/*******************************************************************\
+
+Function: z3_convt::convert_rounding_mode_FPA
+
+  Inputs: The expression representing the rounding mode.
+
+ Outputs: z3_expression
+
+ Purpose: Converting a constant or symbolic rounding mode to SMT-LIB.
+          Only called when use_FPA_theory is enabled
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_rounding_mode_FPA(const exprt &expr) const
+{
+  assert(use_FPA_theory);
+
+  /* CProver uses the x86 numbering of the rounding-mode
+   *   0 == FE_TONEAREST
+   *   1 == FE_DOWNWARD
+   *   2 == FE_UPWARD
+   *   3 == FE_TOWARDZERO
+   * These literal values must be used rather than the macros
+   * the macros from fenv.h to avoid portability problems.
+   */
+
+  if(expr.id()==ID_constant)
+  {
+    const constant_exprt &cexpr=to_constant_expr(expr);
+
+    mp_integer value=binary2integer(id2string(cexpr.get_value()), false);
+
+    if(value==0)
+      return z3::to_expr(context,Z3_mk_fpa_round_nearest_ties_to_even(context));
+    else if(value==1)
+      return z3::to_expr(context,Z3_mk_fpa_round_toward_negative(context));
+    else if(value==2)
+      return z3::to_expr(context,Z3_mk_fpa_round_toward_positive(context));
+    else if(value==3)
+      return z3::to_expr(context,Z3_mk_fpa_round_toward_zero(context));
+    else
+      INVALIDEXPR("Unknown constant rounding mode with value "+id2string(cexpr.get_value()));
+  }
+  else
+  {
+    std::size_t width=to_bitvector_type(expr.type()).get_width();
+
+    // Need to make the choice above part of the model
+    return z3::ite(context.bv_val(0,width)==convert_expr(expr), 
+           z3::to_expr(context,Z3_mk_fpa_round_nearest_ties_to_even(context)), 
+           z3::ite(context.bv_val(1,width)==convert_expr(expr),
+           z3::to_expr(context,Z3_mk_fpa_round_toward_negative(context)),
+           z3::ite(context.bv_val(2,width)==convert_expr(expr),
+           z3::to_expr(context,Z3_mk_fpa_round_toward_positive(context)),
+           z3::to_expr(context,Z3_mk_fpa_round_toward_zero(context)))));
+  }
+}
