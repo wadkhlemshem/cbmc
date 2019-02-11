@@ -131,6 +131,9 @@ protected:
   std::vector<bool> boolean_assignment;
 
   z3::sort convert_type(const typet &type) const;
+
+  // specific expressions go here
+  z3::expr convert_constant(const constant_exprt &expr) const;
 };
 
 #endif // CPROVER_SOLVERS_SMT2_Z3_CONV_H

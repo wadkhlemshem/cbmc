@@ -64,5 +64,110 @@ Function: z3_convt::convert_expr
 
 z3::expr z3_convt::convert_expr(const exprt &expr) const
 {
-  UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
+  if(expr.id() == ID_constant)
+  {
+    return convert_constant(to_constant_expr(expr));
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO: convert type "+std::string(expr.id().c_str())+" "+ from_expr(ns,"",expr)+"\n");
+  }
+}
+
+/*******************************************************************\
+
+Function: z3_convt::convert_constant
+
+  Inputs:
+
+ Outputs:
+
+ Purpose:
+
+\*******************************************************************/
+
+z3::expr z3_convt::convert_constant(const constant_exprt &expr) const
+{
+  const typet &type=expr.type();
+  if(type.id()==ID_bool)
+  {
+    if(expr.is_true())
+      return context.bool_val(true);
+    else
+      return context.bool_val(false);
+  }
+  if(type.id()==ID_unsignedbv ||
+     type.id()==ID_signedbv ||
+     type.id()==ID_bv ||
+     type.id()==ID_c_enum ||
+     type.id()==ID_c_enum_tag ||
+     type.id()==ID_c_bool ||
+     type.id()==ID_incomplete_c_enum ||
+     type.id()==ID_c_bit_field)
+  {
+    std::size_t width=boolbv_width(type);
+    std::string value=integer2string(binary2integer(id2string(expr.get_value()),false));
+    return context.bv_val(value.c_str(), width);
+  }
+  else if(type.id()==ID_fixedbv)
+  {
+    fixedbv_spect spec(to_fixedbv_type(type));
+    std::string value=integer2string(binary2integer(id2string(expr.get_value()),false));
+    return context.bv_val(value.c_str(), spec.width);
+  }
+  else if(type.id()==ID_floatbv)
+  {
+    const floatbv_typet &floatbv_type=to_floatbv_type(type);
+    if(use_FPA_theory)
+    {
+      ieee_floatt v=ieee_floatt(expr);
+      if(v.is_NaN())
+      {
+        UNEXPECTEDCASE("TODO: Conversion of NaN");
+      }
+      else if(v.is_infinity())
+      {
+        if(v.get_sign())
+        {
+          UNEXPECTEDCASE("TODO: Conversion of -oo");
+        }
+        else
+        {
+          UNEXPECTEDCASE("TODO: Conversion of oo");
+        }
+      }
+      else
+      {
+        mp_integer binary=v.pack();
+        std::string binaryString(integer2binary(v.pack(),v.spec.width()));
+        UNEXPECTEDCASE("TODO: Conversion of floatbv with FPA");
+      }
+    }
+    else
+    {
+      ieee_float_spect spec(floatbv_type);
+      std::string value=integer2string(binary2integer(id2string(expr.get_value()),false));
+      return context.bv_val(value.c_str(), spec.width());
+    }
+  }
+  else if (type.id()==ID_integer)
+  {
+    return context.int_val(expr.get_value().c_str());
+  }
+  else if (type.id()==ID_pointer)
+  {
+    const irep_idt &value=expr.get(ID_value);
+    if (value==ID_NULL)
+    {
+      return context.bv_val(0, boolbv_width(type));
+    }
+    else
+    {
+      UNEXPECTEDCASE("unknown pointer constant: "+id2string(value)+"\n");
+    }
+  }
+  else
+  {
+    UNEXPECTEDCASE("TODO constant: "+std::string(type.id().c_str())+" "+from_expr(ns,"",expr)+"\n");
+  }
 }
