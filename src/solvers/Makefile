@@ -73,7 +73,7 @@ endif
 
 ifneq ($(Z3),)
   Z3_SRC=smt2/z3_conv.cpp
-  Z3_INCLUDE=-I $(Z3)/src
+  Z3_INCLUDE=-I $(Z3)/src/api
   Z3_LIB=$(Z3)/build/libz3.a
   CP_CXXFLAGS += -DHAVE_Z3
 endif

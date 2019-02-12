@@ -26,7 +26,7 @@ Author: Johanan Wahlang, wadkhlemshem@gmail.com
 #include <solvers/prop/prop_conv.h>
 #include <solvers/flattening/boolbv_width.h>
 #include <solvers/flattening/pointer_logic.h>
-#include <z3++.h>
+#include <c++/z3++.h>
 
 class typecast_exprt;
 class constant_exprt;

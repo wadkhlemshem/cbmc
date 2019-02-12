@@ -31,6 +31,10 @@ Author(s): Johanan Wahlang, wadkhlemshem@gmail.com
 
 #include "z3_conv.h"
 
+#ifndef HAVE_Z3
+#error "Expected HAVE_Z3"
+#endif
+
 #include <stdlib.h>
 #include <sstream>
 #include <bitset>
